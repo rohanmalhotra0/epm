@@ -1,0 +1,112 @@
+[
+  {
+    "name": "Account",
+    "type": "account",
+    "cubes": [
+      "OEP_FS",
+      "OEP_WFP",
+      "OEP_DCSH",
+      "OEP_REP"
+    ],
+    "dense": true,
+    "application": "MCWPCF"
+  },
+  {
+    "name": "Period",
+    "type": "period",
+    "cubes": [
+      "OEP_FS",
+      "OEP_WFP",
+      "OEP_DCSH",
+      "OEP_REP"
+    ],
+    "dense": true,
+    "application": "MCWPCF"
+  },
+  {
+    "name": "Years",
+    "type": "years",
+    "cubes": [
+      "OEP_FS",
+      "OEP_WFP",
+      "OEP_DCSH",
+      "OEP_REP"
+    ],
+    "dense": false,
+    "application": "MCWPCF"
+  },
+  {
+    "name": "Scenario",
+    "type": "scenario",
+    "cubes": [
+      "OEP_FS",
+      "OEP_WFP",
+      "OEP_DCSH",
+      "OEP_REP"
+    ],
+    "dense": false,
+    "application": "MCWPCF"
+  },
+  {
+    "name": "Version",
+    "type": "version",
+    "cubes": [
+      "OEP_FS",
+      "OEP_WFP",
+      "OEP_DCSH",
+      "OEP_REP"
+    ],
+    "dense": false,
+    "application": "MCWPCF"
+  },
+  {
+    "name": "Entity",
+    "type": "entity",
+    "cubes": [
+      "OEP_FS",
+      "OEP_WFP",
+      "OEP_DCSH",
+      "OEP_REP"
+    ],
+    "dense": false,
+    "application": "MCWPCF"
+  },
+  {
+    "name": "Currency",
+    "type": "currency",
+    "cubes": [
+      "OEP_FS",
+      "OEP_DCSH",
+      "OEP_REP"
+    ],
+    "dense": false,
+    "application": "MCWPCF"
+  },
+  {
+    "name": "Employee",
+    "type": "generic",
+    "cubes": [
+      "OEP_WFP"
+    ],
+    "dense": false,
+    "application": "MCWPCF"
+  },
+  {
+    "name": "Job",
+    "type": "generic",
+    "cubes": [
+      "OEP_WFP"
+    ],
+    "dense": false,
+    "application": "MCWPCF"
+  },
+  {
+    "name": "BankAccount",
+    "type": "generic",
+    "cubes": [
+      "OEP_DCSH"
+    ],
+    "dense": false,
+    "application": "MCWPCF"
+  }
+]

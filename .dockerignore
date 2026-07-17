@@ -1,0 +1,18 @@
+# Keep the build context small and free of local state / secrets.
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+frontend/node_modules
+frontend/dist
+**/.DS_Store
+.git
+data
+/data
+*.epwcontext
+**/.env
+!.env.example
+scratchpad

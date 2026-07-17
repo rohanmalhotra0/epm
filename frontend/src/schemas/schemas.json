@@ -1,0 +1,5415 @@
+{
+  "$defs": {
+    "ApplicationRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "default": "planning",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ApplicationRecord",
+      "type": "object"
+    },
+    "ArtifactKind": {
+      "enum": [
+        "formSpec",
+        "reportSpec"
+      ],
+      "title": "ArtifactKind",
+      "type": "string"
+    },
+    "ArtifactOut": {
+      "additionalProperties": false,
+      "properties": {
+        "checksum": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checksum"
+        },
+        "contextVersion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Contextversion"
+        },
+        "createdAt": {
+          "title": "Createdat",
+          "type": "string"
+        },
+        "hasContent": {
+          "default": false,
+          "title": "Hascontent",
+          "type": "boolean"
+        },
+        "hasFile": {
+          "default": false,
+          "title": "Hasfile",
+          "type": "boolean"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Metadata",
+          "type": "object"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "payload": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Payload"
+        },
+        "projectId": {
+          "title": "Projectid",
+          "type": "string"
+        },
+        "updatedAt": {
+          "title": "Updatedat",
+          "type": "string"
+        },
+        "version": {
+          "default": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "projectId",
+        "kind",
+        "name",
+        "createdAt",
+        "updatedAt"
+      ],
+      "title": "ArtifactOut",
+      "type": "object"
+    },
+    "ArtifactType": {
+      "enum": [
+        "planningForm",
+        "businessRule",
+        "calcScript",
+        "groovyRule",
+        "ruleset",
+        "contextPackage"
+      ],
+      "title": "ArtifactType",
+      "type": "string"
+    },
+    "AxisMember": {
+      "additionalProperties": false,
+      "description": "A dimension placed on an axis with its selection and per-axis options.",
+      "properties": {
+        "dimension": {
+          "title": "Dimension",
+          "type": "string"
+        },
+        "selection": {
+          "$ref": "#/$defs/MemberSelection"
+        },
+        "suppressMissing": {
+          "default": false,
+          "title": "Suppressmissing",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "dimension",
+        "selection"
+      ],
+      "title": "AxisMember",
+      "type": "object"
+    },
+    "BusinessRuleAssociation": {
+      "additionalProperties": false,
+      "properties": {
+        "associationType": {
+          "default": "manualLaunch",
+          "description": "actionMenu | runAfterSave | runBeforeSave | manualLaunch | epmWizardOnly",
+          "title": "Associationtype",
+          "type": "string"
+        },
+        "promptMappings": {
+          "items": {
+            "$ref": "#/$defs/PromptMapping"
+          },
+          "title": "Promptmappings",
+          "type": "array"
+        },
+        "ruleName": {
+          "title": "Rulename",
+          "type": "string"
+        },
+        "ruleType": {
+          "default": "businessRule",
+          "title": "Ruletype",
+          "type": "string"
+        }
+      },
+      "required": [
+        "ruleName"
+      ],
+      "title": "BusinessRuleAssociation",
+      "type": "object"
+    },
+    "CellIntersection": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "cube": {
+          "title": "Cube",
+          "type": "string"
+        },
+        "expression": {
+          "default": "",
+          "title": "Expression",
+          "type": "string"
+        },
+        "members": {
+          "items": {
+            "$ref": "#/$defs/CellMember"
+          },
+          "title": "Members",
+          "type": "array"
+        },
+        "note": {
+          "default": "Structural only \u2014 no data value is retrieved.",
+          "title": "Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "application",
+        "cube"
+      ],
+      "title": "CellIntersection",
+      "type": "object"
+    },
+    "CellMember": {
+      "additionalProperties": false,
+      "properties": {
+        "dimension": {
+          "title": "Dimension",
+          "type": "string"
+        },
+        "member": {
+          "title": "Member",
+          "type": "string"
+        },
+        "source": {
+          "default": "default",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dimension",
+        "member"
+      ],
+      "title": "CellMember",
+      "type": "object"
+    },
+    "CellOverride": {
+      "additionalProperties": false,
+      "description": "A per-cell edit produced by an inline prompt in the artifact panel.",
+      "properties": {
+        "format": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SmartFormat"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Per-cell formatting override"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Analyst annotation shown on hover",
+          "title": "Note"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Override the sampled value",
+          "title": "Value"
+        }
+      },
+      "title": "CellOverride",
+      "type": "object"
+    },
+    "ChartType": {
+      "enum": [
+        "none",
+        "bar",
+        "line",
+        "area",
+        "pie"
+      ],
+      "title": "ChartType",
+      "type": "string"
+    },
+    "ChatAction": {
+      "additionalProperties": false,
+      "description": "A clickable option. Clicking records ``value`` as a normal user message\n(spec section 8), keeping the conversation reproducible.",
+      "properties": {
+        "disabled": {
+          "default": false,
+          "title": "Disabled",
+          "type": "boolean"
+        },
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "style": {
+          "default": "secondary",
+          "title": "Style",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "value"
+      ],
+      "title": "ChatAction",
+      "type": "object"
+    },
+    "ChatBlock": {
+      "additionalProperties": false,
+      "description": "Generic typed block envelope carried inside an assistant message.",
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "title": "Data",
+          "type": "object"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ChatBlockType"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "title": "ChatBlock",
+      "type": "object"
+    },
+    "ChatBlockType": {
+      "enum": [
+        "markdown",
+        "code",
+        "formPreview",
+        "formSpecification",
+        "reportPreview",
+        "reportSpecification",
+        "rulePreview",
+        "runtimePromptForm",
+        "memberSearchResults",
+        "contextSummary",
+        "validationReport",
+        "deploymentPlan",
+        "deploymentProgress",
+        "deploymentResult",
+        "diff",
+        "confirmation",
+        "downloadableFile",
+        "errorDiagnostics",
+        "connectionStatus",
+        "toolInvocation",
+        "processSteps",
+        "cubeArchitecture",
+        "cellIntersection",
+        "cubeComparison",
+        "dimensionCoverage",
+        "dimensionHierarchy"
+      ],
+      "title": "ChatBlockType",
+      "type": "string"
+    },
+    "Comparator": {
+      "enum": [
+        "lt",
+        "le",
+        "gt",
+        "ge",
+        "eq",
+        "ne"
+      ],
+      "title": "Comparator",
+      "type": "string"
+    },
+    "CompletenessStatus": {
+      "enum": [
+        "complete",
+        "partial",
+        "derived",
+        "unavailable",
+        "notRequested"
+      ],
+      "title": "CompletenessStatus",
+      "type": "string"
+    },
+    "ConditionalRule": {
+      "additionalProperties": false,
+      "description": "A conditional-formatting rule applied to a cell's numeric value.",
+      "properties": {
+        "background": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hex cell background",
+          "title": "Background"
+        },
+        "bold": {
+          "default": false,
+          "title": "Bold",
+          "type": "boolean"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Hex text colour, e.g. #da1e28",
+          "title": "Color"
+        },
+        "comparator": {
+          "$ref": "#/$defs/Comparator",
+          "default": "gt"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "value": {
+          "default": 0.0,
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "title": "ConditionalRule",
+      "type": "object"
+    },
+    "Confidence": {
+      "enum": [
+        "exact",
+        "high",
+        "medium",
+        "low"
+      ],
+      "title": "Confidence",
+      "type": "string"
+    },
+    "ConfirmationPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "actions": {
+          "items": {
+            "$ref": "#/$defs/ChatAction"
+          },
+          "title": "Actions",
+          "type": "array"
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
+        },
+        "prompt": {
+          "title": "Prompt",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity",
+          "default": "info"
+        }
+      },
+      "required": [
+        "prompt",
+        "actions"
+      ],
+      "title": "ConfirmationPayload",
+      "type": "object"
+    },
+    "ConnectionResult": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Application"
+        },
+        "connected": {
+          "title": "Connected",
+          "type": "boolean"
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
+        },
+        "diagnostics": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Diagnostics",
+          "type": "object"
+        },
+        "environmentId": {
+          "title": "Environmentid",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "connected",
+        "environmentId",
+        "message"
+      ],
+      "title": "ConnectionResult",
+      "type": "object"
+    },
+    "ConnectionStatusPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Application"
+        },
+        "classification": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EnvironmentClassification"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "connected": {
+          "title": "Connected",
+          "type": "boolean"
+        },
+        "contextStatus": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Contextstatus"
+        },
+        "demoMode": {
+          "default": true,
+          "title": "Demomode",
+          "type": "boolean"
+        },
+        "environmentName": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Environmentname"
+        }
+      },
+      "required": [
+        "connected"
+      ],
+      "title": "ConnectionStatusPayload",
+      "type": "object"
+    },
+    "ContextManifest": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "checksums": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Checksums",
+          "type": "object"
+        },
+        "contextVersion": {
+          "title": "Contextversion",
+          "type": "string"
+        },
+        "counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Counts",
+          "type": "object"
+        },
+        "environmentClassification": {
+          "$ref": "#/$defs/EnvironmentClassification"
+        },
+        "environmentFingerprint": {
+          "title": "Environmentfingerprint",
+          "type": "string"
+        },
+        "format": {
+          "default": "epwcontext",
+          "title": "Format",
+          "type": "string"
+        },
+        "generatedAt": {
+          "title": "Generatedat",
+          "type": "string"
+        },
+        "includedFiles": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Includedfiles",
+          "type": "array"
+        },
+        "knownLimitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Knownlimitations",
+          "type": "array"
+        },
+        "mode": {
+          "$ref": "#/$defs/ContextMode"
+        },
+        "schemaVersion": {
+          "default": "1.0.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "sections": {
+          "items": {
+            "$ref": "#/$defs/ContextSectionStatus"
+          },
+          "title": "Sections",
+          "type": "array"
+        }
+      },
+      "required": [
+        "generatedAt",
+        "application",
+        "environmentClassification",
+        "environmentFingerprint",
+        "mode",
+        "contextVersion"
+      ],
+      "title": "ContextManifest",
+      "type": "object"
+    },
+    "ContextMode": {
+      "enum": [
+        "quick",
+        "deep",
+        "imported"
+      ],
+      "title": "ContextMode",
+      "type": "string"
+    },
+    "ContextSectionStatus": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "default": 0,
+          "title": "Count",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "status": {
+          "$ref": "#/$defs/CompletenessStatus"
+        }
+      },
+      "required": [
+        "name",
+        "status"
+      ],
+      "title": "ContextSectionStatus",
+      "type": "object"
+    },
+    "ContextVersionOut": {
+      "additionalProperties": false,
+      "properties": {
+        "active": {
+          "default": false,
+          "title": "Active",
+          "type": "boolean"
+        },
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "counts": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Counts",
+          "type": "object"
+        },
+        "createdAt": {
+          "title": "Createdat",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "manifest": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Manifest",
+          "type": "object"
+        },
+        "mode": {
+          "title": "Mode",
+          "type": "string"
+        },
+        "projectId": {
+          "title": "Projectid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "projectId",
+        "application",
+        "label",
+        "mode",
+        "createdAt"
+      ],
+      "title": "ContextVersionOut",
+      "type": "object"
+    },
+    "ConversationOut": {
+      "additionalProperties": false,
+      "properties": {
+        "archived": {
+          "default": false,
+          "title": "Archived",
+          "type": "boolean"
+        },
+        "createdAt": {
+          "title": "Createdat",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "lastMessageAt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lastmessageat"
+        },
+        "messageCount": {
+          "default": 0,
+          "title": "Messagecount",
+          "type": "integer"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model"
+        },
+        "pinned": {
+          "default": false,
+          "title": "Pinned",
+          "type": "boolean"
+        },
+        "projectId": {
+          "title": "Projectid",
+          "type": "string"
+        },
+        "provider": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "updatedAt": {
+          "title": "Updatedat",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "projectId",
+        "title",
+        "createdAt",
+        "updatedAt"
+      ],
+      "title": "ConversationOut",
+      "type": "object"
+    },
+    "CrossDimArea": {
+      "additionalProperties": false,
+      "properties": {
+        "area": {
+          "title": "Area",
+          "type": "string"
+        },
+        "count": {
+          "title": "Count",
+          "type": "integer"
+        },
+        "detail": {
+          "title": "Detail",
+          "type": "string"
+        }
+      },
+      "required": [
+        "area",
+        "detail",
+        "count"
+      ],
+      "title": "CrossDimArea",
+      "type": "object"
+    },
+    "CrossDimSize": {
+      "additionalProperties": false,
+      "properties": {
+        "areas": {
+          "items": {
+            "$ref": "#/$defs/CrossDimArea"
+          },
+          "title": "Areas",
+          "type": "array"
+        },
+        "cube": {
+          "title": "Cube",
+          "type": "string"
+        },
+        "label": {
+          "default": "Potential form intersections",
+          "title": "Label",
+          "type": "string"
+        },
+        "sizeEstimate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SizeEstimate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "totalPotentialCells": {
+          "default": 0,
+          "title": "Totalpotentialcells",
+          "type": "integer"
+        },
+        "warning": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Warning"
+        }
+      },
+      "required": [
+        "cube"
+      ],
+      "title": "CrossDimSize",
+      "type": "object"
+    },
+    "CubeArchitecture": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "cube": {
+          "title": "Cube",
+          "type": "string"
+        },
+        "cubeType": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cubetype"
+        },
+        "dimensionCount": {
+          "default": 0,
+          "title": "Dimensioncount",
+          "type": "integer"
+        },
+        "dimensions": {
+          "items": {
+            "$ref": "#/$defs/DimensionNode"
+          },
+          "title": "Dimensions",
+          "type": "array"
+        },
+        "formCoverage": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FormCoverage"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "formName": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Formname"
+        }
+      },
+      "required": [
+        "application",
+        "cube"
+      ],
+      "title": "CubeArchitecture",
+      "type": "object"
+    },
+    "CubeComparison": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "cubeA": {
+          "title": "Cubea",
+          "type": "string"
+        },
+        "cubeB": {
+          "title": "Cubeb",
+          "type": "string"
+        },
+        "onlyA": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Onlya",
+          "type": "array"
+        },
+        "onlyB": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Onlyb",
+          "type": "array"
+        },
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/CubeComparisonRow"
+          },
+          "title": "Rows",
+          "type": "array"
+        },
+        "shared": {
+          "default": 0,
+          "title": "Shared",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "application",
+        "cubeA",
+        "cubeB"
+      ],
+      "title": "CubeComparison",
+      "type": "object"
+    },
+    "CubeComparisonRow": {
+      "additionalProperties": false,
+      "properties": {
+        "detailA": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detaila"
+        },
+        "detailB": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detailb"
+        },
+        "dimension": {
+          "title": "Dimension",
+          "type": "string"
+        },
+        "inA": {
+          "title": "Ina",
+          "type": "boolean"
+        },
+        "inB": {
+          "title": "Inb",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "dimension",
+        "inA",
+        "inB"
+      ],
+      "title": "CubeComparisonRow",
+      "type": "object"
+    },
+    "CubeRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "dimensions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dimensions",
+          "type": "array"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "default": "aso/bso",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "application"
+      ],
+      "title": "CubeRecord",
+      "type": "object"
+    },
+    "DeploymentOperation": {
+      "enum": [
+        "create",
+        "update",
+        "replace",
+        "delete"
+      ],
+      "title": "DeploymentOperation",
+      "type": "string"
+    },
+    "DeploymentOut": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Application"
+        },
+        "approved": {
+          "title": "Approved",
+          "type": "boolean"
+        },
+        "artifactName": {
+          "title": "Artifactname",
+          "type": "string"
+        },
+        "artifactType": {
+          "title": "Artifacttype",
+          "type": "string"
+        },
+        "checksum": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checksum"
+        },
+        "classification": {
+          "title": "Classification",
+          "type": "string"
+        },
+        "contextVersion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Contextversion"
+        },
+        "conversationId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conversationid"
+        },
+        "createdAt": {
+          "title": "Createdat",
+          "type": "string"
+        },
+        "demoMode": {
+          "title": "Demomode",
+          "type": "boolean"
+        },
+        "environmentName": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Environmentname"
+        },
+        "errors": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Errors",
+          "type": "array"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "operation": {
+          "title": "Operation",
+          "type": "string"
+        },
+        "operationClass": {
+          "title": "Operationclass",
+          "type": "string"
+        },
+        "projectId": {
+          "title": "Projectid",
+          "type": "string"
+        },
+        "report": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Report",
+          "type": "object"
+        },
+        "rollbackAvailable": {
+          "default": false,
+          "title": "Rollbackavailable",
+          "type": "boolean"
+        },
+        "success": {
+          "title": "Success",
+          "type": "boolean"
+        },
+        "verified": {
+          "title": "Verified",
+          "type": "boolean"
+        },
+        "warnings": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "projectId",
+        "classification",
+        "artifactName",
+        "artifactType",
+        "operation",
+        "operationClass",
+        "approved",
+        "success",
+        "verified",
+        "demoMode",
+        "createdAt"
+      ],
+      "title": "DeploymentOut",
+      "type": "object"
+    },
+    "DeploymentPlan": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "artifactName": {
+          "title": "Artifactname",
+          "type": "string"
+        },
+        "artifactType": {
+          "$ref": "#/$defs/ArtifactType"
+        },
+        "backupRequired": {
+          "default": false,
+          "title": "Backuprequired",
+          "type": "boolean"
+        },
+        "contextFresh": {
+          "default": true,
+          "title": "Contextfresh",
+          "type": "boolean"
+        },
+        "cube": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cube"
+        },
+        "demoMode": {
+          "default": true,
+          "title": "Demomode",
+          "type": "boolean"
+        },
+        "environmentClassification": {
+          "$ref": "#/$defs/EnvironmentClassification"
+        },
+        "environmentName": {
+          "title": "Environmentname",
+          "type": "string"
+        },
+        "folder": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Folder"
+        },
+        "operation": {
+          "$ref": "#/$defs/DeploymentOperation"
+        },
+        "operationClass": {
+          "$ref": "#/$defs/OperationClass",
+          "default": "modifying"
+        },
+        "overwritesExisting": {
+          "default": false,
+          "title": "Overwritesexisting",
+          "type": "boolean"
+        },
+        "requiresConfirmationPhrase": {
+          "default": false,
+          "title": "Requiresconfirmationphrase",
+          "type": "boolean"
+        },
+        "schemaVersion": {
+          "default": "1.0.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/DeploymentStep"
+          },
+          "title": "Steps",
+          "type": "array"
+        },
+        "validationPassed": {
+          "default": false,
+          "title": "Validationpassed",
+          "type": "boolean"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "artifactType",
+        "artifactName",
+        "application",
+        "environmentName",
+        "environmentClassification",
+        "operation"
+      ],
+      "title": "DeploymentPlan",
+      "type": "object"
+    },
+    "DeploymentReport": {
+      "additionalProperties": false,
+      "properties": {
+        "backupArtifact": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Backupartifact"
+        },
+        "durationMs": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Durationms"
+        },
+        "endedAt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Endedat"
+        },
+        "errors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Errors",
+          "type": "array"
+        },
+        "jobId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Jobid"
+        },
+        "jobResult": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Jobresult"
+        },
+        "packageChecksum": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Packagechecksum"
+        },
+        "plan": {
+          "$ref": "#/$defs/DeploymentPlan"
+        },
+        "rollbackAvailable": {
+          "default": false,
+          "title": "Rollbackavailable",
+          "type": "boolean"
+        },
+        "startedAt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Startedat"
+        },
+        "state": {
+          "$ref": "#/$defs/FormWorkflowState",
+          "default": "DEPLOYING"
+        },
+        "success": {
+          "default": false,
+          "title": "Success",
+          "type": "boolean"
+        },
+        "verificationNotes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Verificationnotes",
+          "type": "array"
+        },
+        "verified": {
+          "default": false,
+          "title": "Verified",
+          "type": "boolean"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "plan"
+      ],
+      "title": "DeploymentReport",
+      "type": "object"
+    },
+    "DeploymentStep": {
+      "additionalProperties": false,
+      "properties": {
+        "detail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
+        },
+        "endedAt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Endedat"
+        },
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "startedAt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Startedat"
+        },
+        "status": {
+          "$ref": "#/$defs/DeploymentStepStatus",
+          "default": "pending"
+        }
+      },
+      "required": [
+        "key",
+        "label"
+      ],
+      "title": "DeploymentStep",
+      "type": "object"
+    },
+    "DeploymentStepStatus": {
+      "enum": [
+        "pending",
+        "running",
+        "completed",
+        "failed",
+        "skipped"
+      ],
+      "title": "DeploymentStepStatus",
+      "type": "string"
+    },
+    "DiagnosticsReport": {
+      "additionalProperties": false,
+      "properties": {
+        "activeModel": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Activemodel"
+        },
+        "activeProvider": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Activeprovider"
+        },
+        "appVersion": {
+          "title": "Appversion",
+          "type": "string"
+        },
+        "demoMode": {
+          "default": true,
+          "title": "Demomode",
+          "type": "boolean"
+        },
+        "featureFlags": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Featureflags",
+          "type": "object"
+        },
+        "redactionHealthy": {
+          "default": true,
+          "title": "Redactionhealthy",
+          "type": "boolean"
+        },
+        "schemaVersions": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Schemaversions",
+          "type": "object"
+        },
+        "storagePath": {
+          "title": "Storagepath",
+          "type": "string"
+        },
+        "subsystems": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SubsystemStatus"
+          },
+          "title": "Subsystems",
+          "type": "array"
+        }
+      },
+      "required": [
+        "appVersion",
+        "storagePath"
+      ],
+      "title": "DiagnosticsReport",
+      "type": "object"
+    },
+    "DiffPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "after": {
+          "title": "After",
+          "type": "string"
+        },
+        "before": {
+          "title": "Before",
+          "type": "string"
+        },
+        "language": {
+          "default": "json",
+          "title": "Language",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "before",
+        "after"
+      ],
+      "title": "DiffPayload",
+      "type": "object"
+    },
+    "DimensionCoverageReport": {
+      "additionalProperties": false,
+      "properties": {
+        "coveredDimensions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Covereddimensions",
+          "type": "array"
+        },
+        "cube": {
+          "title": "Cube",
+          "type": "string"
+        },
+        "duplicateDimensions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Duplicatedimensions",
+          "type": "array"
+        },
+        "invalidSelections": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Invalidselections",
+          "type": "array"
+        },
+        "missingDimensions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Missingdimensions",
+          "type": "array"
+        },
+        "suggestions": {
+          "items": {
+            "$ref": "#/$defs/MissingSuggestion"
+          },
+          "title": "Suggestions",
+          "type": "array"
+        },
+        "valid": {
+          "default": true,
+          "title": "Valid",
+          "type": "boolean"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "cube"
+      ],
+      "title": "DimensionCoverageReport",
+      "type": "object"
+    },
+    "DimensionHierarchy": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "cap": {
+          "default": 50,
+          "title": "Cap",
+          "type": "integer"
+        },
+        "dimension": {
+          "title": "Dimension",
+          "type": "string"
+        },
+        "nodes": {
+          "items": {
+            "$ref": "#/$defs/HierarchyNode"
+          },
+          "title": "Nodes",
+          "type": "array"
+        },
+        "root": {
+          "title": "Root",
+          "type": "string"
+        },
+        "truncated": {
+          "default": false,
+          "title": "Truncated",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "application",
+        "dimension",
+        "root"
+      ],
+      "title": "DimensionHierarchy",
+      "type": "object"
+    },
+    "DimensionNode": {
+      "additionalProperties": false,
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alias"
+        },
+        "group": {
+          "default": "custom",
+          "title": "Group",
+          "type": "string"
+        },
+        "memberCount": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Membercount"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "rootMembers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rootmembers",
+          "type": "array"
+        },
+        "selectedMember": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selectedmember"
+        },
+        "selectionSummary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selectionsummary"
+        },
+        "status": {
+          "default": "available",
+          "title": "Status",
+          "type": "string"
+        },
+        "type": {
+          "default": "custom",
+          "title": "Type",
+          "type": "string"
+        },
+        "usedOnAxis": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Usedonaxis"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "DimensionNode",
+      "type": "object"
+    },
+    "DimensionRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "cubes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Cubes",
+          "type": "array"
+        },
+        "dense": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dense"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "default": "generic",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "application"
+      ],
+      "title": "DimensionRecord",
+      "type": "object"
+    },
+    "DisplayOptions": {
+      "additionalProperties": false,
+      "properties": {
+        "aliasTable": {
+          "default": "Default",
+          "title": "Aliastable",
+          "type": "string"
+        },
+        "hiddenMembers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Hiddenmembers",
+          "type": "array"
+        },
+        "readOnly": {
+          "default": false,
+          "title": "Readonly",
+          "type": "boolean"
+        },
+        "suppressMissingColumns": {
+          "default": false,
+          "title": "Suppressmissingcolumns",
+          "type": "boolean"
+        },
+        "suppressMissingRows": {
+          "default": true,
+          "title": "Suppressmissingrows",
+          "type": "boolean"
+        },
+        "useAliases": {
+          "default": true,
+          "title": "Usealiases",
+          "type": "boolean"
+        }
+      },
+      "title": "DisplayOptions",
+      "type": "object"
+    },
+    "DownloadableFilePayload": {
+      "additionalProperties": false,
+      "properties": {
+        "artifactId": {
+          "title": "Artifactid",
+          "type": "string"
+        },
+        "checksum": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checksum"
+        },
+        "filename": {
+          "title": "Filename",
+          "type": "string"
+        },
+        "mediaType": {
+          "default": "application/octet-stream",
+          "title": "Mediatype",
+          "type": "string"
+        },
+        "sizeBytes": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sizebytes"
+        }
+      },
+      "required": [
+        "filename",
+        "artifactId"
+      ],
+      "title": "DownloadableFilePayload",
+      "type": "object"
+    },
+    "EditScope": {
+      "enum": [
+        "artifact",
+        "table",
+        "cell"
+      ],
+      "title": "EditScope",
+      "type": "string"
+    },
+    "EnvironmentClassification": {
+      "description": "DEV / TEST / PROD gating (spec sections 13, 39).",
+      "enum": [
+        "development",
+        "test",
+        "production"
+      ],
+      "title": "EnvironmentClassification",
+      "type": "string"
+    },
+    "EnvironmentOut": {
+      "additionalProperties": false,
+      "properties": {
+        "authMethod": {
+          "default": "passwordInMemory",
+          "title": "Authmethod",
+          "type": "string"
+        },
+        "baseUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseurl"
+        },
+        "classification": {
+          "$ref": "#/$defs/EnvironmentClassification"
+        },
+        "connected": {
+          "default": false,
+          "title": "Connected",
+          "type": "boolean"
+        },
+        "demo": {
+          "default": true,
+          "title": "Demo",
+          "type": "boolean"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "lastConnectedAt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lastconnectedat"
+        },
+        "lastContextRefreshAt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lastcontextrefreshat"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "preferredApplication": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Preferredapplication"
+        },
+        "projectId": {
+          "title": "Projectid",
+          "type": "string"
+        },
+        "username": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Username"
+        }
+      },
+      "required": [
+        "id",
+        "projectId",
+        "name",
+        "classification"
+      ],
+      "title": "EnvironmentOut",
+      "type": "object"
+    },
+    "ErrorDiagnosticsPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "actions": {
+          "items": {
+            "$ref": "#/$defs/ChatAction"
+          },
+          "title": "Actions",
+          "type": "array"
+        },
+        "category": {
+          "title": "Category",
+          "type": "string"
+        },
+        "likelyCause": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Likelycause"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "suggestedAction": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Suggestedaction"
+        },
+        "technicalDetail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Technicaldetail"
+        }
+      },
+      "required": [
+        "category",
+        "message"
+      ],
+      "title": "ErrorDiagnosticsPayload",
+      "type": "object"
+    },
+    "FormCoverage": {
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Columns",
+          "type": "array"
+        },
+        "duplicate": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Duplicate",
+          "type": "array"
+        },
+        "implicitOrDefault": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Implicitordefault",
+          "type": "array"
+        },
+        "missing": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Missing",
+          "type": "array"
+        },
+        "pages": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Pages",
+          "type": "array"
+        },
+        "pov": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Pov",
+          "type": "array"
+        },
+        "rows": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Rows",
+          "type": "array"
+        }
+      },
+      "title": "FormCoverage",
+      "type": "object"
+    },
+    "FormPreview": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "columnLabels": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Columnlabels",
+          "type": "array"
+        },
+        "columns": {
+          "items": {
+            "$ref": "#/$defs/PreviewAxis"
+          },
+          "title": "Columns",
+          "type": "array"
+        },
+        "columnsTruncated": {
+          "default": false,
+          "title": "Columnstruncated",
+          "type": "boolean"
+        },
+        "cube": {
+          "title": "Cube",
+          "type": "string"
+        },
+        "folder": {
+          "title": "Folder",
+          "type": "string"
+        },
+        "formName": {
+          "title": "Formname",
+          "type": "string"
+        },
+        "hiddenMembers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Hiddenmembers",
+          "type": "array"
+        },
+        "pages": {
+          "items": {
+            "$ref": "#/$defs/PreviewAxis"
+          },
+          "title": "Pages",
+          "type": "array"
+        },
+        "pov": {
+          "items": {
+            "$ref": "#/$defs/PreviewAxis"
+          },
+          "title": "Pov",
+          "type": "array"
+        },
+        "referenceTemplate": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Referencetemplate"
+        },
+        "rowLabels": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rowlabels",
+          "type": "array"
+        },
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/PreviewAxis"
+          },
+          "title": "Rows",
+          "type": "array"
+        },
+        "rowsTruncated": {
+          "default": false,
+          "title": "Rowstruncated",
+          "type": "boolean"
+        },
+        "ruleAssociations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Ruleassociations",
+          "type": "array"
+        },
+        "sizeEstimate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SizeEstimate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "useAliases": {
+          "default": true,
+          "title": "Usealiases",
+          "type": "boolean"
+        },
+        "validationStatus": {
+          "default": "valid",
+          "title": "Validationstatus",
+          "type": "string"
+        }
+      },
+      "required": [
+        "formName",
+        "application",
+        "cube",
+        "folder"
+      ],
+      "title": "FormPreview",
+      "type": "object"
+    },
+    "FormRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "cube": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cube"
+        },
+        "definition": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Definition"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "folder": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Folder"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "application"
+      ],
+      "title": "FormRecord",
+      "type": "object"
+    },
+    "FormSpecification": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "artifactType": {
+          "$ref": "#/$defs/ArtifactType",
+          "default": "planningForm"
+        },
+        "businessRuleAssociations": {
+          "items": {
+            "$ref": "#/$defs/BusinessRuleAssociation"
+          },
+          "title": "Businessruleassociations",
+          "type": "array"
+        },
+        "columns": {
+          "items": {
+            "$ref": "#/$defs/AxisMember"
+          },
+          "title": "Columns",
+          "type": "array"
+        },
+        "contextVersion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Contextversion"
+        },
+        "cube": {
+          "title": "Cube",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "display": {
+          "$ref": "#/$defs/DisplayOptions"
+        },
+        "folder": {
+          "default": "EPM Wizard/Generated",
+          "title": "Folder",
+          "type": "string"
+        },
+        "generation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GenerationMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "pages": {
+          "items": {
+            "$ref": "#/$defs/AxisMember"
+          },
+          "title": "Pages",
+          "type": "array"
+        },
+        "pov": {
+          "items": {
+            "$ref": "#/$defs/AxisMember"
+          },
+          "title": "Pov",
+          "type": "array"
+        },
+        "referenceTemplate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReferenceTemplate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/AxisMember"
+          },
+          "title": "Rows",
+          "type": "array"
+        },
+        "schemaVersion": {
+          "default": "1.0.0",
+          "title": "Schemaversion",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "application",
+        "cube"
+      ],
+      "title": "FormSpecification",
+      "type": "object"
+    },
+    "FormWorkflowState": {
+      "enum": [
+        "REQUEST_RECEIVED",
+        "REQUIREMENTS_COLLECTING",
+        "CONTEXT_SEARCHING",
+        "REFERENCE_FORM_SELECTING",
+        "SPECIFICATION_DRAFTED",
+        "VALIDATING",
+        "PREVIEW_READY",
+        "AWAITING_USER_CHANGES",
+        "AWAITING_APPROVAL",
+        "BUILDING_ARTIFACT",
+        "DEPLOYING",
+        "VERIFYING",
+        "COMPLETED",
+        "CONTEXT_REQUIRED",
+        "MEMBER_NOT_FOUND",
+        "AMBIGUOUS_MEMBER",
+        "INVALID_SPECIFICATION",
+        "PACKAGE_BUILD_FAILED",
+        "DEPLOYMENT_FAILED",
+        "VERIFICATION_FAILED",
+        "CANCELLED"
+      ],
+      "title": "FormWorkflowState",
+      "type": "string"
+    },
+    "GenerationMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "conversationId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conversationid"
+        },
+        "generatedAt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Generatedat"
+        },
+        "messageId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Messageid"
+        },
+        "rendererVersion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rendererversion"
+        },
+        "templateVersion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Templateversion"
+        }
+      },
+      "title": "GenerationMetadata",
+      "type": "object"
+    },
+    "HierarchyNode": {
+      "additionalProperties": false,
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alias"
+        },
+        "depth": {
+          "default": 0,
+          "title": "Depth",
+          "type": "integer"
+        },
+        "hasChildren": {
+          "default": false,
+          "title": "Haschildren",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "HierarchyNode",
+      "type": "object"
+    },
+    "MemberMatch": {
+      "additionalProperties": false,
+      "description": "A resolved member with provenance (spec section 19).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alias"
+        },
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "confidence": {
+          "$ref": "#/$defs/Confidence",
+          "default": "exact"
+        },
+        "contextVersion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Contextversion"
+        },
+        "cube": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cube"
+        },
+        "dimension": {
+          "title": "Dimension",
+          "type": "string"
+        },
+        "member": {
+          "title": "Member",
+          "type": "string"
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent"
+        },
+        "query": {
+          "title": "Query",
+          "type": "string"
+        },
+        "retrievalMethod": {
+          "default": "exact",
+          "title": "Retrievalmethod",
+          "type": "string"
+        },
+        "sourceArtifact": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sourceartifact"
+        }
+      },
+      "required": [
+        "query",
+        "member",
+        "dimension",
+        "application"
+      ],
+      "title": "MemberMatch",
+      "type": "object"
+    },
+    "MemberRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alias"
+        },
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "children": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "dataType": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Datatype"
+        },
+        "dimension": {
+          "title": "Dimension",
+          "type": "string"
+        },
+        "formula": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Formula"
+        },
+        "level": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Level"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent"
+        },
+        "storage": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Storage"
+        }
+      },
+      "required": [
+        "name",
+        "dimension",
+        "application"
+      ],
+      "title": "MemberRecord",
+      "type": "object"
+    },
+    "MemberSelection": {
+      "additionalProperties": false,
+      "description": "A single member-selection expression.\n\nModelled as one flat object (rather than a discriminated union) so the\ngenerated TypeScript stays a single editable interface. A validator enforces\nthe fields required by each ``type``.",
+      "properties": {
+        "attribute": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Attribute dimension member",
+          "title": "Attribute"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Range end member",
+          "title": "End"
+        },
+        "member": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Anchor member for hierarchy functions",
+          "title": "Member"
+        },
+        "members": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Explicit member list",
+          "title": "Members"
+        },
+        "namedSelection": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Existing named member selection",
+          "title": "Namedselection"
+        },
+        "offsetEnd": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "relativeRange end offset",
+          "title": "Offsetend"
+        },
+        "offsetStart": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "relativeRange start offset",
+          "title": "Offsetstart"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Range start member",
+          "title": "Start"
+        },
+        "type": {
+          "$ref": "#/$defs/SelectionType"
+        },
+        "variable": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Substitution or user variable name",
+          "title": "Variable"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "MemberSelection",
+      "type": "object"
+    },
+    "MessageOut": {
+      "additionalProperties": false,
+      "properties": {
+        "blocks": {
+          "items": {
+            "$ref": "#/$defs/ChatBlock"
+          },
+          "title": "Blocks",
+          "type": "array"
+        },
+        "content": {
+          "title": "Content",
+          "type": "string"
+        },
+        "conversationId": {
+          "title": "Conversationid",
+          "type": "string"
+        },
+        "createdAt": {
+          "title": "Createdat",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model"
+        },
+        "parentId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parentid"
+        },
+        "processSteps": {
+          "items": {
+            "$ref": "#/$defs/ProcessStep"
+          },
+          "title": "Processsteps",
+          "type": "array"
+        },
+        "provider": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider"
+        },
+        "role": {
+          "$ref": "#/$defs/MessageRole"
+        },
+        "usage": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Usage"
+        }
+      },
+      "required": [
+        "id",
+        "conversationId",
+        "role",
+        "content",
+        "createdAt"
+      ],
+      "title": "MessageOut",
+      "type": "object"
+    },
+    "MessageRole": {
+      "enum": [
+        "user",
+        "assistant",
+        "system"
+      ],
+      "title": "MessageRole",
+      "type": "string"
+    },
+    "MissingSuggestion": {
+      "additionalProperties": false,
+      "properties": {
+        "dimension": {
+          "title": "Dimension",
+          "type": "string"
+        },
+        "suggestedHandling": {
+          "title": "Suggestedhandling",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dimension",
+        "suggestedHandling"
+      ],
+      "title": "MissingSuggestion",
+      "type": "object"
+    },
+    "NegativeStyle": {
+      "description": "How negative numbers render (Oracle Smart Formatting).",
+      "enum": [
+        "minus",
+        "parentheses",
+        "red",
+        "redParentheses"
+      ],
+      "title": "NegativeStyle",
+      "type": "string"
+    },
+    "OperationClass": {
+      "description": "Connector / tool risk classification (spec section 14).",
+      "enum": [
+        "readOnly",
+        "execution",
+        "modifying",
+        "destructive"
+      ],
+      "title": "OperationClass",
+      "type": "string"
+    },
+    "PreviewAxis": {
+      "additionalProperties": false,
+      "properties": {
+        "dimension": {
+          "title": "Dimension",
+          "type": "string"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "resolvedCount": {
+          "default": 0,
+          "title": "Resolvedcount",
+          "type": "integer"
+        },
+        "sampleMembers": {
+          "items": {
+            "$ref": "#/$defs/ResolvedMember"
+          },
+          "title": "Samplemembers",
+          "type": "array"
+        },
+        "selectionSummary": {
+          "title": "Selectionsummary",
+          "type": "string"
+        },
+        "suppressMissing": {
+          "default": false,
+          "title": "Suppressmissing",
+          "type": "boolean"
+        },
+        "truncated": {
+          "default": false,
+          "title": "Truncated",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "dimension",
+        "selectionSummary"
+      ],
+      "title": "PreviewAxis",
+      "type": "object"
+    },
+    "ProcessStep": {
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/ProcessStepState",
+          "default": "pending"
+        }
+      },
+      "required": [
+        "key",
+        "label"
+      ],
+      "title": "ProcessStep",
+      "type": "object"
+    },
+    "ProcessStepState": {
+      "enum": [
+        "pending",
+        "active",
+        "done",
+        "error"
+      ],
+      "title": "ProcessStepState",
+      "type": "string"
+    },
+    "ProjectOut": {
+      "additionalProperties": false,
+      "properties": {
+        "activeContextVersionId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Activecontextversionid"
+        },
+        "activeEnvironmentId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Activeenvironmentid"
+        },
+        "conversationCount": {
+          "default": 0,
+          "title": "Conversationcount",
+          "type": "integer"
+        },
+        "createdAt": {
+          "title": "Createdat",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "isDefault": {
+          "default": false,
+          "title": "Isdefault",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "settings": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Settings",
+          "type": "object"
+        },
+        "updatedAt": {
+          "title": "Updatedat",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "createdAt",
+        "updatedAt"
+      ],
+      "title": "ProjectOut",
+      "type": "object"
+    },
+    "PromptEditRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "artifactKind": {
+          "$ref": "#/$defs/ArtifactKind"
+        },
+        "columnLabel": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Target column label for cell scope",
+          "title": "Columnlabel"
+        },
+        "gridIndex": {
+          "default": 0,
+          "description": "Target grid for table/cell scope (reports)",
+          "title": "Gridindex",
+          "type": "integer"
+        },
+        "instruction": {
+          "minLength": 1,
+          "title": "Instruction",
+          "type": "string"
+        },
+        "rowLabel": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Target row label for cell scope",
+          "title": "Rowlabel"
+        },
+        "scope": {
+          "$ref": "#/$defs/EditScope",
+          "default": "artifact"
+        },
+        "spec": {
+          "additionalProperties": true,
+          "description": "Current artifact spec (camelCase JSON)",
+          "title": "Spec",
+          "type": "object"
+        }
+      },
+      "required": [
+        "artifactKind",
+        "instruction",
+        "spec"
+      ],
+      "title": "PromptEditRequest",
+      "type": "object"
+    },
+    "PromptEditResult": {
+      "additionalProperties": false,
+      "properties": {
+        "changed": {
+          "title": "Changed",
+          "type": "boolean"
+        },
+        "changes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Changes",
+          "type": "array"
+        },
+        "preview": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Fresh preview for the updated spec",
+          "title": "Preview"
+        },
+        "questions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Questions",
+          "type": "array"
+        },
+        "spec": {
+          "additionalProperties": true,
+          "description": "Updated spec (camelCase JSON)",
+          "title": "Spec",
+          "type": "object"
+        },
+        "validation": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Fresh validation report (forms only)",
+          "title": "Validation"
+        }
+      },
+      "required": [
+        "changed"
+      ],
+      "title": "PromptEditResult",
+      "type": "object"
+    },
+    "PromptMapping": {
+      "additionalProperties": false,
+      "properties": {
+        "dimension": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dimension"
+        },
+        "promptName": {
+          "title": "Promptname",
+          "type": "string"
+        },
+        "source": {
+          "default": "userEntered",
+          "description": "formPov | formPage | gridMember | fixed | userEntered",
+          "title": "Source",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "promptName"
+      ],
+      "title": "PromptMapping",
+      "type": "object"
+    },
+    "ProviderOut": {
+      "additionalProperties": false,
+      "properties": {
+        "baseUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseurl"
+        },
+        "defaultModel": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Defaultmodel"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "hasKey": {
+          "default": false,
+          "title": "Haskey",
+          "type": "boolean"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "models": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Models",
+          "type": "array"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "providerType": {
+          "title": "Providertype",
+          "type": "string"
+        },
+        "roleModels": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Rolemodels",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "providerType"
+      ],
+      "title": "ProviderOut",
+      "type": "object"
+    },
+    "ReferenceTemplate": {
+      "additionalProperties": false,
+      "description": "Where the form is derived from (spec section 23).",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "default": "existingForm",
+          "description": "existingForm | projectTemplate | goldenTemplate | generic",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ReferenceTemplate",
+      "type": "object"
+    },
+    "ReportCell": {
+      "additionalProperties": false,
+      "properties": {
+        "background": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Background"
+        },
+        "bold": {
+          "default": false,
+          "title": "Bold",
+          "type": "boolean"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color"
+        },
+        "formatted": {
+          "default": "\u2014",
+          "title": "Formatted",
+          "type": "string"
+        },
+        "negative": {
+          "default": false,
+          "title": "Negative",
+          "type": "boolean"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "title": "ReportCell",
+      "type": "object"
+    },
+    "ReportChart": {
+      "additionalProperties": false,
+      "properties": {
+        "seriesFrom": {
+          "default": "columns",
+          "description": "'columns' or 'rows' \u2014 which axis becomes series",
+          "title": "Seriesfrom",
+          "type": "string"
+        },
+        "stacked": {
+          "default": false,
+          "title": "Stacked",
+          "type": "boolean"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "type": {
+          "$ref": "#/$defs/ChartType",
+          "default": "none"
+        }
+      },
+      "title": "ReportChart",
+      "type": "object"
+    },
+    "ReportGrid": {
+      "additionalProperties": false,
+      "description": "One grid within a report. Reuses the form axis model for resolution.",
+      "properties": {
+        "cellOverrides": {
+          "additionalProperties": {
+            "$ref": "#/$defs/CellOverride"
+          },
+          "title": "Celloverrides",
+          "type": "object"
+        },
+        "chart": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReportChart"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "columnFormats": {
+          "additionalProperties": {
+            "$ref": "#/$defs/SmartFormat"
+          },
+          "title": "Columnformats",
+          "type": "object"
+        },
+        "columns": {
+          "items": {
+            "$ref": "#/$defs/AxisMember"
+          },
+          "title": "Columns",
+          "type": "array"
+        },
+        "name": {
+          "default": "Grid",
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "pages": {
+          "items": {
+            "$ref": "#/$defs/AxisMember"
+          },
+          "title": "Pages",
+          "type": "array"
+        },
+        "pov": {
+          "items": {
+            "$ref": "#/$defs/AxisMember"
+          },
+          "title": "Pov",
+          "type": "array"
+        },
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/AxisMember"
+          },
+          "title": "Rows",
+          "type": "array"
+        },
+        "showColumnTotals": {
+          "default": true,
+          "title": "Showcolumntotals",
+          "type": "boolean"
+        },
+        "showRowTotals": {
+          "default": false,
+          "title": "Showrowtotals",
+          "type": "boolean"
+        },
+        "smartFormat": {
+          "$ref": "#/$defs/SmartFormat"
+        }
+      },
+      "title": "ReportGrid",
+      "type": "object"
+    },
+    "ReportGridPreview": {
+      "additionalProperties": false,
+      "properties": {
+        "chartTitle": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Charttitle"
+        },
+        "chartType": {
+          "default": "none",
+          "title": "Charttype",
+          "type": "string"
+        },
+        "columnLabels": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Columnlabels",
+          "type": "array"
+        },
+        "columnTotals": {
+          "items": {
+            "$ref": "#/$defs/ReportCell"
+          },
+          "title": "Columntotals",
+          "type": "array"
+        },
+        "columnsTruncated": {
+          "default": false,
+          "title": "Columnstruncated",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "pages": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Pages",
+          "type": "array"
+        },
+        "pov": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Pov",
+          "type": "array"
+        },
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/ReportRowPreview"
+          },
+          "title": "Rows",
+          "type": "array"
+        },
+        "rowsTruncated": {
+          "default": false,
+          "title": "Rowstruncated",
+          "type": "boolean"
+        },
+        "showColumnTotals": {
+          "default": true,
+          "title": "Showcolumntotals",
+          "type": "boolean"
+        },
+        "showRowTotals": {
+          "default": false,
+          "title": "Showrowtotals",
+          "type": "boolean"
+        },
+        "sizeEstimate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SizeEstimate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ReportGridPreview",
+      "type": "object"
+    },
+    "ReportPreview": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "cube": {
+          "title": "Cube",
+          "type": "string"
+        },
+        "folder": {
+          "title": "Folder",
+          "type": "string"
+        },
+        "grids": {
+          "items": {
+            "$ref": "#/$defs/ReportGridPreview"
+          },
+          "title": "Grids",
+          "type": "array"
+        },
+        "reportName": {
+          "title": "Reportname",
+          "type": "string"
+        },
+        "reportType": {
+          "default": "grid",
+          "title": "Reporttype",
+          "type": "string"
+        },
+        "ruleAssociations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Ruleassociations",
+          "type": "array"
+        },
+        "useAliases": {
+          "default": true,
+          "title": "Usealiases",
+          "type": "boolean"
+        },
+        "validationStatus": {
+          "default": "valid",
+          "title": "Validationstatus",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reportName",
+        "application",
+        "cube",
+        "folder"
+      ],
+      "title": "ReportPreview",
+      "type": "object"
+    },
+    "ReportRowPreview": {
+      "additionalProperties": false,
+      "properties": {
+        "cells": {
+          "items": {
+            "$ref": "#/$defs/ReportCell"
+          },
+          "title": "Cells",
+          "type": "array"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "total": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReportCell"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "title": "ReportRowPreview",
+      "type": "object"
+    },
+    "ReportSpecification": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "businessRuleAssociations": {
+          "items": {
+            "$ref": "#/$defs/BusinessRuleAssociation"
+          },
+          "title": "Businessruleassociations",
+          "type": "array"
+        },
+        "contextVersion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Contextversion"
+        },
+        "cube": {
+          "title": "Cube",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "display": {
+          "$ref": "#/$defs/DisplayOptions"
+        },
+        "folder": {
+          "default": "EPM Wizard/Reports",
+          "title": "Folder",
+          "type": "string"
+        },
+        "generation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GenerationMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "grids": {
+          "items": {
+            "$ref": "#/$defs/ReportGrid"
+          },
+          "title": "Grids",
+          "type": "array"
+        },
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "reportType": {
+          "$ref": "#/$defs/ReportType",
+          "default": "grid"
+        },
+        "schemaVersion": {
+          "default": "1.0.0",
+          "title": "Schemaversion",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "application",
+        "cube"
+      ],
+      "title": "ReportSpecification",
+      "type": "object"
+    },
+    "ReportType": {
+      "enum": [
+        "grid",
+        "dashboard",
+        "financial"
+      ],
+      "title": "ReportType",
+      "type": "string"
+    },
+    "ResolvedMember": {
+      "additionalProperties": false,
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alias"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ResolvedMember",
+      "type": "object"
+    },
+    "RuleExecutionOut": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Application"
+        },
+        "createdAt": {
+          "title": "Createdat",
+          "type": "string"
+        },
+        "cube": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cube"
+        },
+        "demoMode": {
+          "default": true,
+          "title": "Demomode",
+          "type": "boolean"
+        },
+        "durationMs": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Durationms"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "jobResult": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Jobresult"
+        },
+        "output": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output"
+        },
+        "projectId": {
+          "title": "Projectid",
+          "type": "string"
+        },
+        "promptValues": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Promptvalues",
+          "type": "object"
+        },
+        "ruleName": {
+          "title": "Rulename",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "projectId",
+        "ruleName",
+        "status",
+        "createdAt"
+      ],
+      "title": "RuleExecutionOut",
+      "type": "object"
+    },
+    "RuleExecutionReport": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "cube": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cube"
+        },
+        "durationMs": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Durationms"
+        },
+        "endedAt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Endedat"
+        },
+        "errors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Errors",
+          "type": "array"
+        },
+        "jobId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Jobid"
+        },
+        "jobResult": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Jobresult"
+        },
+        "output": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output"
+        },
+        "promptValues": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Promptvalues",
+          "type": "object"
+        },
+        "ruleName": {
+          "title": "Rulename",
+          "type": "string"
+        },
+        "startedAt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Startedat"
+        },
+        "status": {
+          "$ref": "#/$defs/RuleExecutionStatus",
+          "default": "ready"
+        }
+      },
+      "required": [
+        "ruleName",
+        "application"
+      ],
+      "title": "RuleExecutionReport",
+      "type": "object"
+    },
+    "RuleExecutionStatus": {
+      "enum": [
+        "waitingForPrompts",
+        "ready",
+        "queued",
+        "running",
+        "completed",
+        "failed",
+        "cancelled",
+        "unknown"
+      ],
+      "title": "RuleExecutionStatus",
+      "type": "string"
+    },
+    "RuleRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "cube": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cube"
+        },
+        "hasSource": {
+          "default": false,
+          "title": "Hassource",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "runtimePrompts": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Runtimeprompts",
+          "type": "array"
+        },
+        "type": {
+          "default": "businessRule",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "application"
+      ],
+      "title": "RuleRecord",
+      "type": "object"
+    },
+    "RuleSpecification": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "contextVersion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Contextversion"
+        },
+        "cube": {
+          "title": "Cube",
+          "type": "string"
+        },
+        "formAssociations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Formassociations",
+          "type": "array"
+        },
+        "generation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GenerationMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "purpose": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Purpose"
+        },
+        "referencedDimensions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Referenceddimensions",
+          "type": "array"
+        },
+        "referencedMembers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Referencedmembers",
+          "type": "array"
+        },
+        "referencedVariables": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Referencedvariables",
+          "type": "array"
+        },
+        "runtimePrompts": {
+          "items": {
+            "$ref": "#/$defs/RuntimePrompt"
+          },
+          "title": "Runtimeprompts",
+          "type": "array"
+        },
+        "schemaVersion": {
+          "default": "1.0.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "type": {
+          "$ref": "#/$defs/RuleType",
+          "default": "businessRule"
+        }
+      },
+      "required": [
+        "name",
+        "application",
+        "cube"
+      ],
+      "title": "RuleSpecification",
+      "type": "object"
+    },
+    "RuleType": {
+      "enum": [
+        "businessRule",
+        "calcScript",
+        "groovy",
+        "ruleset"
+      ],
+      "title": "RuleType",
+      "type": "string"
+    },
+    "RuntimePrompt": {
+      "additionalProperties": false,
+      "properties": {
+        "choices": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Choices"
+        },
+        "defaultValue": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Defaultvalue"
+        },
+        "dimension": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dimension"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "promptText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prompttext"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "type": {
+          "$ref": "#/$defs/RuntimePromptType",
+          "default": "text"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "RuntimePrompt",
+      "type": "object"
+    },
+    "RuntimePromptFormPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "actions": {
+          "items": {
+            "$ref": "#/$defs/ChatAction"
+          },
+          "title": "Actions",
+          "type": "array"
+        },
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "cube": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cube"
+        },
+        "fields": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Fields",
+          "type": "array"
+        },
+        "prefilledFrom": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Prefilledfrom",
+          "type": "object"
+        },
+        "ruleName": {
+          "title": "Rulename",
+          "type": "string"
+        }
+      },
+      "required": [
+        "ruleName",
+        "application"
+      ],
+      "title": "RuntimePromptFormPayload",
+      "type": "object"
+    },
+    "RuntimePromptType": {
+      "enum": [
+        "member",
+        "members",
+        "dimension",
+        "numeric",
+        "text",
+        "date",
+        "percent",
+        "smartList",
+        "crossDimension"
+      ],
+      "title": "RuntimePromptType",
+      "type": "string"
+    },
+    "SelectionType": {
+      "description": "Supported member-selection functions (spec section 21).",
+      "enum": [
+        "member",
+        "memberList",
+        "children",
+        "inclusiveChildren",
+        "descendants",
+        "inclusiveDescendants",
+        "levelZeroDescendants",
+        "ancestors",
+        "inclusiveAncestors",
+        "siblings",
+        "range",
+        "relativeRange",
+        "substitutionVariable",
+        "userVariable",
+        "attribute",
+        "povReference",
+        "pageReference",
+        "namedSelection"
+      ],
+      "title": "SelectionType",
+      "type": "string"
+    },
+    "Severity": {
+      "enum": [
+        "error",
+        "warning",
+        "info"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "SizeEstimate": {
+      "additionalProperties": false,
+      "properties": {
+        "columnCombinations": {
+          "default": 0,
+          "title": "Columncombinations",
+          "type": "integer"
+        },
+        "pageCombinations": {
+          "default": 0,
+          "title": "Pagecombinations",
+          "type": "integer"
+        },
+        "rowCombinations": {
+          "default": 0,
+          "title": "Rowcombinations",
+          "type": "integer"
+        },
+        "totalCells": {
+          "default": 0,
+          "title": "Totalcells",
+          "type": "integer"
+        },
+        "warningThreshold": {
+          "default": 250000,
+          "title": "Warningthreshold",
+          "type": "integer"
+        }
+      },
+      "title": "SizeEstimate",
+      "type": "object"
+    },
+    "SkillSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "allowedTools": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowedtools",
+          "type": "array"
+        },
+        "approvalRequired": {
+          "default": false,
+          "title": "Approvalrequired",
+          "type": "boolean"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "intentExamples": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Intentexamples",
+          "type": "array"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "requiredContext": {
+          "default": false,
+          "title": "Requiredcontext",
+          "type": "boolean"
+        },
+        "version": {
+          "default": "1.0.0",
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "description"
+      ],
+      "title": "SkillSpec",
+      "type": "object"
+    },
+    "SmartFormat": {
+      "additionalProperties": false,
+      "description": "Oracle-EPM-style number formatting for a grid, column or single cell.",
+      "properties": {
+        "conditionalRules": {
+          "items": {
+            "$ref": "#/$defs/ConditionalRule"
+          },
+          "title": "Conditionalrules",
+          "type": "array"
+        },
+        "decimalPlaces": {
+          "default": 0,
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Decimalplaces",
+          "type": "integer"
+        },
+        "negativeStyle": {
+          "$ref": "#/$defs/NegativeStyle",
+          "default": "minus"
+        },
+        "prefix": {
+          "default": "",
+          "description": "Leading symbol, e.g. $",
+          "title": "Prefix",
+          "type": "string"
+        },
+        "scale": {
+          "default": 0,
+          "description": "Divide display value by 10**scale (0=none, 3=K, 6=M)",
+          "title": "Scale",
+          "type": "integer"
+        },
+        "suffix": {
+          "default": "",
+          "description": "Trailing symbol, e.g. %",
+          "title": "Suffix",
+          "type": "string"
+        },
+        "thousandsSeparator": {
+          "default": true,
+          "title": "Thousandsseparator",
+          "type": "boolean"
+        }
+      },
+      "title": "SmartFormat",
+      "type": "object"
+    },
+    "StreamEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "title": "Data",
+          "type": "object"
+        },
+        "type": {
+          "$ref": "#/$defs/StreamEventType"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "StreamEvent",
+      "type": "object"
+    },
+    "StreamEventType": {
+      "enum": [
+        "title",
+        "process",
+        "token",
+        "block",
+        "toolCall",
+        "toolResult",
+        "messageSaved",
+        "error",
+        "done",
+        "usage"
+      ],
+      "title": "StreamEventType",
+      "type": "string"
+    },
+    "SubsystemStatus": {
+      "additionalProperties": false,
+      "properties": {
+        "detail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "status"
+      ],
+      "title": "SubsystemStatus",
+      "type": "object"
+    },
+    "ToolCall": {
+      "additionalProperties": false,
+      "properties": {
+        "arguments": {
+          "additionalProperties": true,
+          "title": "Arguments",
+          "type": "object"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ToolCall",
+      "type": "object"
+    },
+    "ToolInvocationPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "detail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error"
+        },
+        "operationClass": {
+          "title": "Operationclass",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary"
+        },
+        "tool": {
+          "title": "Tool",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tool",
+        "operationClass",
+        "status"
+      ],
+      "title": "ToolInvocationPayload",
+      "type": "object"
+    },
+    "ToolResult": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "title": "Data",
+          "type": "object"
+        },
+        "durationMs": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Durationms"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error"
+        },
+        "errorCategory": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Errorcategory"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "ok": {
+          "default": true,
+          "title": "Ok",
+          "type": "boolean"
+        },
+        "operationClass": {
+          "$ref": "#/$defs/OperationClass",
+          "default": "readOnly"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ToolResult",
+      "type": "object"
+    },
+    "ToolSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "audit": {
+          "default": true,
+          "title": "Audit",
+          "type": "boolean"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "modifiesOracle": {
+          "default": false,
+          "title": "Modifiesoracle",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "operationClass": {
+          "$ref": "#/$defs/OperationClass",
+          "default": "readOnly"
+        },
+        "readOnly": {
+          "default": true,
+          "title": "Readonly",
+          "type": "boolean"
+        },
+        "requiredRole": {
+          "default": "user",
+          "title": "Requiredrole",
+          "type": "string"
+        },
+        "requiresApproval": {
+          "default": false,
+          "title": "Requiresapproval",
+          "type": "boolean"
+        },
+        "retryable": {
+          "default": false,
+          "title": "Retryable",
+          "type": "boolean"
+        },
+        "timeoutS": {
+          "default": 60,
+          "title": "Timeouts",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "description"
+      ],
+      "title": "ToolSpec",
+      "type": "object"
+    },
+    "ValidationIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "candidates": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Candidates",
+          "type": "array"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "layer": {
+          "$ref": "#/$defs/ValidationLayer"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "suggestedFix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Suggestedfix"
+        }
+      },
+      "required": [
+        "layer",
+        "severity",
+        "code",
+        "message"
+      ],
+      "title": "ValidationIssue",
+      "type": "object"
+    },
+    "ValidationLayer": {
+      "enum": [
+        "schema",
+        "application",
+        "axis",
+        "selection",
+        "display",
+        "performance",
+        "security",
+        "deployment"
+      ],
+      "title": "ValidationLayer",
+      "type": "string"
+    },
+    "ValidationReport": {
+      "additionalProperties": false,
+      "properties": {
+        "artifactName": {
+          "title": "Artifactname",
+          "type": "string"
+        },
+        "blocking": {
+          "default": false,
+          "title": "Blocking",
+          "type": "boolean"
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/ValidationIssue"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "resolvedMemberCounts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Resolvedmembercounts",
+          "type": "object"
+        },
+        "schemaVersion": {
+          "default": "1.0.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "sizeEstimate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SizeEstimate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "valid": {
+          "default": true,
+          "title": "Valid",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "artifactName"
+      ],
+      "title": "ValidationReport",
+      "type": "object"
+    },
+    "VariableRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "cube": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cube"
+        },
+        "dimension": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dimension"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "scope": {
+          "default": "substitution",
+          "title": "Scope",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "name",
+        "application"
+      ],
+      "title": "VariableRecord",
+      "type": "object"
+    }
+  }
+}

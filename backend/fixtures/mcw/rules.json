@@ -1,0 +1,150 @@
+[
+  {
+    "name": "Add New Hire",
+    "application": "MCWPCF",
+    "cube": "OEP_WFP",
+    "type": "groovy",
+    "runtime_prompts": [
+      "Employee",
+      "Entity",
+      "Job",
+      "StartMonth",
+      "AnnualSalary"
+    ],
+    "has_source": true,
+    "purpose": "Adds a new hire and spreads annual salary across periods from the start month.",
+    "source": "/* Groovy business rule (demo) */\nString employee = rtps.Employee.getEnteredValue()\nString entity = rtps.Entity.getEnteredValue()\nString startMonth = rtps.StartMonth.getEnteredValue()\nDouble salary = rtps.AnnualSalary.getEnteredValueAsDouble()\n// ... deterministic spread of salary/12 from startMonth to Dec ...\n",
+    "prompt_defs": [
+      {
+        "name": "Employee",
+        "type": "text",
+        "promptText": "New employee name",
+        "required": true
+      },
+      {
+        "name": "Entity",
+        "type": "member",
+        "dimension": "Entity",
+        "promptText": "Home entity",
+        "required": true
+      },
+      {
+        "name": "Job",
+        "type": "member",
+        "dimension": "Job",
+        "promptText": "Job",
+        "required": true
+      },
+      {
+        "name": "StartMonth",
+        "type": "member",
+        "dimension": "Period",
+        "promptText": "Start month",
+        "default": "Jul",
+        "required": true
+      },
+      {
+        "name": "AnnualSalary",
+        "type": "numeric",
+        "promptText": "Annual salary",
+        "default": "90000",
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "IR",
+    "application": "MCWPCF",
+    "cube": "OEP_FS",
+    "type": "calcScript",
+    "runtime_prompts": [
+      "Scenario",
+      "Entity"
+    ],
+    "has_source": true,
+    "purpose": "Incremental Rollup \u2014 aggregates the current slice for the chosen scenario/entity.",
+    "source": "FIX(&CurrYr, {Scenario}, \"Working\", {Entity})\n  AGG(\"Account\", \"Entity\");\nENDFIX\n",
+    "prompt_defs": [
+      {
+        "name": "Scenario",
+        "type": "member",
+        "dimension": "Scenario",
+        "promptText": "Scenario",
+        "default": "Forecast",
+        "required": true
+      },
+      {
+        "name": "Entity",
+        "type": "member",
+        "dimension": "Entity",
+        "promptText": "Entity",
+        "default": "{{CurrentEntity}}",
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "Aggregate Financials",
+    "application": "MCWPCF",
+    "cube": "OEP_FS",
+    "type": "businessRule",
+    "runtime_prompts": [
+      "Scenario",
+      "Version",
+      "Entity"
+    ],
+    "has_source": false,
+    "purpose": "Full aggregation of the Financials cube.",
+    "prompt_defs": [
+      {
+        "name": "Scenario",
+        "type": "member",
+        "dimension": "Scenario",
+        "default": "Actual",
+        "required": true
+      },
+      {
+        "name": "Version",
+        "type": "member",
+        "dimension": "Version",
+        "default": "Working",
+        "required": true
+      },
+      {
+        "name": "Entity",
+        "type": "member",
+        "dimension": "Entity",
+        "default": "Total Entity",
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "Calculate Cash",
+    "application": "MCWPCF",
+    "cube": "OEP_DCSH",
+    "type": "businessRule",
+    "runtime_prompts": [
+      "Entity",
+      "Scenario"
+    ],
+    "has_source": false,
+    "purpose": "Recalculates the daily cash position.",
+    "prompt_defs": [
+      {
+        "name": "Entity",
+        "type": "member",
+        "dimension": "Entity",
+        "default": "{{CurrentEntity}}",
+        "required": true
+      },
+      {
+        "name": "Scenario",
+        "type": "member",
+        "dimension": "Scenario",
+        "default": "Forecast",
+        "required": true
+      }
+    ]
+  }
+]

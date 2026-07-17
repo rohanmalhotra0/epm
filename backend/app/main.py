@@ -1,0 +1,58 @@
+"""EPM Wizard backend — local FastAPI application.
+
+Binds to the local machine / Docker network only. No hosted services.
+"""
+
+from __future__ import annotations
+
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from .api import (
+    routes_artifacts,
+    routes_context,
+    routes_conversations,
+    routes_diagnostics,
+    routes_environments,
+    routes_meta,
+    routes_projects,
+    routes_providers,
+    routes_reports,
+)
+from .config import get_settings
+from .db.init import initialize
+from .logging import configure_logging, get_logger
+
+log = get_logger("epmwizard")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    settings = get_settings()
+    configure_logging(settings.log_level, settings.log_json)
+    initialize(seed=True)
+    log.info("startup", app=settings.app_name, version=settings.version, data_dir=str(settings.data_dir))
+    yield
+    log.info("shutdown")
+
+
+def create_app() -> FastAPI:
+    settings = get_settings()
+    app = FastAPI(title=settings.app_name, version=settings.version, lifespan=lifespan)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    for module in (routes_meta, routes_projects, routes_conversations, routes_environments,
+                   routes_providers, routes_context, routes_artifacts, routes_diagnostics,
+                   routes_reports):
+        app.include_router(module.router)
+    return app
+
+
+app = create_app()

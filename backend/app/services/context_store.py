@@ -1,0 +1,130 @@
+"""Context version + record persistence and metadata reconstruction (spec 16-19)."""
+
+from __future__ import annotations
+
+from sqlalchemy.orm import Session
+
+from ..artifacts.metadata import TenantMetadata, build_metadata
+from ..db.models import ContextRecord, ContextVersion, Project
+from ..schemas.api import ContextVersionOut
+from ..schemas.context import (
+    CubeRecord,
+    DimensionRecord,
+    FormRecord,
+    MemberRecord,
+    RuleRecord,
+    VariableRecord,
+)
+from . import iso
+
+
+def to_out(cv: ContextVersion) -> ContextVersionOut:
+    return ContextVersionOut(
+        id=cv.id,
+        project_id=cv.project_id,
+        application=cv.application,
+        label=cv.label,
+        mode=cv.mode,
+        counts=cv.counts or {},
+        active=cv.active,
+        manifest=cv.manifest or {},
+        created_at=iso(cv.created_at),
+    )
+
+
+def persist_context(
+    session: Session,
+    project_id: str,
+    application: str,
+    mode: str,
+    label: str,
+    manifest: dict,
+    counts: dict,
+    records: list[dict],
+    fingerprint: str | None = None,
+    environment_id: str | None = None,
+    path: str | None = None,
+    activate: bool = True,
+) -> ContextVersion:
+    cv = ContextVersion(
+        project_id=project_id,
+        environment_id=environment_id,
+        application=application,
+        label=label,
+        mode=mode,
+        manifest=manifest,
+        counts=counts,
+        fingerprint=fingerprint,
+        path=path,
+        active=False,
+    )
+    session.add(cv)
+    session.flush()
+    for rec in records:
+        session.add(ContextRecord(context_version_id=cv.id, project_id=project_id, **rec))
+    if activate:
+        activate_context(session, project_id, cv.id)
+    return cv
+
+
+def activate_context(session: Session, project_id: str, context_version_id: str) -> None:
+    session.query(ContextVersion).filter_by(project_id=project_id, active=True).update({"active": False})
+    cv = session.get(ContextVersion, context_version_id)
+    if cv is not None:
+        cv.active = True
+    project = session.get(Project, project_id)
+    if project is not None:
+        project.active_context_version_id = context_version_id
+
+
+def list_context_versions(session: Session, project_id: str) -> list[ContextVersion]:
+    return (
+        session.query(ContextVersion)
+        .filter_by(project_id=project_id)
+        .order_by(ContextVersion.created_at.desc())
+        .all()
+    )
+
+
+def get_active_context(session: Session, project_id: str) -> ContextVersion | None:
+    return session.query(ContextVersion).filter_by(project_id=project_id, active=True).first()
+
+
+def get_context(session: Session, context_version_id: str) -> ContextVersion | None:
+    return session.get(ContextVersion, context_version_id)
+
+
+def get_records(session: Session, context_version_id: str, kind: str | None = None) -> list[ContextRecord]:
+    q = session.query(ContextRecord).filter_by(context_version_id=context_version_id)
+    if kind:
+        q = q.filter_by(kind=kind)
+    return q.all()
+
+
+def build_tenant_metadata(session: Session, context_version_id: str) -> TenantMetadata:
+    """Reconstruct TenantMetadata from persisted records (for the artifact engine)."""
+    cv = session.get(ContextVersion, context_version_id)
+    application = cv.application if cv else ""
+    records = get_records(session, context_version_id)
+    cubes, dims, members, variables, forms, rules = [], [], [], [], [], []
+    for r in records:
+        data = r.data or {}
+        if r.kind == "cube":
+            cubes.append(CubeRecord.model_validate(data))
+        elif r.kind == "dimension":
+            dims.append(DimensionRecord.model_validate(data))
+        elif r.kind == "member":
+            members.append(MemberRecord.model_validate(data))
+        elif r.kind == "variable":
+            variables.append(VariableRecord.model_validate(data))
+        elif r.kind == "form":
+            forms.append(FormRecord.model_validate(data))
+        elif r.kind == "rule":
+            rules.append(RuleRecord.model_validate(data))
+    return build_metadata(application, cubes, dims, members, variables, forms, rules)
+
+
+def delete_context(session: Session, context_version_id: str) -> None:
+    cv = session.get(ContextVersion, context_version_id)
+    if cv is not None:
+        session.delete(cv)

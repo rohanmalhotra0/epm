@@ -1,0 +1,26 @@
+[
+  {
+    "name": "OEP_FS",
+    "application": "MCWPCF",
+    "type": "bso",
+    "description": "Financials"
+  },
+  {
+    "name": "OEP_WFP",
+    "application": "MCWPCF",
+    "type": "bso",
+    "description": "Workforce"
+  },
+  {
+    "name": "OEP_DCSH",
+    "application": "MCWPCF",
+    "type": "bso",
+    "description": "Daily Cash"
+  },
+  {
+    "name": "OEP_REP",
+    "application": "MCWPCF",
+    "type": "aso",
+    "description": "Reporting (aggregate)"
+  }
+]

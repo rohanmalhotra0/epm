@@ -1,0 +1,48 @@
+# --- Secrets / env ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Node / frontend (future) ---
+node_modules/
+.next/
+dist-ts/
+*.tsbuildinfo
+
+# --- Local application data (SQLite, secrets, artifacts, contexts) ---
+/data/
+backend/data/
+frontend/dist/
+*.db
+*.db-wal
+*.db-shm
+*.epwcontext
+secrets.enc
+master.key
+
+# --- Generated artifacts (JSON Schema + generated Zod ARE committed intentionally) ---
+/tmp-artifacts/
+*.zip.snapshot
+
+# --- OS / editor ---
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

@@ -1,0 +1,44 @@
+[
+  {
+    "name": "CurrYr",
+    "application": "MCWPCF",
+    "scope": "substitution",
+    "dimension": "Years",
+    "value": "FY26"
+  },
+  {
+    "name": "CurrMonth",
+    "application": "MCWPCF",
+    "scope": "substitution",
+    "dimension": "Period",
+    "value": "Jul"
+  },
+  {
+    "name": "CurrScenario",
+    "application": "MCWPCF",
+    "scope": "substitution",
+    "dimension": "Scenario",
+    "value": "Forecast"
+  },
+  {
+    "name": "ActualMonths",
+    "application": "MCWPCF",
+    "scope": "substitution",
+    "dimension": "Period",
+    "value": "Jun"
+  },
+  {
+    "name": "CurrentEntity",
+    "application": "MCWPCF",
+    "scope": "user",
+    "dimension": "Entity",
+    "value": "US Operations"
+  },
+  {
+    "name": "CurrentScenario",
+    "application": "MCWPCF",
+    "scope": "user",
+    "dimension": "Scenario",
+    "value": "Forecast"
+  }
+]

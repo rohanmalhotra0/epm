@@ -1,0 +1,227 @@
+[
+  {
+    "name": "Daily Cash Forecast",
+    "application": "MCWPCF",
+    "cube": "OEP_DCSH",
+    "folder": "Financials/Cash",
+    "description": "Rolling daily cash forecast by bank account.",
+    "definition": {
+      "application": "MCWPCF",
+      "cube": "OEP_DCSH",
+      "folder": "Financials/Cash",
+      "pov": [
+        {
+          "dimension": "Scenario",
+          "selection": {
+            "type": "member",
+            "member": "Forecast"
+          }
+        },
+        {
+          "dimension": "Version",
+          "selection": {
+            "type": "member",
+            "member": "Working"
+          }
+        },
+        {
+          "dimension": "Currency",
+          "selection": {
+            "type": "member",
+            "member": "USD"
+          }
+        },
+        {
+          "dimension": "Years",
+          "selection": {
+            "type": "member",
+            "member": "FY26"
+          }
+        }
+      ],
+      "pages": [
+        {
+          "dimension": "Entity",
+          "selection": {
+            "type": "userVariable",
+            "variable": "CurrentEntity"
+          }
+        }
+      ],
+      "rows": [
+        {
+          "dimension": "BankAccount",
+          "selection": {
+            "type": "children",
+            "member": "Total Banks"
+          },
+          "suppressMissing": true
+        }
+      ],
+      "columns": [
+        {
+          "dimension": "Period",
+          "selection": {
+            "type": "range",
+            "start": "Jan",
+            "end": "Dec"
+          }
+        }
+      ],
+      "display": {
+        "useAliases": true,
+        "suppressMissingRows": true
+      }
+    }
+  },
+  {
+    "name": "Actual Revenue Review",
+    "application": "MCWPCF",
+    "cube": "OEP_FS",
+    "folder": "Financials/Actuals",
+    "description": "Monthly actual revenue by entity.",
+    "definition": {
+      "application": "MCWPCF",
+      "cube": "OEP_FS",
+      "folder": "Financials/Actuals",
+      "pov": [
+        {
+          "dimension": "Scenario",
+          "selection": {
+            "type": "member",
+            "member": "Actual"
+          }
+        },
+        {
+          "dimension": "Version",
+          "selection": {
+            "type": "member",
+            "member": "Working"
+          }
+        },
+        {
+          "dimension": "Currency",
+          "selection": {
+            "type": "member",
+            "member": "USD"
+          }
+        },
+        {
+          "dimension": "Years",
+          "selection": {
+            "type": "member",
+            "member": "FY26"
+          }
+        }
+      ],
+      "pages": [
+        {
+          "dimension": "Entity",
+          "selection": {
+            "type": "userVariable",
+            "variable": "CurrentEntity"
+          }
+        }
+      ],
+      "rows": [
+        {
+          "dimension": "Account",
+          "selection": {
+            "type": "children",
+            "member": "Total Revenue"
+          },
+          "suppressMissing": true
+        }
+      ],
+      "columns": [
+        {
+          "dimension": "Period",
+          "selection": {
+            "type": "range",
+            "start": "Jan",
+            "end": "Dec"
+          }
+        }
+      ],
+      "display": {
+        "useAliases": true,
+        "suppressMissingRows": true
+      }
+    }
+  },
+  {
+    "name": "Workforce Planning",
+    "application": "MCWPCF",
+    "cube": "OEP_WFP",
+    "folder": "Workforce",
+    "description": "Headcount and compensation planning.",
+    "definition": {
+      "application": "MCWPCF",
+      "cube": "OEP_WFP",
+      "folder": "Workforce",
+      "pov": [
+        {
+          "dimension": "Scenario",
+          "selection": {
+            "type": "member",
+            "member": "Plan"
+          }
+        },
+        {
+          "dimension": "Version",
+          "selection": {
+            "type": "member",
+            "member": "Working"
+          }
+        },
+        {
+          "dimension": "Years",
+          "selection": {
+            "type": "member",
+            "member": "FY26"
+          }
+        }
+      ],
+      "pages": [
+        {
+          "dimension": "Entity",
+          "selection": {
+            "type": "userVariable",
+            "variable": "CurrentEntity"
+          }
+        },
+        {
+          "dimension": "Job",
+          "selection": {
+            "type": "children",
+            "member": "Total Jobs"
+          }
+        }
+      ],
+      "rows": [
+        {
+          "dimension": "Account",
+          "selection": {
+            "type": "levelZeroDescendants",
+            "member": "Total Payroll"
+          },
+          "suppressMissing": true
+        }
+      ],
+      "columns": [
+        {
+          "dimension": "Period",
+          "selection": {
+            "type": "range",
+            "start": "Jan",
+            "end": "Dec"
+          }
+        }
+      ],
+      "display": {
+        "useAliases": true,
+        "suppressMissingRows": true
+      }
+    }
+  }
+]
