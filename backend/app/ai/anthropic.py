@@ -58,10 +58,15 @@ class AnthropicProvider(AIProvider):
         self, messages: list[AIMessage], *, system: str | None = None, model: str | None = None,
         temperature: float = 0.2, max_tokens: int = 1024, cancel=None,
     ) -> AsyncIterator[StreamChunk]:
+        # NOTE: `temperature` (and top_p/top_k) are intentionally NOT sent.
+        # Claude Opus 4.7+ reject any explicit sampling value with a 400
+        # ("temperature is deprecated for this model"); omitting the field uses
+        # the model default. `temperature` stays in the signature for interface
+        # compatibility with the other providers. Steer determinism via the
+        # prompt (e.g. "respond with strict JSON") instead.
         body = {
             "model": model or self.config.default_model or "claude-sonnet-5",
             "max_tokens": max_tokens,
-            "temperature": temperature,
             "stream": True,
             "messages": [{"role": m.role, "content": m.content} for m in messages if m.role != "system"],
         }

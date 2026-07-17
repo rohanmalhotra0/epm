@@ -5,11 +5,13 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..connector.errors import ConnectorError
+from ..connector.errors import ConnectorError, ErrorCategory
 from ..connector.factory import get_registry
 from ..schemas.api import ConnectionResult, EnvironmentCreate, EnvironmentOut
 from ..security.redaction import register_secret
 from ..services import environments as svc
+from ..services import projects as projects_svc
+from ..services import settings_svc
 from .deps import get_db
 
 router = APIRouter(tags=["environments"])
@@ -41,6 +43,14 @@ async def connect_environment(environment_id: str, body: dict, session: Session 
     env = svc.get_environment(session, environment_id)
     if env is None:
         raise HTTPException(404, "environment not found")
+    if env.demo and not bool(settings_svc.get_setting(session, "demo_enabled", default=False)):
+        return ConnectionResult(
+            connected=False,
+            environment_id=environment_id,
+            message="Demo mode is disabled.",
+            detail="Enable demo mode in Settings to use the local demo environment.",
+            diagnostics={"category": ErrorCategory.authentication.value, "demo": True},
+        )
     password = (body or {}).get("password")
     remember = bool((body or {}).get("remember"))
     if password:
@@ -49,6 +59,11 @@ async def connect_environment(environment_id: str, body: dict, session: Session 
         connector = await get_registry().connect(env, password=password, remember=remember)
         result = await connector.test_connection()
         svc.mark_connected(session, environment_id)
+        # Make the just-connected environment the project's active one.
+        try:
+            projects_svc.set_active_environment(session, env.project_id, env.id)
+        except (KeyError, ValueError):
+            pass
         return ConnectionResult(connected=True, environment_id=environment_id,
                                 message=f"Connected to {env.name}.", application=env.preferred_application,
                                 diagnostics={"demo": env.demo, **({} if env.demo else {"applications": result.get("applications", [])})})

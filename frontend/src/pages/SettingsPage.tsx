@@ -7,6 +7,8 @@ import {
   useCreateProvider,
   useEnvironments,
   useProviders,
+  useSettings,
+  useUpdateSettings,
 } from "../api/hooks";
 import { useUi } from "../store/ui";
 
@@ -21,6 +23,8 @@ export function SettingsPage() {
   const createProvider = useCreateProvider();
   const createEnv = useCreateEnvironment(pid);
   const connect = useConnectEnvironment(pid);
+  const { data: settings } = useSettings();
+  const updateSettings = useUpdateSettings();
 
   const [np, setNp] = useState({ name: "", providerType: "anthropic", baseUrl: "", apiKey: "", defaultModel: "" });
   const [ne, setNe] = useState({ name: "", baseUrl: "", username: "", classification: "development", demo: false });
@@ -104,6 +108,26 @@ export function SettingsPage() {
         <div className="action-row">
           <Button size="sm" kind="primary" disabled={!ne.name} onClick={() => { createEnv.mutate(ne as any); setNe({ name: "", baseUrl: "", username: "", classification: "development", demo: false }); }}>Add environment</Button>
         </div>
+      </div>
+
+      <h3 style={{ margin: "24px 0 8px" }}>Demo mode</h3>
+      <div className="stat-tile" style={{ maxWidth: 640 }}>
+        <label style={{ display: "flex", gap: 10, alignItems: "flex-start", cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={!!settings?.demoEnabled}
+            onChange={(e) => updateSettings.mutate({ demoEnabled: e.target.checked })}
+            style={{ marginTop: 3 }}
+          />
+          <span>
+            <span style={{ fontWeight: 600 }}>Enable local demo environment</span>
+            <div className="page-sub" style={{ margin: "4px 0 0" }}>
+              When on, a fixture Planning application (MCWPCF) is available and the sign-in screen
+              offers a “Continue in demo mode” option. No Oracle tenant is ever contacted. Off by
+              default — the app connects to your real Oracle EPM environment.
+            </div>
+          </span>
+        </label>
       </div>
 
       <h3 style={{ margin: "24px 0 8px" }}>Appearance</h3>

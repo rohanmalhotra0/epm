@@ -12,6 +12,7 @@ from alembic import command
 
 from ..config import get_settings
 from ..logging import get_logger
+from ..services import settings_svc
 from .base import Base, get_engine, session_scope
 from .models import EnvironmentProfile, Project, ProviderProfile
 
@@ -33,30 +34,36 @@ def create_all() -> None:
 
 
 def seed_defaults(session: Session) -> Project:
-    """Ensure a default project, a demo environment and a default provider exist."""
+    """Ensure a default project and a default provider exist.
+
+    A demo environment is NOT seeded by default: the app starts on a sign-in
+    screen and connects to a real Oracle EPM tenant. Demo mode is opt-in via
+    Settings (``demo_enabled``), which seeds the demo environment on demand.
+    """
     project = session.query(Project).filter_by(is_default=True).first()
     if project is None:
         project = Project(
-            name="Demo Project",
-            description="Local sandbox seeded with a fixture Planning application (MCWPCF).",
+            name="Default Project",
+            description="Local project. Sign in to an Oracle EPM environment to begin.",
             is_default=True,
         )
         session.add(project)
         session.flush()
 
-    if not session.query(EnvironmentProfile).filter_by(project_id=project.id).count():
-        session.add(
-            EnvironmentProfile(
-                project_id=project.id,
-                name="MCW Demo (Local)",
-                base_url=None,
-                username="demo",
-                auth_method="demo",
-                classification="development",
-                preferred_application="MCWPCF",
-                demo=True,
+    if bool(settings_svc.get_setting(session, "demo_enabled", default=False)):
+        if not session.query(EnvironmentProfile).filter_by(project_id=project.id, demo=True).count():
+            session.add(
+                EnvironmentProfile(
+                    project_id=project.id,
+                    name="MCW Demo (Local)",
+                    base_url=None,
+                    username="demo",
+                    auth_method="demo",
+                    classification="development",
+                    preferred_application="MCWPCF",
+                    demo=True,
+                )
             )
-        )
 
     # Default deterministic local AI provider — no network, no key required.
     if not session.query(ProviderProfile).filter_by(provider_type="mock").count():

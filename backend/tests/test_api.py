@@ -22,10 +22,32 @@ def test_projects_and_defaults(client):
     projects = client.get("/api/projects").json()
     assert any(p["isDefault"] for p in projects)
     pid = projects[0]["id"]
+    # No demo environment is seeded by default — the app starts on sign-in.
     envs = client.get(f"/api/projects/{pid}/environments").json()
-    assert any(e["demo"] for e in envs)
+    assert not any(e["demo"] for e in envs)
     providers = client.get("/api/providers").json()
     assert any(p["providerType"] == "mock" for p in providers)
+
+
+def test_demo_mode_toggle(client):
+    assert client.get("/api/settings").json()["demoEnabled"] is False
+    pid = client.get("/api/projects").json()[0]["id"]
+
+    # Enabling demo mode seeds a demo environment that can be connected.
+    assert client.patch("/api/settings", json={"demoEnabled": True}).json()["demoEnabled"] is True
+    envs = client.get(f"/api/projects/{pid}/environments").json()
+    demo = next(e for e in envs if e["demo"])
+    conn = client.post(f"/api/environments/{demo['id']}/connect", json={}).json()
+    assert conn["connected"] is True
+
+    # Disabling demo mode refuses further demo connections.
+    client.post(f"/api/environments/{demo['id']}/disconnect")
+    assert client.patch("/api/settings", json={"demoEnabled": False}).json()["demoEnabled"] is False
+    refused = client.post(f"/api/environments/{demo['id']}/connect", json={}).json()
+    assert refused["connected"] is False
+
+    # Clean up so the seeded demo env doesn't leak into other tests.
+    client.delete(f"/api/environments/{demo['id']}")
 
 
 def test_diagnostics_healthy(client):

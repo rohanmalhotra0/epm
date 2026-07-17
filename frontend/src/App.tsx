@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { Theme } from "@carbon/react";
 import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
+import { SignInGate } from "./components/SignIn";
 import { ChatPage } from "./pages/ChatPage";
 import { AboutPage, ArtifactsPage, ContextsPage, DeploymentsPage, DiagnosticsPage } from "./pages/SimplePages";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -51,17 +52,19 @@ export function App() {
         <Header />
         <div className="app-body">
           <Sidebar />
-          <Routes>
-            <Route path="/" element={<ChatRedirect />} />
-            <Route path="/c/:id" element={<ChatPage />} />
-            <Route path="/contexts" element={<ContextsPage />} />
-            <Route path="/artifacts" element={<ArtifactsPage />} />
-            <Route path="/deployments" element={<DeploymentsPage />} />
-            <Route path="/diagnostics" element={<DiagnosticsPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <SignInGate>
+            <Routes>
+              <Route path="/" element={<ChatRedirect />} />
+              <Route path="/c/:id" element={<ChatPage />} />
+              <Route path="/contexts" element={<ContextsPage />} />
+              <Route path="/artifacts" element={<ArtifactsPage />} />
+              <Route path="/deployments" element={<DeploymentsPage />} />
+              <Route path="/diagnostics" element={<DiagnosticsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </SignInGate>
         </div>
       </div>
     </Theme>

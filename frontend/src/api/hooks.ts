@@ -171,3 +171,23 @@ export const useRuleExecutions = (projectId: string | undefined) =>
 
 export const useDiagnostics = () =>
   useQuery({ queryKey: ["diagnostics"], queryFn: () => api<DiagnosticsReport>("/api/diagnostics") });
+
+// --- settings ---
+export interface AppSettings {
+  demoEnabled: boolean;
+}
+
+export const useSettings = () =>
+  useQuery({ queryKey: ["settings"], queryFn: () => api<AppSettings>("/api/settings") });
+
+export function useUpdateSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Partial<AppSettings>) =>
+      api<AppSettings>("/api/settings", { method: "PATCH", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["settings"] });
+      qc.invalidateQueries({ queryKey: ["environments"] });
+    },
+  });
+}
