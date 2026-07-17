@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@carbon/react";
-import { SendFilled, StopFilledAlt } from "@carbon/icons-react";
+import { Microphone, MicrophoneFilled, SendFilled, StopFilledAlt } from "@carbon/icons-react";
+import { useSpeechRecognition } from "../stt/stt";
 
 const SLASH = [
   { cmd: "/forms", desc: "Build, preview, edit and deploy a data form" },
@@ -30,6 +31,24 @@ export function Composer({
   const ref = useRef<HTMLTextAreaElement>(null);
   const showMenu = text.startsWith("/") && !text.includes(" ");
   const filtered = SLASH.filter((s) => s.cmd.startsWith(text.toLowerCase()));
+
+  // Voice dictation (Web Speech API). Interim results preview in place; final
+  // segments accumulate onto whatever was already typed when dictation started.
+  const dictationBase = useRef("");
+  const { supported: micSupported, listening, toggle } = useSpeechRecognition((t, isFinal) => {
+    if (!t) return;
+    if (isFinal) {
+      dictationBase.current += t + " ";
+      setText(dictationBase.current);
+    } else {
+      setText(dictationBase.current + t);
+    }
+    if (ref.current) ref.current.focus();
+  });
+  const toggleMic = () => {
+    if (!listening) dictationBase.current = text.trim() ? text.trim() + " " : "";
+    toggle();
+  };
 
   useEffect(() => {
     if (ref.current) {
@@ -101,6 +120,16 @@ export function Composer({
           aria-label="Message EPM Wizard"
         />
         <div className="composer-actions">
+          {micSupported && (
+            <Button
+              size="sm"
+              kind={listening ? "secondary" : "ghost"}
+              hasIconOnly
+              iconDescription={listening ? "Stop dictation" : "Dictate (voice input)"}
+              renderIcon={listening ? MicrophoneFilled : Microphone}
+              onClick={toggleMic}
+            />
+          )}
           {streaming ? (
             <Button size="sm" kind="secondary" hasIconOnly iconDescription="Stop" renderIcon={StopFilledAlt} onClick={onStop} />
           ) : (
@@ -117,7 +146,13 @@ export function Composer({
         </div>
       </div>
       <div className="composer-hint">
-        <span>Enter to send · Shift+Enter for newline · / for commands</span>
+        {listening ? (
+          <span style={{ color: "#fa4d56", display: "flex", alignItems: "center", gap: 6 }}>
+            <span className="conn-dot on" style={{ background: "#fa4d56" }} /> Listening… click the mic to stop
+          </span>
+        ) : (
+          <span>Enter to send · Shift+Enter for newline · / for commands{micSupported ? " · 🎤 to dictate" : ""}</span>
+        )}
       </div>
     </div>
   );
