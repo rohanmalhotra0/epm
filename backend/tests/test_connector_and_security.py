@@ -16,7 +16,6 @@ from app.security.redaction import (
 )
 
 
-
 async def test_demo_connector_metadata():
     c = DemoConnector()
     assert [a.name for a in await c.list_applications()] == ["MCWPCF"]
@@ -71,3 +70,22 @@ def test_looks_like_secret():
     assert looks_like_secret("my key is sk-ant-abcdefghijklmnop")
     assert looks_like_secret("password=supersecret")
     assert not looks_like_secret("create an actuals form")
+
+
+def test_redaction_closes_known_bypasses():
+    # credentials in a URL whose username is an email address (contains '@')
+    url = "https://Rohanm@ibm.com:Mestro365!@host.oraclecloud.com/api"
+    out = redact_text(url)
+    assert "Mestro365!" not in out and "Rohanm@ibm.com" not in out
+    assert out.startswith("https://") and "host.oraclecloud.com/api" in out
+    # common token formats beyond the OpenAI/Anthropic/AWS set
+    for token in ("ghp_" + "a" * 36, "xoxb-123456789012-abcdefghijklmnop",
+                  "eyJhbGciOi." + "a" * 8 + "." + "b" * 8):
+        assert REDACTION in redact_text(f"secret is {token}")
+
+
+def test_redact_mapping_matches_prefixed_keys():
+    out = redact_mapping({"db_password": "x1234567", "oracle_secret": "y1234567", "author": "Jane Doe"})
+    assert out["db_password"] == REDACTION
+    assert out["oracle_secret"] == REDACTION
+    assert out["author"] == "Jane Doe"  # benign key must not be over-redacted

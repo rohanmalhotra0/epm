@@ -9,6 +9,7 @@ import type { ChatBlockT } from "../blocks";
 import { ArtifactsPanel } from "../artifacts/ArtifactsPanel";
 import { useArtifacts } from "../artifacts/store";
 import { useUi } from "../store/ui";
+import { toast } from "../store/toast";
 import { speak, useTts } from "../tts/tts";
 
 interface Live {
@@ -65,6 +66,12 @@ export function ChatPage() {
     finalTextRef.current = "";
     abortRef.current = streamMessage(id, text, {
       onEvent: (type, data) => {
+        // The backend emits a terminal `error` event on a mid-stream failure. It was
+        // previously ignored, so the user saw a silently truncated reply. Surface it.
+        if (type === "error") {
+          toast.error("The assistant hit an error", data?.message);
+          return;
+        }
         if (type === "token") finalTextRef.current += data.text || "";
         setLive((prev) => {
           if (!prev) return prev;
@@ -80,8 +87,14 @@ export function ChatPage() {
           return prev;
         });
       },
-      onError: (e) =>
-        setLive((prev) => (prev ? { ...prev, content: prev.content + `\n\n_Error: ${e.message}_` } : prev)),
+      // A transport failure (network drop, non-2xx) must not freeze the composer:
+      // clear the streaming state, surface the error, and reload any persisted state.
+      onError: (e) => {
+        toast.error("Message failed", e.message);
+        setLive(null);
+        setPendingUser(null);
+        qc.invalidateQueries({ queryKey: ["messages", id] });
+      },
       onDone: () => {
         qc.invalidateQueries({ queryKey: ["messages", id] });
         qc.invalidateQueries({ queryKey: ["conversations"] });

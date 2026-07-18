@@ -64,6 +64,42 @@ def find_member(md: TenantMetadata, text: str, dimension: str | None = None) -> 
     return best
 
 
+def find_members(md: TenantMetadata, text: str, dimension: str | None = None) -> list[tuple[str, str]]:
+    """Every distinct member whose technical name or alias appears in the text,
+    ordered by first appearance. Uses the same substring matching as
+    :func:`find_member`, so "March" still resolves to "Mar"."""
+    tl = text.lower()
+    hits: list[tuple[int, str, str]] = []  # (position, member, dimension)
+    seen: set[tuple[str, str]] = set()
+    dims = [dimension] if dimension else list(md.members.keys())
+    for dim in dims:
+        for member in md.members.get(dim, {}).values():
+            key = (member.name, dim)
+            if key in seen:
+                continue
+            for candidate in (member.name, member.alias):
+                if candidate and (pos := tl.find(candidate.lower())) != -1:
+                    hits.append((pos, member.name, dim))
+                    seen.add(key)
+                    break
+    hits.sort(key=lambda h: h[0])
+    return [(name, dim) for _pos, name, dim in hits]
+
+
+def _detect_scenario(text: str, exclude: str | None = None) -> str | None:
+    """First scenario word to appear in the text (by position). ``exclude`` (a
+    referenced form's name) is blanked out first so its words aren't read as the
+    user's scenario intent."""
+    scan = re.sub(re.escape(exclude), " ", text, flags=re.I) if exclude else text
+    best_pos: int | None = None
+    best_val: str | None = None
+    for word, value in SCENARIO_WORDS.items():
+        m = re.search(rf"\b{re.escape(word)}\b", scan, re.I)
+        if m and (best_pos is None or m.start() < best_pos):
+            best_pos, best_val = m.start(), value
+    return best_val
+
+
 def _selection_type(text: str) -> str | None:
     tl = text.lower()
     for phrase, sel in SELECTION_WORDS:
@@ -98,9 +134,12 @@ def build_initial_spec(
 ) -> tuple[FormSpecification, list[str], list[str]]:
     inferences: list[str] = []
     questions: list[str] = []
-    scenario = next((v for k, v in SCENARIO_WORDS.items() if re.search(rf"\b{k}\b", text, re.I)), None)
 
     reference = _find_reference(text, md)
+    # Detect the scenario from the user's own words, not from a referenced form's
+    # name — "forecast form based on Actual Revenue Review" is Forecast, not Actual.
+    scenario = _detect_scenario(text, exclude=reference)
+
     if reference and reference.lower() in md.forms:
         ref_def = md.forms[reference.lower()].definition or {}
         spec = clone_from_reference(ref_def, _derive_name(text, scenario, ref_def.get("cube", "")), reference)
@@ -114,19 +153,16 @@ def build_initial_spec(
         _set_pov_member(spec, "Scenario", scenario)
         inferences.append(f"Scenario: {scenario}")
 
-    # rows selection: "<function> of <member> in rows"
+    # rows selection: "<function> of <member> in rows" — the anchor member may
+    # belong to any dimension (Account, Employee, Entity, ...), not just Account.
     sel_type = _selection_type(text)
-    member = find_member(md, text, dimension="Account")
+    member = find_member(md, text)
     if sel_type and member:
-        spec.rows = [AxisMember(dimension="Account",
-                                selection=MemberSelection(type=sel_type, member=member[0]),
-                                suppress_missing=True)]
-        inferences.append(f"Rows: {sel_type} of {member[0]}")
+        dim = _set_rows(spec, member[1], sel_type, member[0])
+        inferences.append(f"Rows: {sel_type} of {member[0]} ({dim})")
     elif member and "row" in text.lower():
-        spec.rows = [AxisMember(dimension="Account",
-                                selection=MemberSelection(type="children", member=member[0]),
-                                suppress_missing=True)]
-        inferences.append(f"Rows: children of {member[0]}")
+        dim = _set_rows(spec, member[1], "children", member[0])
+        inferences.append(f"Rows: children of {member[0]} ({dim})")
 
     # limit "N rows"
     n = _extract_count(text)
@@ -215,7 +251,7 @@ def apply_edit(spec: FormSpecification, text: str, md: TenantMetadata) -> tuple[
             changes.append(f"Business rule attached: {rule_name}")
 
     # change scenario: "change scenario to Forecast" / "use Forecast scenario"
-    scen = next((v for k, v in SCENARIO_WORDS.items() if re.search(rf"\b{k}\b", text, re.I)), None)
+    scen = _detect_scenario(text)
     if scen and ("scenario" in tl or "change" in tl or "use" in tl):
         if _set_pov_member(spec, "Scenario", scen):
             changes.append(f"Scenario → {scen}")
@@ -256,6 +292,26 @@ def _set_pov_member(spec: FormSpecification, dimension: str, member: str) -> boo
             return True
     spec.pov.append(AxisMember(dimension=dimension, selection=MemberSelection(type="member", member=member)))
     return True
+
+
+def _set_rows(spec: FormSpecification, dimension: str, sel_type: str, member: str) -> str:
+    """Place a single-dimension row selection, keeping the spec structurally valid.
+
+    Returns the dimension actually used. The dimension is freed from POV/Pages if
+    the default spec parked it there (e.g. Entity), and a collision with a column
+    dimension falls back to Account so the grid never ends up with a dimension on
+    two axes (which the FormSpecification validator rejects)."""
+    if any(am.dimension == dimension for am in spec.columns):
+        dimension = "Account"
+    for axis in ("pov", "pages"):
+        lst = _axis_list(spec, axis)
+        for am in list(lst):
+            if am.dimension == dimension:
+                lst.remove(am)
+    spec.rows = [AxisMember(dimension=dimension,
+                            selection=MemberSelection(type=sel_type, member=member),
+                            suppress_missing=True)]
+    return dimension
 
 
 def _first_axis_member(spec: FormSpecification, dimension: str) -> AxisMember | None:
@@ -367,9 +423,10 @@ def _apply_hide(spec: FormSpecification, text: str, md: TenantMetadata) -> list[
                     return changes
             except Exception:
                 pass
-    # hide by member name/alias
-    member = find_member(md, text)
-    if member and member[0] not in spec.display.hidden_members:
-        spec.display.hidden_members.append(member[0])
-        changes.append(f"Hidden member: {member[0]}")
+    # hide by member name/alias — capture every member named, not just the first
+    # ("hide March and April" hides both).
+    for name, _dim in find_members(md, text):
+        if name not in spec.display.hidden_members:
+            spec.display.hidden_members.append(name)
+            changes.append(f"Hidden member: {name}")
     return changes

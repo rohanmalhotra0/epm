@@ -22,4 +22,6 @@ class ChatSkill(Skill):
             "use the matching skill (/forms, /rules, /architecture)."
         )
         await emit.stream_provider_text(ctx, [AIMessage(role="user", content=ctx.user_text)], system=system)
-        return SkillResult(skill="chat", provider_used=ctx.provider.name, model_used=ctx.provider.config.default_model)
+        usage = emit.usage if any(emit.usage.values()) else None
+        return SkillResult(skill="chat", provider_used=ctx.provider.name,
+                           model_used=ctx.provider.config.default_model, usage=usage)

@@ -12,7 +12,6 @@ from alembic import command
 
 from ..config import get_settings
 from ..logging import get_logger
-from ..services import settings_svc
 from .base import Base, get_engine, session_scope
 from .models import EnvironmentProfile, Project, ProviderProfile
 
@@ -36,9 +35,8 @@ def create_all() -> None:
 def seed_defaults(session: Session) -> Project:
     """Ensure a default project and a default provider exist.
 
-    A demo environment is NOT seeded by default: the app starts on a sign-in
-    screen and connects to a real Oracle EPM tenant. Demo mode is opt-in via
-    Settings (``demo_enabled``), which seeds the demo environment on demand.
+    No demo environment is ever seeded: the app starts on a sign-in screen and
+    only ever connects to a real Oracle EPM tenant that the user supplies.
     """
     project = session.query(Project).filter_by(is_default=True).first()
     if project is None:
@@ -50,20 +48,23 @@ def seed_defaults(session: Session) -> Project:
         session.add(project)
         session.flush()
 
-    if bool(settings_svc.get_setting(session, "demo_enabled", default=False)):
-        if not session.query(EnvironmentProfile).filter_by(project_id=project.id, demo=True).count():
-            session.add(
-                EnvironmentProfile(
-                    project_id=project.id,
-                    name="MCW Demo (Local)",
-                    base_url=None,
-                    username="demo",
-                    auth_method="demo",
-                    classification="development",
-                    preferred_application="MCWPCF",
-                    demo=True,
-                )
-            )
+    # Purge any demo environment left over from earlier versions (the app no
+    # longer seeds one and only ever connects to a real Oracle EPM tenant).
+    demo_envs = session.query(EnvironmentProfile).filter_by(demo=True).all()
+    if demo_envs:
+        demo_ids = {e.id for e in demo_envs}
+        for proj in session.query(Project).all():
+            if proj.active_environment_id in demo_ids:
+                proj.active_environment_id = None
+        for env in demo_envs:
+            session.delete(env)
+        session.flush()
+
+    # Heal real environments still pointing at the demo application placeholder
+    # ("MCWPCF") — it 404s against a real tenant. It is re-discovered on connect.
+    session.query(EnvironmentProfile).filter_by(demo=False, preferred_application="MCWPCF").update(
+        {"preferred_application": None}
+    )
 
     # Default deterministic local AI provider — no network, no key required.
     if not session.query(ProviderProfile).filter_by(provider_type="mock").count():
@@ -103,7 +104,7 @@ def _seed_from_env(session: Session, project: Project) -> None:
                 username=username,
                 auth_method="passwordInMemory",
                 classification=classification,
-                preferred_application="MCWPCF",
+                preferred_application=None,  # discovered from the tenant on connect
                 demo=False,
             )
         )

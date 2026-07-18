@@ -8,7 +8,6 @@ import {
   DataTable,
   Rocket,
   Settings,
-  Analytics,
   Information,
   Pin,
   PinFilled,
@@ -21,7 +20,6 @@ const NAV = [
   { to: "/contexts", label: "Contexts", icon: DataTable },
   { to: "/artifacts", label: "Artifacts", icon: Folder },
   { to: "/deployments", label: "Deployments", icon: Rocket },
-  { to: "/diagnostics", label: "Diagnostics", icon: Analytics },
   { to: "/settings", label: "Settings", icon: Settings },
   { to: "/about", label: "About", icon: Information },
 ];

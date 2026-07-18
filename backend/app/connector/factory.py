@@ -9,12 +9,14 @@ from __future__ import annotations
 
 import threading
 
+from ..config import get_settings
 from ..db.models import EnvironmentProfile
 from ..logging import get_logger
 from ..security import get_process_secrets, get_secret_store
 from ..security.redaction import register_secret
 from .base import EpmConnector
 from .demo import DemoConnector
+from .epm_automate import EpmAutomateRunner
 from .errors import ConnectorError, ErrorCategory
 from .oracle_rest import OracleRestConnector
 
@@ -72,12 +74,15 @@ class ConnectionRegistry:
                 suggested_action="Enter your Oracle password to connect.",
             )
         register_secret(pwd)
+        settings = get_settings()
         connector = OracleRestConnector(
             base_url=env.base_url or "",
             username=env.username or "",
             password=pwd,
             classification=env.classification,
             application=env.preferred_application,
+            runner=EpmAutomateRunner(),
+            metadata_job=settings.oracle_metadata_job,
         )
         await connector.login()  # harmless read-only auth check
         # Keep the password only where the user asked.

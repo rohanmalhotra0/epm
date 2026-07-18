@@ -46,7 +46,7 @@ class EnvironmentProfile(IdMixin, TimestampMixin, Base):
     auth_method: Mapped[str] = mapped_column(String(40), default="passwordInMemory")
     classification: Mapped[str] = mapped_column(String(20), default="development")
     preferred_application: Mapped[str | None] = mapped_column(String(120))
-    demo: Mapped[bool] = mapped_column(Boolean, default=True)
+    demo: Mapped[bool] = mapped_column(Boolean, default=False)
     last_connected_at: Mapped[datetime | None] = mapped_column()
     last_context_refresh_at: Mapped[datetime | None] = mapped_column()
     remember_credentials: Mapped[bool] = mapped_column(Boolean, default=False)

@@ -20,6 +20,9 @@ from .base import (
 
 DEFAULT_BASE = "https://api.anthropic.com"
 API_VERSION = "2023-06-01"
+# Finite streaming timeout: a stalled upstream surfaces as a retryable error
+# instead of hanging forever (read gaps between tokens stay well under 60s).
+_STREAM_TIMEOUT = httpx.Timeout(connect=10.0, read=60.0, write=10.0, pool=10.0)
 
 
 class AnthropicProvider(AIProvider):
@@ -73,7 +76,7 @@ class AnthropicProvider(AIProvider):
         if system:
             body["system"] = system
         try:
-            async with httpx.AsyncClient(timeout=None) as client:
+            async with httpx.AsyncClient(timeout=_STREAM_TIMEOUT) as client:
                 async with client.stream("POST", f"{self.base_url}/v1/messages",
                                          headers=self._headers(), json=body) as resp:
                     if resp.status_code >= 400:
@@ -103,6 +106,12 @@ def _parse_event(line: str) -> list[StreamChunk]:
     except json.JSONDecodeError:
         return []
     etype = event.get("type")
+    if etype == "message_start":
+        # Input tokens are only reported here; without this they were always 0.
+        usage = (event.get("message") or {}).get("usage") or {}
+        if usage:
+            return [Usage(input_tokens=usage.get("input_tokens", 0),
+                          output_tokens=usage.get("output_tokens", 0))]
     if etype == "content_block_delta":
         delta = event.get("delta", {})
         if delta.get("type") == "text_delta":

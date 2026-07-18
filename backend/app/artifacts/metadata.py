@@ -59,11 +59,17 @@ class TenantMetadata:
         m = self.get_member(dimension, name)
         if not m:
             return []
-        # depth-first, preserving stored child order, so descendants read top-down
+        # depth-first, preserving stored child order, so descendants read top-down.
+        # `seen` both de-duplicates shared/diamond members and breaks outline cycles
+        # (malformed connector data must never hang the resolver).
         result: list[str] = []
+        seen: set[str] = set()
         stack = list(reversed(m.children))
         while stack:
             child = stack.pop()
+            if child in seen:
+                continue
+            seen.add(child)
             result.append(child)
             cm = self.get_member(dimension, child)
             if cm:
@@ -71,13 +77,21 @@ class TenantMetadata:
         return ([name] if inclusive else []) + result
 
     def level_zero_descendants(self, dimension: str, name: str) -> list[str]:
+        m = self.get_member(dimension, name)
+        if m is None:
+            return []
+        # Oracle's ILvl0Descendants of a leaf is the member itself.
+        if not m.children:
+            return [name]
         return [d for d in self.descendants(dimension, name) if not self.children(dimension, d)]
 
     def ancestors(self, dimension: str, name: str, inclusive: bool = False) -> list[str]:
         out: list[str] = [name] if inclusive else []
+        seen: set[str] = {name}
         cur = self.get_member(dimension, name)
-        while cur and cur.parent:
+        while cur and cur.parent and cur.parent not in seen:  # `seen` breaks parent cycles
             out.append(cur.parent)
+            seen.add(cur.parent)
             cur = self.get_member(dimension, cur.parent)
         return out
 

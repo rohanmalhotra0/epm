@@ -46,6 +46,9 @@ class Emitter(ABC):
 
     def __init__(self) -> None:
         self.process: list[ProcessStep] = []
+        # Token usage seen this turn. Providers report cumulative running totals
+        # (or a single final figure), so we keep the max per field rather than sum.
+        self.usage: dict[str, int] = {"input_tokens": 0, "output_tokens": 0}
 
     @abstractmethod
     async def emit_process(self) -> None: ...
@@ -83,12 +86,15 @@ class Emitter(ABC):
             await self.token(chunk)
 
     async def stream_provider_text(self, ctx: SkillContext, messages, system: str | None = None) -> str:
-        from ...ai.base import TextDelta
+        from ...ai.base import TextDelta, Usage
         parts: list[str] = []
         async for chunk in ctx.provider.stream(messages, system=system, max_tokens=800):
             if isinstance(chunk, TextDelta):
                 parts.append(chunk.text)
                 await self.token(chunk.text)
+            elif isinstance(chunk, Usage):
+                self.usage["input_tokens"] = max(self.usage["input_tokens"], chunk.input_tokens)
+                self.usage["output_tokens"] = max(self.usage["output_tokens"], chunk.output_tokens)
         return "".join(parts)
 
 

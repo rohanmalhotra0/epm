@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./client";
+import { toast } from "../store/toast";
 import type {
   ArtifactOut,
   ContextVersionOut,
@@ -85,11 +86,16 @@ export function useConnectEnvironment(projectId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, password, remember }: { id: string; password?: string; remember?: boolean }) =>
-      api(`/api/environments/${id}/connect`, {
-        method: "POST",
-        body: JSON.stringify({ password, remember }),
-      }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["environments", projectId] }),
+      api<{ connected: boolean; message?: string; detail?: string; application?: string }>(
+        `/api/environments/${id}/connect`,
+        { method: "POST", body: JSON.stringify({ password, remember }) },
+      ),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["environments", projectId] });
+      if (res?.connected) toast.success("Connected to Oracle EPM", res.message);
+      else toast.error("Connection failed", res?.detail || res?.message);
+    },
+    onError: (e: Error) => toast.error("Connection failed", e.message),
   });
 }
 
@@ -114,7 +120,11 @@ export function useCreateProvider() {
   return useMutation({
     mutationFn: (body: Record<string, unknown>) =>
       api<ProviderOut>("/api/providers", { method: "POST", body: JSON.stringify(body) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["providers"] }),
+    onSuccess: (p) => {
+      qc.invalidateQueries({ queryKey: ["providers"] });
+      toast.success("Provider added", p?.name);
+    },
+    onError: (e: Error) => toast.error("Could not add provider", e.message),
   });
 }
 
@@ -140,10 +150,16 @@ export function useBuildContext(projectId: string | undefined) {
   return useMutation({
     mutationFn: (mode: "quick" | "deep") =>
       api<ContextVersionOut>(`/api/projects/${projectId}/contexts/build?mode=${mode}`, { method: "POST" }),
-    onSuccess: () => {
+    onSuccess: (cv) => {
       qc.invalidateQueries({ queryKey: ["contexts", projectId] });
       qc.invalidateQueries({ queryKey: ["projects"] });
+      const c = cv?.counts as Record<string, number> | undefined;
+      toast.success(
+        `Context built (${cv?.mode})`,
+        c ? `${c.members ?? 0} members · ${c.forms ?? 0} forms · ${c.rules ?? 0} rules` : undefined,
+      );
     },
+    onError: (e: Error) => toast.error("Context build failed", e.message),
   });
 }
 
@@ -170,24 +186,8 @@ export const useRuleExecutions = (projectId: string | undefined) =>
   });
 
 export const useDiagnostics = () =>
-  useQuery({ queryKey: ["diagnostics"], queryFn: () => api<DiagnosticsReport>("/api/diagnostics") });
-
-// --- settings ---
-export interface AppSettings {
-  demoEnabled: boolean;
-}
-
-export const useSettings = () =>
-  useQuery({ queryKey: ["settings"], queryFn: () => api<AppSettings>("/api/settings") });
-
-export function useUpdateSettings() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (body: Partial<AppSettings>) =>
-      api<AppSettings>("/api/settings", { method: "PATCH", body: JSON.stringify(body) }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["settings"] });
-      qc.invalidateQueries({ queryKey: ["environments"] });
-    },
+  useQuery({
+    queryKey: ["diagnostics"],
+    queryFn: () => api<DiagnosticsReport>("/api/diagnostics"),
+    refetchInterval: 30_000,
   });
-}

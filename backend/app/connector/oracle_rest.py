@@ -27,11 +27,14 @@ from ..schemas.context import (
 )
 from ..security.redaction import register_secret
 from .base import ConnectorInfo, EpmConnector, JobResult
+from .epm_automate import EpmAutomateRunner
 from .errors import ConnectorError, ErrorCategory
+from .metadata_export import parse_metadata_export
 from .validation import validate_application, validate_rule_name, validate_url
 
 log = get_logger(__name__)
 PLANNING = "HyperionPlanning/rest/v3"
+_METADATA_EXPORT_FILE = "epmw_metadata_export.zip"
 
 
 class OracleRestConnector(EpmConnector):
@@ -43,12 +46,18 @@ class OracleRestConnector(EpmConnector):
         classification: str = "development",
         application: str | None = None,
         timeout: float = 30.0,
+        runner: EpmAutomateRunner | None = None,
+        metadata_job: str = "",
     ) -> None:
         self.base_url = validate_url(base_url)
         self.username = username
         self._password = password
         register_secret(password)
         self.timeout = timeout
+        # EPM Automate is used only to import members (not exposed by the REST API).
+        self._runner = runner
+        self._metadata_job = metadata_job
+        self._members_cache: dict[str, list[MemberRecord]] | None = None
         self.info = ConnectorInfo(
             kind="oracleRest", demo=False, classification=classification, application=application, connected=False
         )
@@ -105,33 +114,108 @@ class OracleRestConnector(EpmConnector):
             for a in data.get("items", []) if a.get("name")
         ]
 
+    async def _plantype_items(self, application: str) -> list[dict]:
+        """Raw plan-type (cube) items. Degrades to [] rather than failing the build."""
+        try:
+            data = await self._get(f"{PLANNING}/applications/{application}/plantypes")
+        except ConnectorError:
+            return []
+        return data.get("items", [])
+
+    @staticmethod
+    def _cube_name(item: dict) -> str | None:
+        # A plantype names its cube via `cubeName`/`planTypeName`, not `name`.
+        return item.get("cubeName") or item.get("planTypeName") or item.get("name")
+
+    async def _plantype_dimensions(self, application: str, cube: str) -> list[dict]:
+        """Raw dimension items for one plan type. On an OCF/Enterprise app the
+        app-level ``/dimensions`` route 404s; dimensions are exposed per plan type."""
+        try:
+            data = await self._get(f"{PLANNING}/applications/{application}/plantypes/{cube}/dimensions")
+        except ConnectorError:
+            return []
+        return data.get("items", [])
+
+    @staticmethod
+    def _dim_name(item: dict) -> str | None:
+        return item.get("name") or item.get("dimName")
+
     async def list_cubes(self, application: str) -> list[CubeRecord]:
         validate_application(application)
-        data = await self._get(f"{PLANNING}/applications/{application}/plantypes")
-        return [
-            CubeRecord(name=c["name"], application=application, type=c.get("type", "bso"))
-            for c in data.get("items", []) if c.get("name")
-        ]
+        cubes: list[CubeRecord] = []
+        for item in await self._plantype_items(application):
+            name = self._cube_name(item)
+            if not name:
+                continue
+            dims = [self._dim_name(d) for d in await self._plantype_dimensions(application, name)]
+            cubes.append(CubeRecord(name=name, application=application, type=item.get("type", "bso"),
+                                    dimensions=[d for d in dims if d]))
+        return cubes
 
     async def list_dimensions(self, application: str) -> list[DimensionRecord]:
         validate_application(application)
-        data = await self._get(f"{PLANNING}/applications/{application}/dimensions")
-        return [
-            DimensionRecord(name=d["name"], application=application, type=d.get("dimensionType", "generic"))
-            for d in data.get("items", []) if d.get("name")
-        ]
+        # An OCF/Enterprise app has no app-level /dimensions endpoint (it 404s);
+        # dimensions are listed per plan type. Union them, de-duplicating by name
+        # (a dimension is shared across the plan types listed in its `usedIn`).
+        seen: dict[str, DimensionRecord] = {}
+        for item in await self._plantype_items(application):
+            cube = self._cube_name(item)
+            if not cube:
+                continue
+            for d in await self._plantype_dimensions(application, cube):
+                name = self._dim_name(d)
+                if not name or name.lower() in seen:
+                    continue
+                seen[name.lower()] = DimensionRecord(
+                    name=name, application=application, type=d.get("dimType", "generic"),
+                    cubes=[c for c in (d.get("usedIn") or [cube]) if c],
+                    dense=str(d.get("density", "")).lower() == "dense",
+                )
+        return list(seen.values())
 
     async def list_members(self, application: str, dimension: str) -> list[MemberRecord]:
+        """Members for a dimension. The Planning REST API does not expose member
+        enumeration, so they come from a one-time EPM Automate metadata export
+        (cached across dimensions). Without EPM Automate configured this returns []
+        and the context build degrades to a "members unavailable" section."""
         validate_application(application)
+        await self._ensure_members_loaded(application)
+        assert self._members_cache is not None
+        return self._members_cache.get(dimension.lower(), [])
+
+    @property
+    def _can_export_members(self) -> bool:
+        return bool(self._runner and self._runner.installed and self._metadata_job)
+
+    async def _ensure_members_loaded(self, application: str) -> None:
+        if self._members_cache is not None:
+            return
+        self._members_cache = {}
+        if not self._can_export_members:
+            return
         try:
-            data = await self._get(f"{PLANNING}/applications/{application}/dimensions/{dimension}/members")
-        except ConnectorError:
-            return []  # member enumeration is not uniformly exposed; deep context degrades to partial
-        return [
-            MemberRecord(name=m["name"], dimension=dimension, application=application,
-                         alias=m.get("alias"), parent=m.get("parentName"))
-            for m in data.get("items", []) if m.get("name")
-        ]
+            members = await self._export_members(application)
+        except ConnectorError as exc:
+            log.warning("member_export_failed", error=str(exc))
+            return
+        cache: dict[str, list[MemberRecord]] = {}
+        for m in members:
+            cache.setdefault(m.dimension.lower(), []).append(m)
+        self._members_cache = cache
+
+    async def _export_members(self, application: str) -> list[MemberRecord]:
+        """Run the saved Export Metadata job via EPM Automate, download the archive
+        and parse it into members. The local download is always cleaned up."""
+        runner = self._runner
+        assert runner is not None
+        dim_names = {d.name for d in await self.list_dimensions(application)}
+        await runner.login(self.base_url, self.username, self._password)
+        await runner.export_metadata(self._metadata_job, _METADATA_EXPORT_FILE)
+        local = await runner.download_file(_METADATA_EXPORT_FILE)
+        try:
+            return parse_metadata_export(local, application, dimensions=dim_names or None)
+        finally:
+            local.unlink(missing_ok=True)
 
     async def search_members(
         self, application: str, query: str, dimension: str | None = None, limit: int = 50

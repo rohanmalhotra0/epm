@@ -20,7 +20,10 @@ from .metadata import TenantMetadata
 from .preview import build_preview
 
 RENDERER_VERSION = "1.0.0"
-_SEL_ATTR_ORDER = ["type", "member", "members", "start", "end", "offsetStart", "offsetEnd",
+# `members` is intentionally omitted here — an explicit member list is rendered as
+# child <member> elements (see render_xml), so member names containing a comma
+# survive the render->parse round-trip losslessly.
+_SEL_ATTR_ORDER = ["type", "member", "start", "end", "offsetStart", "offsetEnd",
                    "variable", "attribute", "namedSelection"]
 
 
@@ -29,8 +32,7 @@ def _selection_attrs(sel: MemberSelection) -> dict[str, str]:
     attrs: dict[str, str] = {}
     for key in _SEL_ATTR_ORDER:
         if key in data:
-            value = data[key]
-            attrs[key] = ",".join(map(str, value)) if isinstance(value, list) else str(value)
+            attrs[key] = str(data[key])
     return attrs
 
 
@@ -72,6 +74,8 @@ def render_xml(spec: FormSpecification) -> str:
             sel_el = ET.SubElement(dim_el, "selection")
             for key, value in _selection_attrs(am.selection).items():
                 sel_el.set(key, value)
+            for member_name in am.selection.members or []:
+                ET.SubElement(sel_el, "member").text = member_name
 
     if spec.business_rule_associations:
         rules_el = ET.SubElement(root, "businessRules")

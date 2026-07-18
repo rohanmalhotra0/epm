@@ -105,7 +105,12 @@ def _parse_selection(sel_el) -> MemberSelection:  # noqa: ANN001
         if key in _INT_ATTRS:
             data[key] = int(value)
         elif key in _LIST_ATTRS:
-            data[key] = value.split(",")
+            data[key] = value.split(",")  # backward-compat: legacy comma-joined attribute
         else:
             data[key] = value
+    # Preferred form: an explicit member list is carried as child <member> elements,
+    # which (unlike a comma-joined attribute) preserves names containing commas.
+    member_children = [m.text for m in sel_el.findall("member") if m.text is not None]
+    if member_children:
+        data["members"] = member_children
     return MemberSelection.model_validate(data)

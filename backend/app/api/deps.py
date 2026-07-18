@@ -60,14 +60,18 @@ def resolve_turn(session: Session, project: Project, conversation: Conversation 
     connector: EpmConnector
     classification = env.classification if env else "development"
     environment_name = env.name if env else "Demo"
-    application = (env.preferred_application if env else None) or "MCWPCF"
+    application = env.preferred_application if env else None
 
     if env is not None and not env.demo and registry.is_connected(env.id):
         connector = registry.get(env.id)  # live connection
         demo = False
+        # Prefer the application resolved at connect time.
+        application = getattr(connector.info, "application", None) or application
     else:
-        # demo connector (always available). Never contacts a tenant.
+        # demo connector (always available). Never contacts a tenant. Only the
+        # demo path uses the fixture application name.
         from ..connector.demo import DemoConnector
+        application = application or "MCWPCF"
         connector = DemoConnector(classification=classification if env else "development", application=application)
         demo = True
 

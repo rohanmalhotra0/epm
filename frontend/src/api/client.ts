@@ -78,10 +78,10 @@ export function streamMessage(
       }
       handlers.onDone?.();
     } catch (err) {
-      if ((err as Error).name === "AbortError") {
-        handlers.onDone?.();
-        return;
-      }
+      // A user-initiated abort (Stop button / conversation switch / unmount) is not a
+      // natural completion — the caller already resets its own state, so firing onDone
+      // here would wrongly speak/persist a half-finished reply.
+      if ((err as Error).name === "AbortError") return;
       handlers.onError?.(err as Error);
     }
   })();

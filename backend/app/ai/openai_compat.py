@@ -25,6 +25,8 @@ _DEFAULT_BASE = {
     "ollama": "http://localhost:11434/v1",
     "generic": "http://localhost:8080/v1",
 }
+# Finite streaming timeout so a stalled upstream errors instead of hanging forever.
+_STREAM_TIMEOUT = httpx.Timeout(connect=10.0, read=60.0, write=10.0, pool=10.0)
 
 
 class OpenAICompatibleProvider(AIProvider):
@@ -71,9 +73,13 @@ class OpenAICompatibleProvider(AIProvider):
             "temperature": temperature,
             "max_tokens": max_tokens,
             "stream": True,
+            # Without this, OpenAI-compatible backends emit no usage chunk while
+            # streaming, so token accounting was always 0. Backends that don't
+            # support it (some Ollama builds) ignore the field harmlessly.
+            "stream_options": {"include_usage": True},
         }
         try:
-            async with httpx.AsyncClient(timeout=None) as client:
+            async with httpx.AsyncClient(timeout=_STREAM_TIMEOUT) as client:
                 async with client.stream("POST", f"{self.base_url}/chat/completions",
                                          headers=self._headers(), json=body) as resp:
                     if resp.status_code >= 400:

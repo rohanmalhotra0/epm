@@ -6,7 +6,6 @@ import {
   useConnectEnvironment,
   useCreateEnvironment,
   useEnvironments,
-  useSettings,
 } from "../api/hooks";
 import { useUi } from "../store/ui";
 import type { EnvironmentOut } from "../schemas/types";
@@ -47,7 +46,6 @@ function SignInScreen({
   environments: EnvironmentOut[];
 }) {
   const nav = useNavigate();
-  const { data: settings } = useSettings();
   const createEnv = useCreateEnvironment(projectId);
   const connect = useConnectEnvironment(projectId);
 
@@ -55,14 +53,12 @@ function SignInScreen({
     baseUrl: "",
     username: "",
     password: "",
-    application: "MCWPCF",
+    application: "",
     classification: "development",
     remember: false,
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-
-  const demoEnv = environments.find((e) => e.demo);
 
   const set = (k: keyof typeof form, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -83,7 +79,7 @@ function SignInScreen({
           username: form.username.trim(),
           authMethod: form.remember ? "passwordStored" : "passwordInMemory",
           classification: form.classification,
-          preferredApplication: form.application.trim() || "MCWPCF",
+          preferredApplication: form.application.trim() || undefined,
           demo: false,
         });
       }
@@ -97,22 +93,6 @@ function SignInScreen({
       }
     } catch (e: any) {
       setError(e?.message || "Sign-in failed.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const connectDemo = async () => {
-    if (!demoEnv) return;
-    setError("");
-    setBusy(true);
-    try {
-      const result: any = await connect.mutateAsync({ id: demoEnv.id });
-      if (result && result.connected === false) {
-        setError(result.detail || result.message || "Could not start demo mode.");
-      }
-    } catch (e: any) {
-      setError(e?.message || "Could not start demo mode.");
     } finally {
       setBusy(false);
     }
@@ -154,6 +134,7 @@ function SignInScreen({
             <label className="signin-label">Application</label>
             <input
               className="signin-input"
+              placeholder="auto-detect"
               value={form.application}
               onChange={(e) => set("application", e.target.value)}
             />
@@ -203,18 +184,12 @@ function SignInScreen({
         </Button>
 
         <div className="signin-footer">
-          {settings?.demoEnabled && demoEnv ? (
-            <button className="signin-link" disabled={busy} onClick={connectDemo}>
-              Continue in demo mode
+          <span className="signin-muted">
+            Need to configure an AI model first?{" "}
+            <button className="signin-link" onClick={() => nav("/settings")}>
+              Open Settings
             </button>
-          ) : (
-            <span className="signin-muted">
-              Demo mode is off.{" "}
-              <button className="signin-link" onClick={() => nav("/settings")}>
-                Enable it in Settings
-              </button>
-            </span>
-          )}
+          </span>
         </div>
       </div>
     </div>

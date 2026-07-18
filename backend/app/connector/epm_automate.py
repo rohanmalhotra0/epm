@@ -35,6 +35,7 @@ ALLOWED_COMMANDS = {
     "downloadfile",
     "importsnapshot",
     "exportsnapshot",
+    "exportmetadata",
     "runbusinessrule",
     "getsubstvar",
     "feedback",
@@ -47,6 +48,7 @@ class EpmAutomateRunner:
         settings = get_settings()
         self.binary = settings.epmautomate_path
         self.workdir = settings.runner_dir
+        self.metadata_job = settings.oracle_metadata_job
         self.workdir.mkdir(parents=True, exist_ok=True)
 
     @property
@@ -111,6 +113,28 @@ class EpmAutomateRunner:
         if rc != 0:
             raise ConnectorError(ErrorCategory.upload, "Upload failed.", technical_detail=err)
 
+    async def export_metadata(self, job_name: str, file_name: str, timeout: int = 600) -> None:
+        """Run a saved 'Export Metadata' job, writing the export to ``file_name`` in
+        the tenant outbox. ``job_name`` is a tenant-configured artifact name, not a
+        path — only the file name is filename-validated."""
+        validate_filename(file_name)
+        rc, _out, err = await self.run("exportmetadata", [job_name, file_name], timeout=timeout)
+        if rc != 0:
+            raise ConnectorError(ErrorCategory.epm_automate, "Metadata export failed.", technical_detail=err,
+                                 suggested_action="Confirm the Export Metadata job name exists in the application.")
+
+    async def download_file(self, remote_name: str) -> Path:
+        """Download a tenant file into the runner workdir and return its local path."""
+        validate_filename(remote_name)
+        rc, _out, err = await self.run("downloadfile", [remote_name])
+        if rc != 0:
+            raise ConnectorError(ErrorCategory.epm_automate, "Download failed.", technical_detail=err)
+        local = self.workdir / remote_name
+        if not local.exists():
+            raise ConnectorError(ErrorCategory.epm_automate,
+                                 f"Downloaded file '{remote_name}' was not found in the runner directory.")
+        return local
+
     def diagnostics(self) -> dict:
         java = shutil.which("java") or (os.path.join(os.environ.get("JAVA_HOME", ""), "bin", "java")
                                         if os.environ.get("JAVA_HOME") else None)
@@ -123,4 +147,7 @@ class EpmAutomateRunner:
             "workdir": str(self.workdir),
             "workdirWritable": writable,
             "allowedCommands": sorted(ALLOWED_COMMANDS),
+            # Member import readiness: needs both the binary AND a saved export job.
+            "metadataExportJobConfigured": bool(self.metadata_job),
+            "memberImportReady": self.installed and bool(self.metadata_job),
         }

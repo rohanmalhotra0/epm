@@ -73,8 +73,17 @@ async def _sse(conversation_id: str, user_text: str) -> AsyncIterator[str]:
     session = SessionLocal()
     try:
         conv = svc.get_conversation(session, conversation_id)
+        if conv is None:
+            yield StreamEvent(type=StreamEventType.error, data={"message": "conversation not found"}).sse()
+            yield StreamEvent(type=StreamEventType.done, data={}).sse()
+            return
         project = conv.project
         turn = resolve_turn(session, project, conv)
+        # An AI turn can stream for many seconds. Commit the turn-resolution reads now
+        # so no DB transaction (or WAL read snapshot) is held open across the stream —
+        # the assistant message is persisted in its own short transaction below. The
+        # sessionmaker uses expire_on_commit=False, so conv/project/turn stay usable.
+        session.commit()
         yield StreamEvent(type=StreamEventType.title, data={"title": conv.title}).sse()
         async for event in stream_turn(
             session=session, project=project, conversation=conv,

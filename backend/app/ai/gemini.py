@@ -19,6 +19,8 @@ from .base import (
 )
 
 DEFAULT_BASE = "https://generativelanguage.googleapis.com"
+# Finite streaming timeout so a stalled upstream errors instead of hanging forever.
+_STREAM_TIMEOUT = httpx.Timeout(connect=10.0, read=60.0, write=10.0, pool=10.0)
 
 
 class GeminiProvider(AIProvider):
@@ -60,7 +62,7 @@ class GeminiProvider(AIProvider):
             body["systemInstruction"] = {"parts": [{"text": system}]}
         url = f"{self.base_url}/v1beta/models/{model}:streamGenerateContent"
         try:
-            async with httpx.AsyncClient(timeout=None) as client:
+            async with httpx.AsyncClient(timeout=_STREAM_TIMEOUT) as client:
                 async with client.stream("POST", url, params={"key": self._key(), "alt": "sse"}, json=body) as resp:
                     if resp.status_code >= 400:
                         detail = (await resp.aread()).decode("utf-8", "replace")[:300]

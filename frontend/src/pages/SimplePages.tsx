@@ -1,5 +1,5 @@
 import { Button } from "@carbon/react";
-import { useArtifacts, useBuildContext, useContexts, useDeployments, useDiagnostics } from "../api/hooks";
+import { useArtifacts, useBuildContext, useContexts, useDeployments } from "../api/hooks";
 import { useUi } from "../store/ui";
 
 function usePid() {
@@ -89,38 +89,6 @@ export function DeploymentsPage() {
           {deployments.length === 0 && <tr><td colSpan={7} style={{ color: "#8d8d8d" }}>No deployments yet.</td></tr>}
         </tbody>
       </table>
-    </div>
-  );
-}
-
-export function DiagnosticsPage() {
-  const { data } = useDiagnostics();
-  const dot = (s: string) => (s === "ok" ? "#42be65" : s === "warn" ? "#f1c21b" : s === "unavailable" ? "#6f6f6f" : "#ff8389");
-  return (
-    <div className="page">
-      <h2>Diagnostics</h2>
-      <div className="page-sub">Local subsystem health. The diagnostics bundle is sanitized — it never contains secrets.</div>
-      <div className="action-row" style={{ marginBottom: 16 }}>
-        <Button size="sm" kind="tertiary" onClick={() => window.open("/api/diagnostics/bundle", "_blank")}>Download sanitized bundle</Button>
-      </div>
-      {data && (
-        <>
-          <div className="card-grid" style={{ marginBottom: 20 }}>
-            {data.subsystems.map((s) => (
-              <div className="stat-tile" key={s.name}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: dot(s.status) }} />
-                  <span style={{ fontWeight: 600 }}>{s.name}</span>
-                </div>
-                <div className="l" style={{ marginTop: 6 }}>{s.detail}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ fontSize: 12, color: "#8d8d8d" }}>
-            Version {data.appVersion} · provider {data.activeProvider} · model {data.activeModel} · redaction {data.redactionHealthy ? "healthy" : "FAILED"}
-          </div>
-        </>
-      )}
     </div>
   );
 }

@@ -90,8 +90,15 @@ def _route(session: Session, conversation: Conversation, user_text: str) -> tupl
 def _upsert_workflow(session: Session, conversation: Conversation, result: SkillResult) -> None:
     if not result.workflow_active and result.workflow_state is None:
         return
-    row = (session.query(WorkflowState)
-           .filter_by(conversation_id=conversation.id, skill=result.skill).first())
+    # There is no DB unique constraint on (conversation_id, skill), so a prior
+    # SELECT-then-INSERT race could have left duplicates. Collapse them here (keep
+    # the most-recent row, delete the rest) so the state stays single and correct.
+    rows = (session.query(WorkflowState)
+            .filter_by(conversation_id=conversation.id, skill=result.skill)
+            .order_by(WorkflowState.updated_at.desc()).all())
+    row = rows[0] if rows else None
+    for duplicate in rows[1:]:
+        session.delete(duplicate)
     if row is None:
         row = WorkflowState(conversation_id=conversation.id, project_id=conversation.project_id,
                             skill=result.skill, state=result.workflow_state or "", data=result.workflow_data or {},

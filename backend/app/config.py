@@ -63,6 +63,10 @@ class Settings(BaseSettings):
     # Optional EPM Automate runner (Oracle software is never redistributed here).
     epmautomate_path: str = ""
     java_home: str = ""
+    # Name of a saved "Export Metadata" job in the Planning app. Member/dimension
+    # enumeration is not exposed by the Planning REST API, so members are imported
+    # by running this job via EPM Automate, then downloading + parsing the export.
+    oracle_metadata_job: str = ""
 
     # Default provider/model for a fresh install: the deterministic local mock so
     # the app is fully usable with zero configuration and no network.

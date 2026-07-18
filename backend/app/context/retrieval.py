@@ -26,6 +26,13 @@ _METHOD_CONFIDENCE = {
 }
 
 
+def _like_pattern(query: str) -> str:
+    """Build a case-folded substring LIKE pattern, escaping the LIKE wildcards so a
+    query containing '%' or '_' is matched literally instead of as a wildcard."""
+    q = query.strip().lower().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{q}%"
+
+
 def _classify(query: str, name: str, alias: str | None) -> str | None:
     q = query.strip()
     ql = q.lower()
@@ -68,11 +75,11 @@ def search_members(
 ) -> list[MemberMatch]:
     cv = session.get(ContextVersion, context_version_id)
     version_label = cv.label if cv else context_version_id
-    ql = f"%{query.strip().lower()}%"
+    ql = _like_pattern(query)
     q = session.query(ContextRecord).filter_by(context_version_id=context_version_id, kind="member")
     if dimension:
         q = q.filter(func.lower(ContextRecord.dimension) == dimension.lower())
-    q = q.filter(func.lower(ContextRecord.search_text).like(ql))
+    q = q.filter(func.lower(ContextRecord.search_text).like(ql, escape="\\"))
     candidates = q.limit(max(limit * 5, 100)).all()
 
     matches: list[MemberMatch] = []
@@ -102,11 +109,11 @@ def search_all(
     """Cross-kind search (forms, rules, members, ...) for the /search skill."""
     cv = session.get(ContextVersion, context_version_id)
     version_label = cv.label if cv else context_version_id
-    ql = f"%{query.strip().lower()}%"
+    ql = _like_pattern(query)
     q = session.query(ContextRecord).filter_by(context_version_id=context_version_id)
     if kinds:
         q = q.filter(ContextRecord.kind.in_(kinds))
-    q = q.filter(func.lower(ContextRecord.search_text).like(ql))
+    q = q.filter(func.lower(ContextRecord.search_text).like(ql, escape="\\"))
     out = []
     for r in q.limit(limit).all():
         out.append({

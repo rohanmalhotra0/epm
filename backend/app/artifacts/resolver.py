@@ -46,10 +46,14 @@ def resolve_selection(
         return Resolution([_canonical(md, dimension, selection.member)], "member")
 
     if t is SelectionType.member_list:
-        out = []
+        out: list[str] = []
+        seen: set[str] = set()
         for m in selection.members or []:
             require(m)
-            out.append(_canonical(md, dimension, m))
+            canon = _canonical(md, dimension, m)
+            if canon.lower() not in seen:  # de-dup so the grid never repeats a member
+                seen.add(canon.lower())
+                out.append(canon)
         return Resolution(out, "memberList")
 
     if t in (SelectionType.children, SelectionType.inclusive_children):
@@ -86,9 +90,22 @@ def resolve_selection(
         return _cap(members, "range", limit)
 
     if t is SelectionType.relative_range:
-        # relative to current period is tenant-specific; resolve against outline order
+        # A relative range is a window around an anchor member in outline order,
+        # e.g. member="Mar", offsets (-1, +1) -> [Feb, Mar, Apr]. Without an anchor
+        # there is nothing to be relative to, so we refuse rather than silently
+        # returning the whole dimension (which is never what the user meant).
+        anchor = selection.member
+        if not anchor:
+            raise ResolutionError(
+                "A relativeRange selection needs an anchor 'member' (the current "
+                f"member the offsets are relative to) in dimension '{dimension}'."
+            )
+        require(anchor)
         order = md.member_order.get(dimension, [])
-        return _cap(order, "relativeRange", limit)
+        idx = {n.lower(): i for i, n in enumerate(order)}[anchor.lower()]
+        start = max(0, idx + (selection.offset_start or 0))
+        end = min(len(order), idx + (selection.offset_end or 0) + 1)
+        return _cap(order[start:end], "relativeRange", limit)
 
     if t in (SelectionType.substitution_variable, SelectionType.user_variable):
         var = md.get_variable(selection.variable)

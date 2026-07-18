@@ -220,11 +220,14 @@ async def execute_deployment(
 
 
 def _verify(spec: FormSpecification, form) -> list[tuple[str, bool]]:  # noqa: ANN001
+    # A field the connector did not return is "could not confirm", NOT a pass — the
+    # old `(form.folder or spec.folder) == spec.folder` was vacuously true on None, so
+    # a form deployed to the wrong folder/cube still "verified".
     return [
         ("Artifact exists", True),
         ("Name matches", form.name.lower() == spec.name.lower()),
-        ("Folder matches", (form.folder or spec.folder) == spec.folder),
-        ("Cube matches", (form.cube or spec.cube) == spec.cube),
+        ("Folder matches", form.folder is not None and form.folder == spec.folder),
+        ("Cube matches", form.cube is not None and form.cube == spec.cube),
     ]
 
 

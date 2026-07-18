@@ -20,7 +20,7 @@ REDACTION = "«redacted»"
 _known_secrets: set[str] = set()
 _lock = threading.Lock()
 
-# Keys whose values are always redacted in structured payloads.
+# Keys whose values are always redacted in structured payloads (exact match).
 SENSITIVE_KEYS = {
     "password",
     "passwd",
@@ -42,6 +42,18 @@ SENSITIVE_KEYS = {
     "master_key",
 }
 
+# High-signal substrings so prefixed/nested keys (db_password, oracle_password,
+# x_api_key, client_secret) are also redacted. Chosen to avoid collisions with
+# benign words like "author"/"session" (those stay exact-match only).
+_SENSITIVE_KEY_SUBSTRINGS = (
+    "password", "passwd", "pwd", "secret", "token", "apikey", "api_key",
+    "credential", "private_key", "access_key",
+)
+
+# The `key: value` prose pattern accepts an optionally quoted value so secrets
+# containing spaces ("the password is hunter2 with spaces") are still caught.
+_KV_VALUE = r"(?:\"[^\"]{4,}\"|'[^']{4,}'|[^\s,;\"']{4,})"
+
 _PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._\-]{8,}"),
     re.compile(r"(?i)\bBasic\s+[A-Za-z0-9+/=]{8,}"),
@@ -49,11 +61,16 @@ _PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"\bsk-[A-Za-z0-9]{16,}"),
     re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     re.compile(r"\bAIza[0-9A-Za-z\-_]{20,}"),
-    re.compile(r"(?i)\b(?:api[_-]?key|password|passwd|pwd|token|secret)\b\s*[:=]\s*[^\s,;\"']{4,}"),
-    # user:pass@host in a URL
-    re.compile(r"(?i)(https?://[^/\s:@]+):([^/\s:@]+)@"),
+    re.compile(r"\bgh[posru]_[A-Za-z0-9]{20,}\b"),  # GitHub PAT/OAuth/refresh tokens
+    re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}"),  # Slack tokens
+    re.compile(r"\beyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{6,}\.[A-Za-z0-9_\-]{6,}"),  # JWT
+    re.compile(rf"(?i)\b(?:api[_-]?key|password|passwd|pwd|token|secret)\b\s*(?:is\s+)?[:=]?\s*{_KV_VALUE}"),
+    # user[:pass]@host in a URL — userinfo may itself contain '@' (email usernames),
+    # so match greedily up to the last '@' before the host/path.
+    re.compile(r"(?i)(https?://)[^/\s]*@"),
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----", re.DOTALL),
 ]
+_URL_CRED_PATTERN = _PATTERNS[-2]
 
 # Used by looks_like_secret to warn a user who pastes a credential into chat.
 _SECRET_HINTS: list[re.Pattern[str]] = [
@@ -61,8 +78,11 @@ _SECRET_HINTS: list[re.Pattern[str]] = [
     re.compile(r"\bsk-[A-Za-z0-9]{16,}"),
     re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     re.compile(r"\bAIza[0-9A-Za-z\-_]{20,}"),
+    re.compile(r"\bgh[posru]_[A-Za-z0-9]{20,}\b"),
+    re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}"),
+    re.compile(r"\beyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{6,}\.[A-Za-z0-9_\-]{6,}"),
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
-    re.compile(r"(?i)\bpassword\b\s*[:=]\s*\S{4,}"),
+    re.compile(r"(?i)\bpassword\b\s*(?:is\s+)?[:=]?\s*\S{4,}"),
 ]
 
 
@@ -94,8 +114,8 @@ def redact_text(text: str) -> str:
         if s in out:
             out = out.replace(s, REDACTION)
     for pat in _PATTERNS:
-        if pat.pattern.startswith("(?i)(https"):
-            out = pat.sub(rf"\1:{REDACTION}@", out)
+        if pat is _URL_CRED_PATTERN:
+            out = pat.sub(rf"\1{REDACTION}@", out)  # keep scheme + host, drop userinfo
         else:
             out = pat.sub(REDACTION, out)
     return out
@@ -111,10 +131,15 @@ def redact_value(value):  # noqa: ANN001
     return value
 
 
+def _is_sensitive_key(key: str) -> bool:
+    kl = key.lower()
+    return kl in SENSITIVE_KEYS or any(tok in kl for tok in _SENSITIVE_KEY_SUBSTRINGS)
+
+
 def redact_mapping(data: dict) -> dict:
     out: dict = {}
     for k, v in data.items():
-        if isinstance(k, str) and k.lower() in SENSITIVE_KEYS:
+        if isinstance(k, str) and _is_sensitive_key(k):
             out[k] = REDACTION
         else:
             out[k] = redact_value(v)
