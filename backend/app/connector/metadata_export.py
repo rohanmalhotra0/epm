@@ -36,8 +36,27 @@ def _pick(headers: list[str], candidates: tuple[str, ...]) -> str | None:
     return None
 
 
+def _strip_lcm_header(text: str) -> str:
+    """LCM snapshot dimension files prefix the member CSV with an XML metadata
+    block ('#!-- HEADERBLOCK DIMENSION XML' … '</DIMENSIONS>'). Drop it so the CSV
+    parser sees the header row first. Plain Export-Metadata files pass through."""
+    if "#!-- HEADERBLOCK" not in text[:256]:
+        return text
+    lines = text.splitlines()
+    start = 0
+    for i, line in enumerate(lines):
+        if line.strip().startswith("</DIMENSIONS"):
+            start = i + 1
+            break
+    # Skip the marker/comment/blank lines (e.g. '#--!') that separate the XML
+    # header block from the CSV, so the first returned line is the CSV header.
+    while start < len(lines) and (not lines[start].strip() or lines[start].lstrip().startswith("#")):
+        start += 1
+    return "\n".join(lines[start:])
+
+
 def _parse_csv(text: str, dimension: str, application: str) -> list[MemberRecord]:
-    reader = csv.reader(io.StringIO(text))
+    reader = csv.reader(io.StringIO(_strip_lcm_header(text)))
     rows = [r for r in reader if any(cell.strip() for cell in r)]
     if not rows:
         return []
@@ -111,5 +130,30 @@ def parse_metadata_export(
                 text = zf.read(entry).decode("utf-8-sig", "replace")
             except KeyError:
                 continue
+            members.extend(_parse_csv(text, stem, application))
+    return members
+
+
+def parse_lcm_snapshot(
+    zip_path: str | Path, application: str, dimensions: set[str] | None = None
+) -> list[MemberRecord]:
+    """Extract dimension members from an LCM application-snapshot ZIP.
+
+    Planning stores each dimension under a '…/Dimensions/<Dim>.csv' path (an XML
+    header block followed by the standard member CSV). Only entries on a
+    ``Dimensions`` path whose stem is a known dimension are parsed, so the many
+    other artifacts in a snapshot (security, FDMEE, data maps) are ignored.
+    """
+    wanted = {d.lower() for d in dimensions} if dimensions else None
+    members: list[MemberRecord] = []
+    with zipfile.ZipFile(zip_path) as zf:
+        for entry in zf.namelist():
+            low = entry.lower()
+            if not low.endswith(".csv") or "dimension" not in low:
+                continue
+            stem = Path(entry).stem
+            if wanted is not None and stem.lower() not in wanted:
+                continue
+            text = zf.read(entry).decode("utf-8-sig", "replace")
             members.extend(_parse_csv(text, stem, application))
     return members

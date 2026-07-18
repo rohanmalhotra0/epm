@@ -83,6 +83,7 @@ class ConnectionRegistry:
             application=env.preferred_application,
             runner=EpmAutomateRunner(),
             metadata_job=settings.oracle_metadata_job,
+            metadata_snapshot=settings.oracle_metadata_snapshot,
         )
         await connector.login()  # harmless read-only auth check
         # Keep the password only where the user asked.

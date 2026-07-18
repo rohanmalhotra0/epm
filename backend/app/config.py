@@ -67,6 +67,10 @@ class Settings(BaseSettings):
     # enumeration is not exposed by the Planning REST API, so members are imported
     # by running this job via EPM Automate, then downloading + parsing the export.
     oracle_metadata_job: str = ""
+    # Alternative to a saved job: the name of an existing LCM application snapshot
+    # (e.g. "Artifact Snapshot") to download and parse members from — no job to
+    # create. Used only when oracle_metadata_job is unset.
+    oracle_metadata_snapshot: str = ""
 
     # Default provider/model for a fresh install: the deterministic local mock so
     # the app is fully usable with zero configuration and no network.

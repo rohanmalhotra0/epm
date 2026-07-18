@@ -29,7 +29,7 @@ from ..security.redaction import register_secret
 from .base import ConnectorInfo, EpmConnector, JobResult
 from .epm_automate import EpmAutomateRunner
 from .errors import ConnectorError, ErrorCategory
-from .metadata_export import parse_metadata_export
+from .metadata_export import parse_lcm_snapshot, parse_metadata_export
 from .validation import validate_application, validate_rule_name, validate_url
 
 log = get_logger(__name__)
@@ -48,15 +48,18 @@ class OracleRestConnector(EpmConnector):
         timeout: float = 30.0,
         runner: EpmAutomateRunner | None = None,
         metadata_job: str = "",
+        metadata_snapshot: str = "",
     ) -> None:
         self.base_url = validate_url(base_url)
         self.username = username
         self._password = password
         register_secret(password)
         self.timeout = timeout
-        # EPM Automate is used only to import members (not exposed by the REST API).
+        # EPM Automate is used only to import members (not exposed by the REST API):
+        # either a saved Export Metadata job, or an existing LCM application snapshot.
         self._runner = runner
         self._metadata_job = metadata_job
+        self._metadata_snapshot = metadata_snapshot
         self._members_cache: dict[str, list[MemberRecord]] | None = None
         self.info = ConnectorInfo(
             kind="oracleRest", demo=False, classification=classification, application=application, connected=False
@@ -185,7 +188,8 @@ class OracleRestConnector(EpmConnector):
 
     @property
     def _can_export_members(self) -> bool:
-        return bool(self._runner and self._runner.installed and self._metadata_job)
+        return bool(self._runner and self._runner.installed
+                    and (self._metadata_job or self._metadata_snapshot))
 
     async def _ensure_members_loaded(self, application: str) -> None:
         if self._members_cache is not None:
@@ -204,18 +208,32 @@ class OracleRestConnector(EpmConnector):
         self._members_cache = cache
 
     async def _export_members(self, application: str) -> list[MemberRecord]:
-        """Run the saved Export Metadata job via EPM Automate, download the archive
-        and parse it into members. The local download is always cleaned up."""
+        """Import members via EPM Automate, download the archive and parse it. Uses
+        a saved Export Metadata job if configured, otherwise an existing LCM
+        application snapshot (no job required). The local download is cleaned up."""
         runner = self._runner
         assert runner is not None
-        dim_names = {d.name for d in await self.list_dimensions(application)}
+        dim_names = {d.name for d in await self.list_dimensions(application)} or None
         await runner.login(self.base_url, self.username, self._password)
-        await runner.export_metadata(self._metadata_job, _METADATA_EXPORT_FILE)
-        local = await runner.download_file(_METADATA_EXPORT_FILE)
         try:
-            return parse_metadata_export(local, application, dimensions=dim_names or None)
+            if self._metadata_job:
+                await runner.export_metadata(self._metadata_job, _METADATA_EXPORT_FILE)
+                local = await runner.download_file(_METADATA_EXPORT_FILE)
+                try:
+                    return parse_metadata_export(local, application, dimensions=dim_names)
+                finally:
+                    local.unlink(missing_ok=True)
+            # Option 2: parse an existing LCM application snapshot — no saved job.
+            local = await runner.download_file(self._metadata_snapshot, timeout=600)
+            try:
+                return parse_lcm_snapshot(local, application, dimensions=dim_names)
+            finally:
+                local.unlink(missing_ok=True)
         finally:
-            local.unlink(missing_ok=True)
+            try:
+                await runner.run("logout", [])
+            except ConnectorError:
+                pass
 
     async def search_members(
         self, application: str, query: str, dimension: str | None = None, limit: int = 50

@@ -49,6 +49,7 @@ class EpmAutomateRunner:
         self.binary = settings.epmautomate_path
         self.workdir = settings.runner_dir
         self.metadata_job = settings.oracle_metadata_job
+        self.java_home = settings.java_home
         self.workdir.mkdir(parents=True, exist_ok=True)
 
     @property
@@ -73,6 +74,10 @@ class EpmAutomateRunner:
         # Every argument is a discrete list element — never joined into a shell string.
         argv = [self.binary, command, *[str(a) for a in args]]
         env = {**os.environ}
+        # epmautomate.sh requires JAVA_HOME; inject the configured one so the app
+        # doesn't depend on the ambient shell environment.
+        if self.java_home:
+            env["JAVA_HOME"] = self.java_home
         try:
             proc = await asyncio.create_subprocess_exec(
                 *argv,
@@ -123,10 +128,10 @@ class EpmAutomateRunner:
             raise ConnectorError(ErrorCategory.epm_automate, "Metadata export failed.", technical_detail=err,
                                  suggested_action="Confirm the Export Metadata job name exists in the application.")
 
-    async def download_file(self, remote_name: str) -> Path:
+    async def download_file(self, remote_name: str, timeout: int = 300) -> Path:
         """Download a tenant file into the runner workdir and return its local path."""
         validate_filename(remote_name)
-        rc, _out, err = await self.run("downloadfile", [remote_name])
+        rc, _out, err = await self.run("downloadfile", [remote_name], timeout=timeout)
         if rc != 0:
             raise ConnectorError(ErrorCategory.epm_automate, "Download failed.", technical_detail=err)
         local = self.workdir / remote_name
