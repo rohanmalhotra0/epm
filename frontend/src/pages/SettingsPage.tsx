@@ -12,7 +12,7 @@ import { useUi } from "../store/ui";
 import { DiagnosticsPanel } from "../components/DiagnosticsPanel";
 import { toast } from "../store/toast";
 
-const PROVIDER_TYPES = ["mock", "anthropic", "openai", "openrouter", "gemini", "ollama", "generic"];
+const PROVIDER_TYPES = ["mock", "watsonx", "anthropic", "openai", "openrouter", "gemini", "ollama", "generic"];
 
 export function SettingsPage() {
   const pid = useUi((s) => s.currentProjectId) ?? undefined;
