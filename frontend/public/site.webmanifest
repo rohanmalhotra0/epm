@@ -1,0 +1,13 @@
+{
+  "name": "EPM Wizard",
+  "short_name": "EPM Wizard",
+  "description": "Local-first AI workspace for Oracle EPM implementation.",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "theme_color": "#161616",
+  "background_color": "#161616",
+  "display": "standalone"
+}
