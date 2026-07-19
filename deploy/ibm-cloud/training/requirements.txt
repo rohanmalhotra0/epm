@@ -1,0 +1,12 @@
+# QLoRA fine-tuning stack for the GPU training VSI (Path B).
+# These deps are installed ONLY on the training instance (see run_training.sh)
+# — they are NOT part of the EPM Wizard backend and must never be added there.
+#
+# Loose major pins: newest compatible minor within a known-good API range.
+torch>=2.2,<3
+transformers>=4.44,<5
+peft>=0.11,<1
+trl>=0.9,<0.13
+bitsandbytes>=0.43,<1
+datasets>=2.19,<4
+accelerate>=0.30,<2

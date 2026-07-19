@@ -1,6 +1,6 @@
 output "vpn_server_id" {
-  description = "Client-to-Site VPN server id (download client profiles from its client page)."
-  value       = ibm_is_vpn_server.epmw.id
+  description = "Client-to-Site VPN server id (null unless enable_vpn = true)."
+  value       = try(ibm_is_vpn_server.epmw[0].id, null)
 }
 
 output "code_engine_project_id" {
@@ -18,6 +18,6 @@ output "registry_namespace" {
 }
 
 output "gpu_training_ip" {
-  description = "Private IP of the GPU training instance (reach it over the VPN)."
-  value       = var.enable_gpu_training ? ibm_is_instance.gpu_training[0].primary_network_interface[0].primary_ip[0].address : null
+  description = "Private IP of the GPU training instance (null unless enable_gpu_training = true)."
+  value       = try(ibm_is_instance.gpu_training[0].primary_network_interface[0].primary_ip[0].address, null)
 }

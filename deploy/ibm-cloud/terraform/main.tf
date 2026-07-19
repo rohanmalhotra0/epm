@@ -49,8 +49,11 @@ resource "ibm_is_security_group" "app" {
   resource_group = ibm_resource_group.epmw.id
 }
 
-# Only VPN clients may reach the app tier.
+# Only VPN clients may reach the app tier (VPN topology only). With the
+# default enable_vpn = false the front door is the Code Engine public HTTPS
+# endpoint with App ID (OIDC) in front, so this rule is not created.
 resource "ibm_is_security_group_rule" "app_from_vpn" {
+  count     = var.enable_vpn ? 1 : 0
   group     = ibm_is_security_group.app.id
   direction = "inbound"
   remote    = var.vpn_client_cidr
@@ -66,9 +69,14 @@ resource "ibm_is_security_group_rule" "app_egress" {
   remote    = "0.0.0.0/0" # outbound HTTPS to Oracle EPM Cloud + watsonx.ai
 }
 
-# ---- Client-to-Site VPN (the "email invite + link -> VPN" front door) -------
+# ---- Optional: Client-to-Site VPN -------------------------------------------
+# Default OFF (enable_vpn = false): access is the Code Engine public HTTPS
+# endpoint with App ID in front, which works from a corporate laptop with
+# nothing installed. Enable only for private-endpoint-only topologies; both
+# certificate CRNs (Secrets Manager) are then required.
 
 resource "ibm_is_vpn_server" "epmw" {
+  count           = var.enable_vpn ? 1 : 0
   name            = "${var.prefix}-vpn"
   certificate_crn = var.vpn_server_cert_crn
   client_ip_pool  = var.vpn_client_cidr
@@ -79,6 +87,13 @@ resource "ibm_is_vpn_server" "epmw" {
   client_authentication {
     method        = "certificate"
     client_ca_crn = var.vpn_client_ca_crn
+  }
+
+  lifecycle {
+    precondition {
+      condition     = var.vpn_server_cert_crn != "" && var.vpn_client_ca_crn != ""
+      error_message = "enable_vpn = true requires both vpn_server_cert_crn and vpn_client_ca_crn (Secrets Manager certificate CRNs)."
+    }
   }
 }
 

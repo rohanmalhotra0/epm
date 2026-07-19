@@ -10,20 +10,34 @@ variable "region" {
   default     = "us-south"
 }
 
+variable "enable_vpn" {
+  description = <<-EOT
+    Provision the Client-to-Site VPN server. Default OFF: the recommended
+    access design is the Code Engine public HTTPS endpoint with App ID (OIDC)
+    in front — nothing to install on a locked-down corporate laptop. Turn this
+    on only if you want private-endpoint-only access, in which case
+    vpn_server_cert_crn and vpn_client_ca_crn become required.
+  EOT
+  type        = bool
+  default     = false
+}
+
 variable "vpn_client_cidr" {
-  description = "Address pool handed to VPN clients; must not overlap the subnet."
+  description = "Address pool handed to VPN clients; must not overlap the subnet. Only used when enable_vpn = true."
   type        = string
   default     = "192.168.8.0/22"
 }
 
 variable "vpn_server_cert_crn" {
-  description = "Secrets Manager CRN of the VPN server certificate."
+  description = "Secrets Manager CRN of the VPN server certificate. Required when enable_vpn = true."
   type        = string
+  default     = ""
 }
 
 variable "vpn_client_ca_crn" {
-  description = "Secrets Manager CRN of the CA used to sign VPN client certificates."
+  description = "Secrets Manager CRN of the CA used to sign VPN client certificates. Required when enable_vpn = true."
   type        = string
+  default     = ""
 }
 
 variable "enable_gpu_training" {

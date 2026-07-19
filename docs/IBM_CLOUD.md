@@ -20,7 +20,7 @@ still works unchanged). This is the hosted topology for teams.
 | AI training on EPM data | **watsonx.ai Tuning Studio**, or **GPU-as-a-Service** (VPC GPU profiles) for full fine-tunes | `backend/scripts/export_training_data.py` produces the corpus |
 | Site hosting | **Code Engine** (serverless containers) — the existing frontend + backend images run as-is | `deploy/ibm-cloud/` |
 | Container images | **Container Registry (ICR)** | `deploy/ibm-cloud/deploy-code-engine.sh` |
-| Private access | **Client-to-Site VPN for VPC** (OpenVPN-based) | `deploy/ibm-cloud/terraform/` |
+| Private access (optional) | **Client-to-Site VPN for VPC** (OpenVPN-based) — off by default, see §5 | `deploy/ibm-cloud/terraform/` (`enable_vpn`) |
 | User invites & auth | **App ID** (cloud directory email invites, OIDC in front of the app) | fronting Code Engine / the ALB |
 | Training data & artifact storage | **Cloud Object Storage (COS)** | corpus upload target |
 | Secrets (Oracle creds, API keys) | **Secrets Manager** | replaces/backs the local Fernet store in hosted mode |
@@ -55,14 +55,26 @@ still works unchanged). This is the hosted topology for teams.
                   WATSONX_PROJECT_ID        via the connector boundary)
 ```
 
-Nothing is exposed to the public internet: Code Engine apps use private
-(project-only / VPC) endpoints, and the only way in is the VPN. The email
-invite carries two things — the App ID sign-up link and the OpenVPN client
-profile (or a link to download it from the VPN server's client page).
+The diagram above shows the **VPN topology** (`enable_vpn = true`): Code
+Engine apps use private (project-only / VPC) endpoints and the only way in is
+the VPN. The email invite carries two things — the App ID sign-up link and
+the OpenVPN client profile (or a link to download it from the VPN server's
+client page).
+
+**The default topology has no VPN** (`enable_vpn = false`): the frontend is a
+Code Engine **public HTTPS endpoint with App ID (OIDC) as the security
+boundary**, while the backend and everything behind it stay on private
+endpoints. This is the laptop-friendly design — a corporate machine with no
+VPN client and no admin rights needs only a browser and the App ID invite.
 
 ---
 
 ## 3. Training an AI on EPM data
+
+> **The step-by-step training workflow — corpus build, upload, Tuning
+> Studio, the eval bake-off, GPU QLoRA, and costs — is in
+> [`docs/TRAINING.md`](TRAINING.md).** This section keeps the architectural
+> overview.
 
 ### 3.1 Build the corpus (local, redacted)
 
@@ -142,16 +154,23 @@ images.
 
 ---
 
-## 5. VPN + email invite flow
+## 5. Access: App ID by default, VPN optional
 
-`deploy/ibm-cloud/terraform/` provisions:
+**Default (`enable_vpn = false`):** the front door is the Code Engine public
+HTTPS endpoint with **App ID (OIDC)** in front. Onboarding is just the App ID
+email invite — nothing to install, which is what a locked-down corporate
+laptop needs. See `docs/TRAINING.md` §7 for the user-facing notes (including
+verifying SSE streaming through corporate proxies).
 
-- a VPC with one private subnet (no public gateway needed for the app path),
+**Optional VPN topology (`terraform apply -var enable_vpn=true`, plus the two
+Secrets Manager certificate CRNs):** on top of the base VPC and private
+subnet, `deploy/ibm-cloud/terraform/` then additionally provisions:
+
 - a **Client-to-Site VPN server** with certificate auth (server + client
   certificates issued by Secrets Manager) and optional user-id auth via IAM,
-- security groups that only admit app traffic from the VPN client CIDR.
+- a security-group rule that only admits app traffic from the VPN client CIDR.
 
-Onboarding a teammate:
+Onboarding a teammate (VPN topology):
 
 1. Invite them in **App ID** (cloud directory email invite) — this is the
    "email invite + link".

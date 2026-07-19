@@ -55,10 +55,14 @@ deploy_app epmw-backend "${BACKEND_IMAGE}" 8000 \
   --env-from-secret epmw-secrets \
   --mount-data-store /data=epmw-data
 
-# Frontend: private to the VPC — reachable only over the client-to-site VPN.
+# Frontend: public HTTPS endpoint by default, with App ID (OIDC) as the
+# security boundary — matches the terraform default enable_vpn=false and needs
+# nothing installed on the user's machine. Set FRONTEND_VISIBILITY=private for
+# the VPN topology (enable_vpn=true), where it is reachable only over the
+# client-to-site VPN.
 echo "==> Deploying frontend"
 deploy_app epmw-frontend "${FRONTEND_IMAGE}" 3000 \
-  --visibility private \
+  --visibility "${FRONTEND_VISIBILITY:-public}" \
   --env BACKEND_URL="http://epmw-backend.$(ibmcloud ce project current --output json | grep -o '"name": *"[^"]*"' | head -1 | sed 's/.*: *"//;s/"//')"
 
 echo "==> Done"
