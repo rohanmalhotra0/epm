@@ -1,0 +1,19 @@
+<svg viewBox="0 0 700 106" xmlns="http://www.w3.org/2000/svg">
+  <rect x="10" y="10" width="218" height="86" fill="none" stroke="black" stroke-width="1.2"/>
+  <text x="119" y="32" text-anchor="middle" font-family="Helvetica" font-size="10.5" font-weight="bold">Secrets never reach the model</text>
+  <text x="119" y="50" text-anchor="middle" font-family="Helvetica" font-size="8.5">central redactor scrubs logs, chat,</text>
+  <text x="119" y="62" text-anchor="middle" font-family="Helvetica" font-size="8.5">tool results &amp; diagnostics;</text>
+  <text x="119" y="74" text-anchor="middle" font-family="Helvetica" font-size="8.5">pasted credentials auto-redacted</text>
+
+  <rect x="241" y="10" width="218" height="86" fill="none" stroke="black" stroke-width="1.2"/>
+  <text x="350" y="32" text-anchor="middle" font-family="Helvetica" font-size="10.5" font-weight="bold">Encrypted secret store</text>
+  <text x="350" y="50" text-anchor="middle" font-family="Helvetica" font-size="8.5">keys &amp; passwords in a Fernet store,</text>
+  <text x="350" y="62" text-anchor="middle" font-family="Helvetica" font-size="8.5">outside the database;</text>
+  <text x="350" y="74" text-anchor="middle" font-family="Helvetica" font-size="8.5">session-only password memory</text>
+
+  <rect x="472" y="10" width="218" height="86" fill="none" stroke="black" stroke-width="1.2"/>
+  <text x="581" y="32" text-anchor="middle" font-family="Helvetica" font-size="10.5" font-weight="bold">No shell, ever</text>
+  <text x="581" y="50" text-anchor="middle" font-family="Helvetica" font-size="8.5">EPM Automate: command allowlist,</text>
+  <text x="581" y="62" text-anchor="middle" font-family="Helvetica" font-size="8.5">argument arrays (never shell=True),</text>
+  <text x="581" y="74" text-anchor="middle" font-family="Helvetica" font-size="8.5">timeouts &amp; output redaction</text>
+</svg>

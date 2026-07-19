@@ -1,0 +1,33 @@
+<svg viewBox="0 0 700 162" xmlns="http://www.w3.org/2000/svg">
+  <!-- row 1 -->
+  <rect x="10" y="10" width="218" height="66" fill="none" stroke="black" stroke-width="1.2"/>
+  <text x="119" y="32" text-anchor="middle" font-family="Helvetica" font-size="11" font-weight="bold">Conversational building</text>
+  <text x="119" y="48" text-anchor="middle" font-family="Helvetica" font-size="8.5">forms &amp; business rules built and</text>
+  <text x="119" y="60" text-anchor="middle" font-family="Helvetica" font-size="8.5">edited from plain-English chat</text>
+
+  <rect x="241" y="10" width="218" height="66" fill="none" stroke="black" stroke-width="1.2"/>
+  <text x="350" y="32" text-anchor="middle" font-family="Helvetica" font-size="11" font-weight="bold">Validate &amp; preview</text>
+  <text x="350" y="48" text-anchor="middle" font-family="Helvetica" font-size="8.5">checked against real tenant metadata;</text>
+  <text x="350" y="60" text-anchor="middle" font-family="Helvetica" font-size="8.5">in-chat EPM-style grid preview</text>
+
+  <rect x="472" y="10" width="218" height="66" fill="none" stroke="black" stroke-width="1.2"/>
+  <text x="581" y="32" text-anchor="middle" font-family="Helvetica" font-size="11" font-weight="bold">Guarded deployment</text>
+  <text x="581" y="48" text-anchor="middle" font-family="Helvetica" font-size="8.5">approval cards · PROD confirmation</text>
+  <text x="581" y="60" text-anchor="middle" font-family="Helvetica" font-size="8.5">audit trail · post-deploy verification</text>
+
+  <!-- row 2 -->
+  <rect x="10" y="86" width="218" height="66" fill="none" stroke="black" stroke-width="1.2"/>
+  <text x="119" y="108" text-anchor="middle" font-family="Helvetica" font-size="11" font-weight="bold">Cube visualizer</text>
+  <text x="119" y="124" text-anchor="middle" font-family="Helvetica" font-size="8.5">cube maps, coverage, intersections,</text>
+  <text x="119" y="136" text-anchor="middle" font-family="Helvetica" font-size="8.5">comparison &amp; sizing from metadata</text>
+
+  <rect x="241" y="86" width="218" height="66" fill="none" stroke="black" stroke-width="1.2"/>
+  <text x="350" y="108" text-anchor="middle" font-family="Helvetica" font-size="11" font-weight="bold">Context engine</text>
+  <text x="350" y="124" text-anchor="middle" font-family="Helvetica" font-size="8.5">identifier-first local retrieval;</text>
+  <text x="350" y="136" text-anchor="middle" font-family="Helvetica" font-size="8.5">portable .epwcontext packages</text>
+
+  <rect x="472" y="86" width="218" height="66" fill="none" stroke="#0f62fe" stroke-width="1.6"/>
+  <text x="581" y="108" text-anchor="middle" font-family="Helvetica" font-size="11" font-weight="bold" fill="#0f62fe">Local-first &amp; offline</text>
+  <text x="581" y="124" text-anchor="middle" font-family="Helvetica" font-size="8.5">zero-config Demo Mode · SQLite ·</text>
+  <text x="581" y="136" text-anchor="middle" font-family="Helvetica" font-size="8.5">no cloud required · optional AI providers</text>
+</svg>
