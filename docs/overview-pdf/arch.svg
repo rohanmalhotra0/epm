@@ -1,0 +1,83 @@
+<svg viewBox="0 0 700 312" xmlns="http://www.w3.org/2000/svg">
+  <!-- Browser / frontend -->
+  <rect x="16" y="120" width="128" height="70" fill="none" stroke="black" stroke-width="1.3"/>
+  <text x="80" y="142" text-anchor="middle" font-family="Helvetica" font-size="11" font-weight="bold">React SPA</text>
+  <text x="80" y="157" text-anchor="middle" font-family="Helvetica" font-size="9">IBM Carbon UI</text>
+  <text x="80" y="170" text-anchor="middle" font-family="Helvetica" font-size="9">typed inline blocks</text>
+  <text x="80" y="183" text-anchor="middle" font-family="Helvetica" font-size="9">Zod validation</text>
+
+  <!-- Arrow browser -> backend -->
+  <line x1="144" y1="150" x2="176" y2="150" stroke="black" stroke-width="1.3"/>
+  <polygon points="184,150 174,145 174,155" fill="black"/>
+  <text x="163" y="138" text-anchor="middle" font-family="Helvetica" font-size="8">HTTPS</text>
+  <text x="163" y="196" text-anchor="middle" font-family="Helvetica" font-size="8">SSE</text>
+
+  <!-- Backend container -->
+  <rect x="184" y="16" width="332" height="280" fill="none" stroke="black" stroke-width="1.6"/>
+  <text x="350" y="34" text-anchor="middle" font-family="Helvetica" font-size="11" font-weight="bold">FastAPI backend (Python 3.12 · Pydantic v2)</text>
+
+  <!-- Agent / orchestrator -->
+  <rect x="198" y="48" width="146" height="52" fill="none" stroke="black"/>
+  <text x="271" y="66" text-anchor="middle" font-family="Helvetica" font-size="10" font-weight="bold">Agent / orchestrator</text>
+  <text x="271" y="80" text-anchor="middle" font-family="Helvetica" font-size="8.5">intent router · skills</text>
+  <text x="271" y="92" text-anchor="middle" font-family="Helvetica" font-size="8.5">streaming pipeline</text>
+
+  <!-- AI layer -->
+  <rect x="358" y="48" width="146" height="52" fill="none" stroke="black"/>
+  <text x="431" y="66" text-anchor="middle" font-family="Helvetica" font-size="10" font-weight="bold">AI layer</text>
+  <text x="431" y="80" text-anchor="middle" font-family="Helvetica" font-size="8.5">provider-agnostic</text>
+  <text x="431" y="92" text-anchor="middle" font-family="Helvetica" font-size="8.5">deterministic Mock default</text>
+
+  <!-- Context engine -->
+  <rect x="198" y="114" width="146" height="52" fill="none" stroke="black"/>
+  <text x="271" y="132" text-anchor="middle" font-family="Helvetica" font-size="10" font-weight="bold">Context engine</text>
+  <text x="271" y="146" text-anchor="middle" font-family="Helvetica" font-size="8.5">identifier-first retrieval</text>
+  <text x="271" y="158" text-anchor="middle" font-family="Helvetica" font-size="8.5">.epwcontext packages</text>
+
+  <!-- Artifact engine -->
+  <rect x="358" y="114" width="146" height="52" fill="none" stroke="black"/>
+  <text x="431" y="132" text-anchor="middle" font-family="Helvetica" font-size="10" font-weight="bold">Artifact engine</text>
+  <text x="431" y="146" text-anchor="middle" font-family="Helvetica" font-size="8.5">validate · preview · safe XML</text>
+  <text x="431" y="158" text-anchor="middle" font-family="Helvetica" font-size="8.5">reproducible ZIP + SHA-256</text>
+
+  <!-- Connector boundary (accent) -->
+  <rect x="198" y="180" width="306" height="52" fill="none" stroke="#0f62fe" stroke-width="1.8"/>
+  <text x="351" y="198" text-anchor="middle" font-family="Helvetica" font-size="10" font-weight="bold" fill="#0f62fe">Connector boundary — the only EPM integration point</text>
+  <text x="351" y="212" text-anchor="middle" font-family="Helvetica" font-size="8.5">Demo fixtures · Oracle REST · EPM Automate runner</text>
+  <text x="351" y="224" text-anchor="middle" font-family="Helvetica" font-size="8.5">command allowlist · argument arrays · never a shell</text>
+
+  <!-- Persistence -->
+  <rect x="198" y="246" width="306" height="38" fill="none" stroke="black"/>
+  <text x="351" y="262" text-anchor="middle" font-family="Helvetica" font-size="10" font-weight="bold">Local persistence</text>
+  <text x="351" y="276" text-anchor="middle" font-family="Helvetica" font-size="8.5">SQLite + Alembic · encrypted secret store (Fernet) · audit log</text>
+
+  <!-- Internal arrows -->
+  <line x1="344" y1="74" x2="352" y2="74" stroke="black"/>
+  <polygon points="358,74 350,70 350,78" fill="black"/>
+  <line x1="271" y1="100" x2="271" y2="108" stroke="black"/>
+  <polygon points="271,114 267,106 275,106" fill="black"/>
+  <line x1="431" y1="100" x2="431" y2="108" stroke="black"/>
+  <polygon points="431,114 427,106 435,106" fill="black"/>
+  <line x1="351" y1="166" x2="351" y2="174" stroke="black"/>
+  <polygon points="351,180 347,172 355,172" fill="black"/>
+  <line x1="351" y1="232" x2="351" y2="240" stroke="black"/>
+  <polygon points="351,246 347,238 355,238" fill="black"/>
+
+  <!-- External: AI providers -->
+  <rect x="556" y="48" width="128" height="70" fill="none" stroke="#0f62fe" stroke-width="1.3"/>
+  <text x="620" y="66" text-anchor="middle" font-family="Helvetica" font-size="10" font-weight="bold" fill="#0f62fe">AI providers</text>
+  <text x="620" y="80" text-anchor="middle" font-family="Helvetica" font-size="8.5">IBM watsonx.ai (Granite)</text>
+  <text x="620" y="92" text-anchor="middle" font-family="Helvetica" font-size="8.5">Anthropic · OpenAI-compat</text>
+  <text x="620" y="104" text-anchor="middle" font-family="Helvetica" font-size="8.5">Gemini · local Mock</text>
+  <line x1="504" y1="80" x2="548" y2="80" stroke="black" stroke-dasharray="4,3"/>
+  <polygon points="556,80 546,75 546,85" fill="black"/>
+
+  <!-- External: Oracle EPM -->
+  <rect x="556" y="180" width="128" height="52" fill="none" stroke="#0f62fe" stroke-width="1.3"/>
+  <text x="620" y="200" text-anchor="middle" font-family="Helvetica" font-size="10" font-weight="bold" fill="#0f62fe">Oracle EPM Cloud</text>
+  <text x="620" y="214" text-anchor="middle" font-family="Helvetica" font-size="8.5">Planning REST API</text>
+  <text x="620" y="226" text-anchor="middle" font-family="Helvetica" font-size="8.5">EPM Automate</text>
+  <line x1="504" y1="206" x2="548" y2="206" stroke="black" stroke-dasharray="4,3"/>
+  <polygon points="556,206 546,201 546,211" fill="black"/>
+  <text x="530" y="196" text-anchor="middle" font-family="Helvetica" font-size="7.5">outbound</text>
+</svg>
