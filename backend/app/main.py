@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .api import (
     routes_artifacts,
+    routes_attachments,
     routes_context,
     routes_conversations,
     routes_diagnostics,
@@ -58,8 +59,8 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     for module in (routes_meta, routes_projects, routes_conversations, routes_environments,
-                   routes_providers, routes_context, routes_artifacts, routes_diagnostics,
-                   routes_reports, routes_settings):
+                   routes_providers, routes_context, routes_artifacts, routes_attachments,
+                   routes_diagnostics, routes_reports, routes_settings):
         app.include_router(module.router)
     return app
 
