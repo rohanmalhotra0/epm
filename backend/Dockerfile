@@ -13,7 +13,9 @@ WORKDIR /app
 COPY backend/pyproject.toml /app/pyproject.toml
 COPY backend/README.md /app/README.md
 COPY backend/app /app/app
-RUN pip install .
+# The hosted image always ships the PostgreSQL driver so EPMW_DATABASE_URL can
+# point at IBM Cloud Databases for PostgreSQL; SQLite stays the default.
+RUN pip install ".[postgres]"
 
 # Application source (migrations, fixtures, scripts).
 COPY backend/alembic.ini /app/alembic.ini

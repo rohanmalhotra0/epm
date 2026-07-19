@@ -9,7 +9,7 @@ a skill (via intent) and runs it.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from sqlalchemy.orm import Session
 
@@ -39,6 +39,7 @@ class SkillContext:
     context_version_id: str | None = None
     workflow: WorkflowState | None = None
     active_form_spec: object | None = None  # FormSpecification of an in-progress form, if any
+    attachment_ids: list[str] = field(default_factory=list)  # attachments on this user message
 
 
 class Emitter(ABC):

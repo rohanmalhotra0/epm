@@ -37,6 +37,7 @@ export function streamMessage(
   content: string,
   handlers: StreamHandlers,
   path?: string,
+  attachments?: string[],
 ): () => void {
   const controller = new AbortController();
   const url = path || `/api/conversations/${conversationId}/messages`;
@@ -45,7 +46,7 @@ export function streamMessage(
       const res = await fetch(url, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify(attachments?.length ? { content, attachments } : { content }),
         signal: controller.signal,
       });
       if (!res.ok || !res.body) {

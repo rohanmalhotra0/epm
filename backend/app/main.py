@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .api import (
     routes_artifacts,
+    routes_attachments,
     routes_context,
     routes_conversations,
     routes_diagnostics,
@@ -35,10 +36,13 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     configure_logging(settings.log_level, settings.log_json)
     initialize(seed=True)
-    try:
-        backups.create_backup()
-    except OSError as exc:  # a failed backup must never block startup
-        log.warning("startup_backup_failed", error=str(exc))
+    if settings.is_sqlite:
+        try:
+            backups.create_backup()
+        except OSError as exc:  # a failed backup must never block startup
+            log.warning("startup_backup_failed", error=str(exc))
+    else:
+        log.info("startup_backup_skipped", reason="managed database — backups are the database service's job")
     log.info("startup", app=settings.app_name, version=settings.version, data_dir=str(settings.data_dir))
     yield
     log.info("shutdown")
@@ -55,8 +59,8 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     for module in (routes_meta, routes_projects, routes_conversations, routes_environments,
-                   routes_providers, routes_context, routes_artifacts, routes_diagnostics,
-                   routes_reports, routes_settings):
+                   routes_providers, routes_context, routes_artifacts, routes_attachments,
+                   routes_diagnostics, routes_reports, routes_settings):
         app.include_router(module.router)
     return app
 

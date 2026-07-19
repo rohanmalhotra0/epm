@@ -20,7 +20,7 @@ _BACKEND_DIR = Path(__file__).resolve().parents[2]
 
 
 def run_migrations() -> None:
-    """Upgrade the local SQLite database to head."""
+    """Upgrade the effective database (local SQLite or EPMW_DATABASE_URL) to head."""
     get_settings().ensure_dirs()
     cfg = Config(str(_BACKEND_DIR / "alembic.ini"))
     cfg.set_main_option("script_location", str(_BACKEND_DIR / "alembic"))

@@ -1,4 +1,5 @@
-"""Alembic environment — targets the local SQLite DB from app settings."""
+"""Alembic environment — targets the effective database from app settings
+(local SQLite by default, PostgreSQL when EPMW_DATABASE_URL is set)."""
 
 from __future__ import annotations
 
@@ -16,7 +17,8 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.db_url)
+# '%' must be doubled for ConfigParser (e.g. percent-encoded DB passwords).
+config.set_main_option("sqlalchemy.url", settings.db_url.replace("%", "%%"))
 target_metadata = Base.metadata
 
 

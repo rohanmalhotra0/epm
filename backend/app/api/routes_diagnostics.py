@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from sqlalchemy import text
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
 from ..ai.registry import resolve_active_provider
@@ -33,16 +34,34 @@ from .deps import get_db
 router = APIRouter(prefix="/api/diagnostics", tags=["diagnostics"])
 
 
+def _database_subsystem() -> tuple[str, str]:
+    """Subsystem name + credential-free detail for the effective database.
+
+    The detail must never echo URL userinfo — only host/port/database are shown
+    (mirroring the redaction rules for user:pass@host URLs).
+    """
+    settings = get_settings()
+    if settings.is_sqlite:
+        return "SQLite database", str(settings.db_path)
+    url = make_url(settings.db_url)
+    backend = url.get_backend_name()
+    name = "PostgreSQL database" if backend == "postgresql" else f"{backend} database"
+    host = url.host or "localhost"
+    port = f":{url.port}" if url.port else ""
+    return name, f"{host}{port}/{url.database or ''}"
+
+
 def _build_report(session: Session) -> DiagnosticsReport:
     settings = get_settings()
     subsystems: list[SubsystemStatus] = []
 
     # database
+    db_name, db_detail = _database_subsystem()
     try:
         session.execute(text("SELECT 1"))
-        subsystems.append(SubsystemStatus(name="SQLite database", status="ok", detail=str(settings.db_path)))
+        subsystems.append(SubsystemStatus(name=db_name, status="ok", detail=db_detail))
     except Exception as exc:
-        subsystems.append(SubsystemStatus(name="SQLite database", status="error", detail=str(exc)[:120]))
+        subsystems.append(SubsystemStatus(name=db_name, status="error", detail=redact_text(str(exc))[:120]))
 
     subsystems.append(SubsystemStatus(name="Local API", status="ok", detail="FastAPI"))
     subsystems.append(SubsystemStatus(name="Storage", status="ok", detail=str(settings.data_dir)))
@@ -113,6 +132,8 @@ def list_backups() -> list[BackupFileOut]:
 def create_backup() -> BackupFileOut:
     try:
         return backups_svc.create_backup()
+    except backups_svc.ManagedDatabaseError as exc:
+        raise HTTPException(409, str(exc)) from exc
     except OSError as exc:
         raise HTTPException(500, f"backup failed: {exc}") from exc
 

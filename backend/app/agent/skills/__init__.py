@@ -16,6 +16,7 @@ from .reports_skill import ReportsSkill
 from .rollback_skill import RollbackSkill
 from .rules_skill import RulesSkill
 from .search_skill import SearchSkill
+from .spreadsheet_skill import SpreadsheetSkill
 
 SKILLS: dict[str, Skill] = {
     "forms": FormsSkill(),
@@ -29,6 +30,7 @@ SKILLS: dict[str, Skill] = {
     "explain": ExplainSkill(),
     "compare": CompareSkill(),
     "epmAutomate": EpmAutomateSkill(),
+    "spreadsheet": SpreadsheetSkill(),
     "help": HelpSkill(),
     "chat": ChatSkill(),
 }
@@ -37,7 +39,7 @@ SKILLS: dict[str, Skill] = {
 ARCH_KEYWORDS = ("architecture", "dimension", "cube-map", "cube map", "intersection",
                  "visualize", "dimensionality", "one cell", "data cell")
 
-WORKFLOW_SKILLS = {"forms", "reports"}  # skills that own a resumable workflow
+WORKFLOW_SKILLS = {"forms", "reports", "spreadsheet"}  # skills that own a resumable workflow
 
 
 def get_skill(name: str) -> Skill:
@@ -61,6 +63,7 @@ _SKILL_TITLES: dict[str, str] = {
     "explain": "Explain",
     "compare": "Compare",
     "epmAutomate": "EPM Automate",
+    "spreadsheet": "Spreadsheet Import",
     "help": "Help",
     "chat": "Chat",
 }

@@ -17,6 +17,16 @@ output "registry_namespace" {
   value = ibm_cr_namespace.epmw.name
 }
 
+output "postgres_host" {
+  description = "Private hostname of the PostgreSQL instance (null when enable_postgres is false)."
+  value       = try(data.ibm_database_connection.postgres[0].postgres[0].hosts[0].hostname, null)
+}
+
+output "postgres_port" {
+  description = "Port of the PostgreSQL instance (null when enable_postgres is false)."
+  value       = try(data.ibm_database_connection.postgres[0].postgres[0].hosts[0].port, null)
+}
+
 output "gpu_training_ip" {
   description = "Private IP of the GPU training instance (null unless enable_gpu_training = true)."
   value       = try(ibm_is_instance.gpu_training[0].primary_network_interface[0].primary_ip[0].address, null)

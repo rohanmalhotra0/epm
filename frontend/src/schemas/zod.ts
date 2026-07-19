@@ -83,7 +83,7 @@ export const ChatBlockSchema = z.lazy(() => z.object({
   data: z.record(z.string(), z.unknown()).optional(),
 }));
 
-export const ChatBlockTypeSchema = z.enum(["markdown", "code", "formPreview", "formSpecification", "reportPreview", "reportSpecification", "rulePreview", "runtimePromptForm", "memberSearchResults", "contextSummary", "validationReport", "deploymentPlan", "deploymentProgress", "deploymentResult", "diff", "confirmation", "downloadableFile", "errorDiagnostics", "connectionStatus", "toolInvocation", "processSteps", "cubeArchitecture", "cellIntersection", "cubeComparison", "dimensionCoverage", "dimensionHierarchy"]);
+export const ChatBlockTypeSchema = z.enum(["markdown", "code", "formPreview", "formSpecification", "reportPreview", "reportSpecification", "rulePreview", "runtimePromptForm", "memberSearchResults", "contextSummary", "validationReport", "deploymentPlan", "deploymentProgress", "deploymentResult", "diff", "confirmation", "spreadsheetPreview", "downloadableFile", "errorDiagnostics", "connectionStatus", "toolInvocation", "processSteps", "cubeArchitecture", "cellIntersection", "cubeComparison", "dimensionCoverage", "dimensionHierarchy"]);
 
 export const ComparatorSchema = z.enum(["lt", "le", "gt", "ge", "eq", "ne"]);
 

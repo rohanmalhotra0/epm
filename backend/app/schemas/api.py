@@ -121,6 +121,23 @@ class ConversationUpdate(CamelModel):
     draft: str | None = None
 
 
+# --- Attachments -------------------------------------------------------------
+
+
+class AttachmentOut(CamelModel):
+    """Uploaded spreadsheet attachment (deliberately not in CANONICAL_MODELS)."""
+
+    id: str
+    conversation_id: str | None = None
+    project_id: str
+    filename: str
+    media_type: str
+    size_bytes: int
+    checksum: str | None = None
+    sheet_names: list[str] = []
+    kind_guess: str = "unknown"
+
+
 # --- Context / Artifacts / Deployments --------------------------------------
 
 

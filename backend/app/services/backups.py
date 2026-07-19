@@ -21,6 +21,18 @@ log = get_logger(__name__)
 _BACKUP_PREFIX = "epmwizard-"
 _BACKUP_SUFFIX = ".db"
 
+MANAGED_DB_MESSAGE = (
+    "Local file backups are only available for SQLite. This deployment uses a "
+    "managed database — use your database service's backups instead."
+)
+
+
+class ManagedDatabaseError(RuntimeError):
+    """Raised when a SQLite file backup is requested on a managed (non-SQLite) DB."""
+
+    def __init__(self, message: str = MANAGED_DB_MESSAGE) -> None:
+        super().__init__(message)
+
 
 def _backup_files(backups_dir: Path) -> list[Path]:
     """Backup files, newest first (names embed a sortable UTC timestamp)."""
@@ -45,6 +57,8 @@ def _to_out(path: Path) -> BackupFileOut:
 
 def list_backups() -> list[BackupFileOut]:
     settings = get_settings()
+    if not settings.is_sqlite:
+        return []
     return [_to_out(p) for p in _backup_files(settings.backups_dir)]
 
 
@@ -67,6 +81,8 @@ def rotate_backups(keep: int | None = None) -> int:
 def create_backup(keep: int | None = None) -> BackupFileOut:
     """Copy the SQLite DB into the backups directory and rotate old backups."""
     settings = get_settings()
+    if not settings.is_sqlite:
+        raise ManagedDatabaseError()
     settings.backups_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S-%f")
     target = settings.backups_dir / f"{_BACKUP_PREFIX}{stamp}{_BACKUP_SUFFIX}"

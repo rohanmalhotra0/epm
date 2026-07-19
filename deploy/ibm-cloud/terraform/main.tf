@@ -126,6 +126,51 @@ resource "ibm_code_engine_project" "epmw" {
   resource_group_id = ibm_resource_group.epmw.id
 }
 
+# ---- Optional: IBM Cloud Databases for PostgreSQL (docs/IBM_CLOUD.md §4) ----
+# For multi-instance / team deployments the backend swaps SQLite for a managed
+# PostgreSQL via EPMW_DATABASE_URL — see ../deploy-code-engine.sh. Smallest
+# standard-plan allocation, private endpoint only (reachable from Code Engine
+# and the VPN, never the public internet).
+#
+# Credentials are a deliberate manual step (they stay out of Terraform state):
+#   ibmcloud resource service-key-create "${var.prefix}-pg-creds" \
+#     --instance-name "${var.prefix}-pg"
+# then build EPMW_DATABASE_URL from the key (host/port below, user + password
+# from the key, sslmode=verify-full + the ICD CA cert) and store it in the
+# epmw-database Code Engine secret.
+
+resource "ibm_database" "postgres" {
+  count             = var.enable_postgres ? 1 : 0
+  name              = "${var.prefix}-pg"
+  service           = "databases-for-postgresql"
+  plan              = "standard"
+  location          = var.region
+  resource_group_id = ibm_resource_group.epmw.id
+  service_endpoints = "private"
+
+  # Smallest viable allocation (per-member; ICD minimums as of provider 1.70).
+  group {
+    group_id = "member"
+    memory {
+      allocation_mb = 4096
+    }
+    disk {
+      allocation_mb = 5120
+    }
+    cpu {
+      allocation_count = 0 # shared CPU — cheapest tier
+    }
+  }
+}
+
+data "ibm_database_connection" "postgres" {
+  count         = var.enable_postgres ? 1 : 0
+  deployment_id = ibm_database.postgres[0].id
+  user_type     = "database"
+  user_id       = "admin"
+  endpoint_type = "private"
+}
+
 # ---- Optional: GPU-as-a-Service training instance (docs/IBM_CLOUD.md §3.3) --
 # Hourly-billed and expensive: enable for the training run, then set the
 # toggle back to false and apply to destroy it.

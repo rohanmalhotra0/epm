@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from ..agent import stream_turn
 from ..db.base import get_sessionmaker
+from ..db.models import Attachment
 from ..schemas.api import ConversationCreate, ConversationOut, ConversationUpdate
 from ..schemas.chat import ChatMessageIn, MessageOut, StreamEvent, StreamEventType
 from ..security.redaction import looks_like_secret, redact_text
@@ -52,8 +53,11 @@ def delete_conversation(conversation_id: str, session: Session = Depends(get_db)
     svc.delete_conversation(session, conversation_id)
 
 
-def _persist_user_message(conversation_id: str, content: str) -> tuple[str, str]:
-    """Persist the (redacted) user message in its own committed transaction."""
+def _persist_user_message(
+    conversation_id: str, content: str, attachment_ids: list[str] | None = None
+) -> tuple[str, str, list[str]]:
+    """Persist the (redacted) user message in its own committed transaction and
+    link any uploaded attachments to it. Unknown attachment ids are ignored."""
     SessionLocal = get_sessionmaker()
     session = SessionLocal()
     try:
@@ -62,13 +66,22 @@ def _persist_user_message(conversation_id: str, content: str) -> tuple[str, str]
             raise HTTPException(404, "conversation not found")
         safe = redact_text(content) if looks_like_secret(content) else content
         msg = svc.add_message(session, conversation_id, role="user", content=safe)
+        linked: list[str] = []
+        for attachment_id in attachment_ids or []:
+            attachment = session.get(Attachment, attachment_id)
+            if attachment is None:
+                continue
+            attachment.message_id = msg.id
+            if not attachment.conversation_id:
+                attachment.conversation_id = conversation_id
+            linked.append(attachment.id)
         session.commit()
-        return msg.id, safe
+        return msg.id, safe, linked
     finally:
         session.close()
 
 
-async def _sse(conversation_id: str, user_text: str) -> AsyncIterator[str]:
+async def _sse(conversation_id: str, user_text: str, attachment_ids: list[str] | None = None) -> AsyncIterator[str]:
     SessionLocal = get_sessionmaker()
     session = SessionLocal()
     try:
@@ -90,6 +103,7 @@ async def _sse(conversation_id: str, user_text: str) -> AsyncIterator[str]:
             connector=turn.connector, provider=turn.provider, application=turn.application,
             classification=turn.classification, environment_name=turn.environment_name,
             demo=turn.demo, context_version_id=turn.context_version_id, user_text=user_text,
+            attachment_ids=attachment_ids,
         ):
             yield event.sse()
         session.commit()
@@ -101,9 +115,11 @@ async def _sse(conversation_id: str, user_text: str) -> AsyncIterator[str]:
         session.close()
 
 
-def _stream_response(conversation_id: str, user_text: str) -> StreamingResponse:
+def _stream_response(
+    conversation_id: str, user_text: str, attachment_ids: list[str] | None = None
+) -> StreamingResponse:
     return StreamingResponse(
-        _sse(conversation_id, user_text),
+        _sse(conversation_id, user_text, attachment_ids),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"},
     )
@@ -111,8 +127,8 @@ def _stream_response(conversation_id: str, user_text: str) -> StreamingResponse:
 
 @router.post("/api/conversations/{conversation_id}/messages")
 def send_message(conversation_id: str, body: ChatMessageIn) -> StreamingResponse:
-    _msg_id, safe = _persist_user_message(conversation_id, body.content)
-    return _stream_response(conversation_id, safe)
+    _msg_id, safe, linked = _persist_user_message(conversation_id, body.content, body.attachments)
+    return _stream_response(conversation_id, safe, linked)
 
 
 @router.post("/api/conversations/{conversation_id}/messages/{message_id}/branch")

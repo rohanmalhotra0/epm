@@ -9,6 +9,8 @@ import json
 import zipfile
 from hashlib import sha256
 
+import pytest
+
 from app.config import get_settings
 from app.db.models import (
     Artifact,
@@ -252,6 +254,14 @@ def test_import_minimal_valid_bundle(client):
 
 
 def test_backup_endpoints_and_startup_backup(client):
+    if not get_settings().is_sqlite:
+        # Managed database: no file backups — empty list, 409 on create.
+        assert client.get("/api/diagnostics/backups").json() == []
+        refused = client.post("/api/diagnostics/backups")
+        assert refused.status_code == 409
+        assert "managed database" in refused.json()["detail"]
+        return
+
     # the lifespan hook already ran one backup when the client started
     initial = client.get("/api/diagnostics/backups").json()
     assert len(initial) >= 1
@@ -269,6 +279,10 @@ def test_backup_endpoints_and_startup_backup(client):
 
 
 def test_backup_rotation_keeps_n_most_recent():
+    if not get_settings().is_sqlite:
+        with pytest.raises(backups_svc.ManagedDatabaseError):
+            backups_svc.create_backup(keep=2)
+        return
     for _ in range(3):
         backups_svc.create_backup(keep=2)
     remaining = backups_svc.list_backups()
@@ -281,8 +295,11 @@ def test_backup_rotation_keeps_n_most_recent():
 def test_disk_usage(client, session):
     seeded = _seed_project(session)
     d = client.get("/api/diagnostics/disk").json()
-    assert d["dbBytes"] > 0
-    assert d["backupsBytes"] > 0
+    assert d["dbBytes"] > 0  # SQLite file size, or pg_database_size on Postgres
+    if get_settings().is_sqlite:
+        assert d["backupsBytes"] > 0
+    else:
+        assert d["backupsBytes"] == 0  # managed database: no local backup files
     mine = next(p for p in d["projects"] if p["projectId"] == seeded["project_id"])
     assert mine["name"] == "Bundle Source"
     assert mine["artifactCount"] == 3

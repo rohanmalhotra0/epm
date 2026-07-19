@@ -4,6 +4,7 @@ import { FormPreviewBlock } from "./FormPreviewBlock";
 import { ArtifactBlock } from "../artifacts/blocks";
 import { CubeArchitectureBlock } from "./CubeArchitectureBlock";
 import { DeploymentPlanBlock, DeploymentProgressBlock, DeploymentResultBlock } from "./DeploymentBlocks";
+import { SpreadsheetBlock } from "./SpreadsheetBlock";
 import {
   CellIntersectionBlock,
   CodeBlock,
@@ -96,6 +97,8 @@ export function BlockRenderer({ block, onAction }: { block: ChatBlockT; onAction
       return <DimensionCoverageBlock data={d} />;
     case "dimensionHierarchy":
       return <DimensionHierarchyBlock data={d} onAction={onAction} />;
+    case "spreadsheetPreview":
+      return <SpreadsheetBlock data={d} />;
     default:
       return <FallbackBlock type={block.type} data={d} />;
   }

@@ -143,10 +143,27 @@ Environment-variable fallbacks (see `.env.example`): `WATSONX_API_KEY`,
 
 The repo's two existing images deploy unchanged. `deploy/ibm-cloud/deploy-code-engine.sh`
 builds both, pushes them to ICR, and creates/updates the two Code Engine apps.
-The backend keeps its data on a Code Engine persistent volume (or move the DB
-to IBM Cloud Databases for PostgreSQL when multi-instance is needed — the
-backend is SQLAlchemy throughout, so this is a connection-string change plus
-migrations, not a rewrite).
+
+**Where the database lives** — pick one of three tiers (local runs are
+unaffected: on a laptop or in compose the app stays SQLite-on-disk with zero
+configuration):
+
+1. **Ephemeral demo** — no volume, no database service. Every cold start is a
+   fresh SQLite database. Fine for showing the app around, nothing else.
+2. **Single-instance SQLite** — the default the deploy script sets up: SQLite
+   on the `/data` store, `min-scale`/`max-scale` pinned to one backend
+   instance, and backup discipline (the app snapshots the DB at startup and on
+   demand via `POST /api/diagnostics/backups`; copy `<data>/backups` out to COS
+   on a schedule). Right for a single admin or very small team.
+3. **Managed PostgreSQL for real teams** — `terraform apply` with
+   `enable_postgres = true` provisions IBM Cloud Databases for PostgreSQL
+   (private endpoint), then set `EPMW_DATABASE_URL` in the `epmw-database`
+   Code Engine secret (see the deploy script header for the exact command;
+   ICD requires TLS — mount its CA cert from a secret and reference it via
+   `sslmode=verify-full&sslrootcert=...`). The backend detects the URL, runs
+   the same Alembic migrations on Postgres at startup, and can scale past one
+   instance. File-level backup endpoints step aside in favour of ICD's own
+   point-in-time backups.
 
 Secrets (Oracle passwords, the watsonx API key) live in **Secrets Manager**
 and are injected into the backend as Code Engine secrets — never baked into
