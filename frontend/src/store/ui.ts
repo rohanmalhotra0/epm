@@ -8,6 +8,7 @@ interface UiState {
   setProject: (id: string) => void;
   toggleSidebar: () => void;
   setTheme: (t: "g100" | "white") => void;
+  toggleTheme: () => void;
 }
 
 export const useUi = create<UiState>()(
@@ -19,6 +20,7 @@ export const useUi = create<UiState>()(
       setProject: (id) => set({ currentProjectId: id }),
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       setTheme: (theme) => set({ theme }),
+      toggleTheme: () => set((s) => ({ theme: s.theme === "g100" ? "white" : "g100" })),
     }),
     { name: "epmw-ui" },
   ),

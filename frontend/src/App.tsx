@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { Theme } from "@carbon/react";
 import { Header } from "./components/Header";
@@ -11,6 +11,9 @@ import { SkillsPage } from "./pages/SkillsPage";
 import { ExplorerPage } from "./pages/ExplorerPage";
 import { DataPage } from "./pages/DataPage";
 import { Toaster } from "./components/Toaster";
+import { CommandPalette } from "./components/CommandPalette";
+import { FirstRunTour } from "./components/FirstRunTour";
+import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import { useConversations, useCreateConversation, useProjects } from "./api/hooks";
 import { useUi } from "./store/ui";
 
@@ -38,6 +41,19 @@ export function App() {
   const projectId = useUi((s) => s.currentProjectId);
   const setProject = useUi((s) => s.setProject);
   const { data: projects } = useProjects();
+  const nav = useNavigate();
+  const createConv = useCreateConversation(projectId ?? undefined);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+
+  const newChat = () => {
+    if (!projectId) return;
+    createConv.mutateAsync().then((c) => nav(`/c/${c.id}`));
+  };
+
+  useGlobalShortcuts({
+    togglePalette: () => setPaletteOpen((o) => !o),
+    newChat,
+  });
 
   useEffect(() => {
     document.documentElement.setAttribute("data-carbon-theme", theme);
@@ -73,6 +89,15 @@ export function App() {
           </SignInGate>
         </div>
         <Toaster />
+        <CommandPalette
+          open={paletteOpen}
+          onClose={() => setPaletteOpen(false)}
+          onNewChat={() => {
+            setPaletteOpen(false);
+            newChat();
+          }}
+        />
+        <FirstRunTour />
       </div>
     </Theme>
   );

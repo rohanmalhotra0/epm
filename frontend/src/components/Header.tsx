@@ -1,4 +1,4 @@
-import { SidePanelClose, SidePanelOpen, Application, WatsonHealthAiResults } from "@carbon/icons-react";
+import { Asleep, Light, SidePanelClose, SidePanelOpen, Application, WatsonHealthAiResults } from "@carbon/icons-react";
 import { useEnvironments, useProjects, useProviders } from "../api/hooks";
 import { useUi } from "../store/ui";
 import { ArtifactToggle } from "../artifacts/blocks";
@@ -9,6 +9,8 @@ export function Header() {
   const setProject = useUi((s) => s.setProject);
   const toggle = useUi((s) => s.toggleSidebar);
   const collapsed = useUi((s) => s.sidebarCollapsed);
+  const theme = useUi((s) => s.theme);
+  const toggleTheme = useUi((s) => s.toggleTheme);
   const { data: projects = [] } = useProjects();
   const { data: environments = [] } = useEnvironments(projectId ?? undefined);
   const { data: providers = [] } = useProviders();
@@ -54,6 +56,14 @@ export function Header() {
           {activeProvider ? `${activeProvider.name.split(" ")[0]} · ${activeProvider.defaultModel ?? "model"}` : "no provider"}
         </span>
       </div>
+      <button
+        className="epmw-tts-toggle"
+        title={theme === "g100" ? "Switch to light theme" : "Switch to dark theme"}
+        aria-label={theme === "g100" ? "Switch to light theme" : "Switch to dark theme"}
+        onClick={toggleTheme}
+      >
+        {theme === "g100" ? <Light size={16} /> : <Asleep size={16} />}
+      </button>
       <TtsToggle />
       <ArtifactToggle />
     </header>
