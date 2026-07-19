@@ -28,6 +28,9 @@ dev = [
 # OS keychain support is optional and platform dependent; the encrypted local
 # store is the portable fallback used inside Docker.
 keychain = ["keyring>=25.0"]
+# PostgreSQL driver for hosted deployments (EPMW_DATABASE_URL). Local installs
+# stay lean — SQLite needs nothing extra.
+postgres = ["psycopg[binary]>=3.1"]
 
 [build-system]
 requires = ["setuptools>=68"]

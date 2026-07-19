@@ -1,7 +1,9 @@
 """SQLAlchemy engine, session factory and declarative base.
 
-Synchronous SQLite (local, single-user). Async request paths wrap DB work in a
-thread. Foreign keys are enforced on every connection.
+Synchronous SQLite (local, single-user) by default; PostgreSQL when
+``EPMW_DATABASE_URL`` points at one (hosted deployments). Async request paths
+wrap DB work in a thread. On SQLite, foreign keys are enforced on every
+connection via PRAGMA; PostgreSQL enforces them natively.
 """
 
 from __future__ import annotations
@@ -53,16 +55,31 @@ def _configure_sqlite(dbapi_connection, _record) -> None:  # noqa: ANN001
     cursor.close()
 
 
+def engine_kwargs(url: str) -> dict:
+    """Dialect-appropriate ``create_engine`` keyword arguments for ``url``.
+
+    SQLite keeps ``check_same_thread=False`` (async request paths hop threads);
+    everything else (PostgreSQL) gets connection health checks and a small,
+    bounded pool suited to a single Code Engine instance.
+    """
+    if url.startswith("sqlite"):
+        return {"connect_args": {"check_same_thread": False}, "future": True}
+    return {
+        "pool_pre_ping": True,
+        "pool_size": 5,
+        "max_overflow": 5,
+        "pool_recycle": 1800,
+        "future": True,
+    }
+
+
 def get_engine() -> Engine:
     global _engine, _SessionLocal
     if _engine is None:
         settings = get_settings()
-        _engine = create_engine(
-            settings.db_url,
-            connect_args={"check_same_thread": False},
-            future=True,
-        )
-        event.listen(_engine, "connect", _configure_sqlite)
+        _engine = create_engine(settings.db_url, **engine_kwargs(settings.db_url))
+        if _engine.dialect.name == "sqlite":
+            event.listen(_engine, "connect", _configure_sqlite)
         _SessionLocal = sessionmaker(bind=_engine, autoflush=False, expire_on_commit=False, future=True)
     return _engine
 

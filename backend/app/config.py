@@ -80,13 +80,27 @@ class Settings(BaseSettings):
     # How many timestamped SQLite backups to keep in <data>/backups (EPMW_BACKUP_KEEP).
     backup_keep: int = 5
 
+    # Optional external database (EPMW_DATABASE_URL). When set it wins over the
+    # local SQLite file — e.g. IBM Cloud Databases for PostgreSQL:
+    #   postgresql+psycopg://user:pass@host:port/db?sslmode=verify-full&sslrootcert=/path/ca.pem
+    # When empty (the default) the app uses sqlite:///<data>/epmwizard.db exactly
+    # as before.
+    database_url: str = ""
+
     @property
     def db_path(self) -> Path:
         return self.data_dir / "epmwizard.db"
 
     @property
     def db_url(self) -> str:
+        """Effective SQLAlchemy URL: EPMW_DATABASE_URL if set, else local SQLite."""
+        if self.database_url:
+            return self.database_url
         return f"sqlite:///{self.db_path}"
+
+    @property
+    def is_sqlite(self) -> bool:
+        return self.db_url.startswith("sqlite")
 
     @property
     def artifacts_dir(self) -> Path:

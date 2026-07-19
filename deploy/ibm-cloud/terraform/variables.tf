@@ -40,6 +40,12 @@ variable "vpn_client_ca_crn" {
   default     = ""
 }
 
+variable "enable_postgres" {
+  description = "Provision IBM Cloud Databases for PostgreSQL for the backend (wired via the EPMW_DATABASE_URL secret). Off by default: SQLite on the data volume."
+  type        = bool
+  default     = false
+}
+
 variable "enable_gpu_training" {
   description = "Provision the GPU training instance (hourly cost — enable only for the run)."
   type        = bool

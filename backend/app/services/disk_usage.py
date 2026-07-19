@@ -10,12 +10,25 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
 from ..db.models import Artifact, Project
 from ..schemas.api import DiskUsageOut, ProjectDiskUsageOut
 from . import backups
+
+
+def _db_bytes(session: Session) -> int:
+    """Size of the database: the SQLite file, or ``pg_database_size`` on Postgres."""
+    settings = get_settings()
+    if settings.is_sqlite:
+        return settings.db_path.stat().st_size if settings.db_path.exists() else 0
+    try:
+        return int(session.execute(text("SELECT pg_database_size(current_database())")).scalar() or 0)
+    except Exception:
+        session.rollback()  # clear the aborted transaction so later queries work
+        return 0
 
 
 def _artifact_bytes(a: Artifact) -> int:
@@ -32,8 +45,7 @@ def _artifact_bytes(a: Artifact) -> int:
 
 
 def disk_usage(session: Session) -> DiskUsageOut:
-    settings = get_settings()
-    db_bytes = settings.db_path.stat().st_size if settings.db_path.exists() else 0
+    db_bytes = _db_bytes(session)
 
     projects: list[ProjectDiskUsageOut] = []
     for project in session.query(Project).order_by(Project.created_at.asc()).all():

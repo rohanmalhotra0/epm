@@ -60,6 +60,13 @@ Re-run the script to roll out a new image; it updates in place. The frontend
 deploys with a public endpoint by default (App ID in front); set
 `FRONTEND_VISIBILITY=private` for the VPN topology.
 
+**Optional managed database**: with `terraform apply -var enable_postgres=true`
+(outputs `postgres_host`/`postgres_port`), create a service key for the
+instance, then put `EPMW_DATABASE_URL` in a Code Engine secret named
+`epmw-database` (override via `DB_SECRET`). The deploy script injects it when
+the secret exists; otherwise the backend stays on SQLite on the `/data` volume.
+Database tier trade-offs are in `docs/IBM_CLOUD.md` §4.
+
 ## 3. Train on your EPM data
 
 Follow [`docs/TRAINING.md`](../../docs/TRAINING.md) — corpus build (synthetic

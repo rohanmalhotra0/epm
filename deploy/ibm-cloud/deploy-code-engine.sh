@@ -48,11 +48,30 @@ deploy_app() {
 # Backend: private endpoint only; secrets (WATSONX_API_KEY, Oracle creds) are
 # injected from a Code Engine secret backed by Secrets Manager — create it once:
 #   ibmcloud ce secret create --name epmw-secrets --from-env-file .env.production
+#
+# Database: SQLite on the /data volume by default. To use IBM Cloud Databases
+# for PostgreSQL instead (terraform: enable_postgres=true), create the optional
+# secret (default name epmw-database, override via DB_SECRET) holding
+# EPMW_DATABASE_URL — ICD requires TLS, so mount its CA cert from a secret and
+# reference the mount path in sslrootcert:
+#   ibmcloud ce secret create --name epmw-database --from-literal \
+#     EPMW_DATABASE_URL='postgresql+psycopg://user:pass@host:port/db?sslmode=verify-full&sslrootcert=/etc/epmw/pg-ca.pem'
+# When the secret exists it is injected below and wins over SQLite.
+DB_SECRET="${DB_SECRET:-epmw-database}"
+DB_ARGS=()
+if ibmcloud ce secret get --name "${DB_SECRET}" >/dev/null 2>&1; then
+  echo "==> Database secret ${DB_SECRET} found — backend will use EPMW_DATABASE_URL"
+  DB_ARGS+=(--env-from-secret "${DB_SECRET}")
+else
+  echo "==> No ${DB_SECRET} secret — backend stays on SQLite (/data volume)"
+fi
+
 echo "==> Deploying backend"
 deploy_app epmw-backend "${BACKEND_IMAGE}" 8000 \
   --visibility project \
   --env EPMW_DATA_DIR=/data --env EPMW_LOG_JSON=true \
   --env-from-secret epmw-secrets \
+  ${DB_ARGS[@]+"${DB_ARGS[@]}"} \
   --mount-data-store /data=epmw-data
 
 # Frontend: public HTTPS endpoint by default, with App ID (OIDC) as the

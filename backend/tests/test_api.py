@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 
+from app.config import get_settings
+
 
 def _events(sse_text: str) -> list[str]:
     return re.findall(r"event: (\w+)", sse_text)
@@ -41,7 +43,8 @@ def test_diagnostics_healthy(client):
     d = client.get("/api/diagnostics").json()
     assert d["redactionHealthy"] is True
     names = {s["name"]: s["status"] for s in d["subsystems"]}
-    assert names["SQLite database"] == "ok"
+    db_name = "SQLite database" if get_settings().is_sqlite else "PostgreSQL database"
+    assert names[db_name] == "ok"
     assert names["Redaction"] == "ok"
 
 
