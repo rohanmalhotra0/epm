@@ -293,3 +293,22 @@ class ImpactReferenceOut(CamelModel):
 class ImpactAnalysisOut(CamelModel):
     query: str
     references: list[ImpactReferenceOut] = []
+
+
+# --- Provider model discovery ------------------------------------------------
+
+
+class ProviderModelsDiscoverIn(CamelModel):
+    """Probe a provider endpoint for its available models before a profile is
+    saved (Settings "Detect models"). The key, when given, is only forwarded to
+    the provider being probed — it is never persisted or logged."""
+
+    provider_type: str = "ollama"
+    base_url: str | None = None
+    api_key: str | None = None
+
+
+class ProviderModelsDiscoverOut(CamelModel):
+    provider_type: str
+    base_url: str | None = None
+    models: list[str] = []

@@ -28,6 +28,42 @@ export function SettingsPage() {
   const [ne, setNe] = useState({ name: "", baseUrl: "", username: "", classification: "development", demo: false });
   const [pw, setPw] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<string>("");
+  const [discovered, setDiscovered] = useState<string[]>([]);
+  const [detecting, setDetecting] = useState(false);
+
+  const applyOllamaPreset = () => {
+    setNp({ name: "Local Ollama", providerType: "ollama", baseUrl: "http://localhost:11434/v1", apiKey: "", defaultModel: "" });
+    setDiscovered([]);
+    toast.info("Local model preset applied", "Ollama needs no API key. Click Detect models to list what's installed.");
+  };
+
+  const detectModels = async () => {
+    setDetecting(true);
+    try {
+      const r = await api<{ models: string[] }>("/api/providers/models/discover", {
+        method: "POST",
+        body: JSON.stringify({
+          providerType: np.providerType,
+          baseUrl: np.baseUrl || undefined,
+          apiKey: np.apiKey || undefined,
+        }),
+      });
+      setDiscovered(r.models);
+      if (r.models.length === 0) {
+        toast.warning("No models found", "The provider answered but reported an empty model list.");
+      } else {
+        toast.success(`${r.models.length} model${r.models.length === 1 ? "" : "s"} detected`);
+        if (!np.defaultModel) setNp((cur) => ({ ...cur, defaultModel: r.models[0] }));
+      }
+    } catch (e) {
+      const hint = np.providerType === "ollama"
+        ? "Is Ollama running? Start it with `ollama serve` and try again."
+        : (e as Error).message;
+      toast.error("Could not detect models", hint);
+    } finally {
+      setDetecting(false);
+    }
+  };
 
   const testProvider = async (id: string, name: string) => {
     try {
@@ -66,17 +102,35 @@ export function SettingsPage() {
       </table>
       <div className="stat-tile" style={{ marginTop: 12, maxWidth: 640 }}>
         <div style={{ fontWeight: 600, marginBottom: 8 }}>Add provider</div>
+        <div className="action-row" style={{ marginTop: 0, marginBottom: 10 }}>
+          <Button size="sm" kind={np.providerType === "ollama" ? "primary" : "tertiary"} onClick={applyOllamaPreset}>
+            Local model (Ollama)
+          </Button>
+          <span style={{ fontSize: 11.5, color: "var(--cds-text-secondary, #8d8d8d)", alignSelf: "center" }}>
+            Runs on your machine — no API key, nothing leaves your computer.
+          </span>
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           <input placeholder="Name" value={np.name} onChange={(e) => setNp({ ...np, name: e.target.value })} style={inp} />
-          <select value={np.providerType} onChange={(e) => setNp({ ...np, providerType: e.target.value })} style={inp}>
+          <select value={np.providerType} onChange={(e) => { setNp({ ...np, providerType: e.target.value }); setDiscovered([]); }} style={inp}>
             {PROVIDER_TYPES.map((t) => <option key={t} value={t} style={{ color: "#000" }}>{t}</option>)}
           </select>
           <input placeholder="Base URL (optional)" value={np.baseUrl} onChange={(e) => setNp({ ...np, baseUrl: e.target.value })} style={inp} />
-          <input placeholder="Default model" value={np.defaultModel} onChange={(e) => setNp({ ...np, defaultModel: e.target.value })} style={inp} />
-          <input placeholder="API key" type="password" value={np.apiKey} onChange={(e) => setNp({ ...np, apiKey: e.target.value })} style={{ ...inp, gridColumn: "1 / 3" }} />
+          {discovered.length > 0 ? (
+            <select aria-label="Default model" value={np.defaultModel} onChange={(e) => setNp({ ...np, defaultModel: e.target.value })} style={inp}>
+              {!discovered.includes(np.defaultModel) && <option value={np.defaultModel} style={{ color: "#000" }}>{np.defaultModel || "— pick a model —"}</option>}
+              {discovered.map((m) => <option key={m} value={m} style={{ color: "#000" }}>{m}</option>)}
+            </select>
+          ) : (
+            <input placeholder="Default model" value={np.defaultModel} onChange={(e) => setNp({ ...np, defaultModel: e.target.value })} style={inp} />
+          )}
+          <input placeholder={np.providerType === "ollama" ? "API key (not needed for Ollama)" : "API key"} type="password" value={np.apiKey} onChange={(e) => setNp({ ...np, apiKey: e.target.value })} style={{ ...inp, gridColumn: "1 / 3" }} />
         </div>
         <div className="action-row">
-          <Button size="sm" kind="primary" disabled={!np.name} onClick={() => { createProvider.mutate(np as any); setNp({ name: "", providerType: "anthropic", baseUrl: "", apiKey: "", defaultModel: "" }); }}>Add provider</Button>
+          <Button size="sm" kind="primary" disabled={!np.name} onClick={() => { createProvider.mutate(np as any); setNp({ name: "", providerType: "anthropic", baseUrl: "", apiKey: "", defaultModel: "" }); setDiscovered([]); }}>Add provider</Button>
+          <Button size="sm" kind="tertiary" disabled={detecting} onClick={detectModels}>
+            {detecting ? "Detecting…" : "Detect models"}
+          </Button>
         </div>
       </div>
 

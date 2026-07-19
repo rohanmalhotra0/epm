@@ -1,0 +1,86 @@
+/* Styles for the Skills / Explorer pages and the artifact diff + deployment
+   script features. Colors come from Carbon tokens (with dark fallbacks) so
+   the light and dark themes both work. */
+
+/* --- Skills catalog -------------------------------------------------------- */
+
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  max-width: 1100px;
+}
+.skill-tile {
+  border: 1px solid var(--cds-border-subtle, #393939);
+  background: var(--cds-layer, #1f1f1f);
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+}
+.skill-tile .skill-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+.skill-tile .skill-desc { font-size: 12.5px; color: var(--cds-text-secondary, #a8a8a8); line-height: 1.5; flex: 1; }
+.skill-examples { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+.skill-example {
+  text-align: left;
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 8px;
+  border: 1px solid var(--cds-border-subtle, #393939);
+  background: var(--cds-field, #262626);
+  color: var(--cds-text-primary, #f4f4f4);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.skill-example:hover { border-color: var(--cds-border-strong, #6f6f6f); background: var(--cds-layer-hover, #2c2c2c); }
+.skill-example .copy-hint { margin-left: auto; font-size: 10px; color: var(--cds-text-placeholder, #6f6f6f); }
+
+/* --- Metadata explorer ----------------------------------------------------- */
+
+.explorer-layout { display: flex; gap: 20px; align-items: flex-start; max-width: 1100px; }
+.explorer-tree { flex: 1; min-width: 0; border: 1px solid var(--cds-border-subtle, #393939); background: var(--cds-layer, #1f1f1f); }
+.explorer-tree ul { list-style: none; margin: 0; padding: 0; }
+.explorer-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 10px;
+  border: none;
+  background: none;
+  color: var(--cds-text-primary, #f4f4f4);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.explorer-node:hover { background: var(--cds-layer-hover, #2c2c2c); }
+.explorer-node.selected { background: var(--cds-layer-selected, #333); border-left-color: var(--epmw-accent, #4589ff); }
+.explorer-node .twisty { width: 14px; display: inline-flex; justify-content: center; color: var(--cds-text-secondary, #a8a8a8); font-size: 10px; }
+.explorer-node .alias { color: var(--cds-text-secondary, #a8a8a8); font-size: 11.5px; }
+.explorer-node .count { margin-left: auto; }
+.explorer-detail { width: 300px; flex-shrink: 0; position: sticky; top: 0; }
+.explorer-detail .detail-rows { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.explorer-detail .detail-row .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--cds-text-secondary, #a8a8a8); }
+.explorer-detail .detail-row .v { font-size: 13px; word-break: break-word; }
+.explorer-toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; max-width: 1100px; }
+
+/* --- Artifact diff --------------------------------------------------------- */
+
+.diff-panel { border: 1px solid var(--cds-border-subtle, #393939); background: var(--cds-layer, #1f1f1f); margin-top: 16px; }
+.diff-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--cds-border-subtle, #393939); font-size: 12.5px; font-weight: 600; }
+.diff-head .grow { flex: 1; }
+.diff-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.diff-table th, .diff-table td { padding: 5px 12px; text-align: left; border-bottom: 1px solid var(--cds-border-subtle, #333); vertical-align: top; }
+.diff-table th { font-size: 11px; text-transform: uppercase; color: var(--cds-text-secondary, #a8a8a8); }
+.diff-table td.path { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 11.5px; }
+.diff-row.added td.val-right { color: var(--cds-support-success, #42be65); }
+.diff-row.removed td.val-left { color: var(--cds-support-error, #fa4d56); text-decoration: line-through; }
+.diff-row.changed td.val-left { color: var(--cds-support-error, #fa4d56); }
+.diff-row.changed td.val-right { color: var(--cds-support-success, #42be65); }
+.diff-badge { font-size: 10px; padding: 1px 6px; border-radius: 2px; font-weight: 600; text-transform: uppercase; }
+.diff-badge.added { background: var(--cds-tag-background-green, #044317); color: var(--cds-tag-color-green, #6fdc8c); }
+.diff-badge.removed { background: var(--cds-tag-background-red, #520408); color: var(--cds-tag-color-red, #ff8389); }
+.diff-badge.changed { background: var(--cds-tag-background-purple, #31135e); color: var(--cds-tag-color-purple, #d4bbff); }
