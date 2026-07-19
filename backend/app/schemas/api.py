@@ -210,3 +210,49 @@ class DiagnosticsReport(CamelModel):
     schema_versions: dict = {}
     feature_flags: dict = {}
     redaction_healthy: bool = True
+
+
+class DiagnosticLogEntry(CamelModel):
+    """One captured log line from the in-memory ring buffer."""
+
+    ts: str | None = None
+    level: str | None = None
+    event: str | None = None
+    logger: str | None = None
+    data: dict = {}
+
+
+class DiagnosticLogsOut(CamelModel):
+    logs: list[DiagnosticLogEntry] = []
+
+
+# --- Global search ----------------------------------------------------------
+
+
+class SearchResultOut(CamelModel):
+    """One project-wide search hit (conversation title, message or artifact)."""
+
+    type: str  # conversation | message | artifact
+    id: str
+    conversation_id: str | None = None  # set for message hits
+    title: str
+    snippet: str
+    updated_at: str | None = None
+
+
+class SearchResponse(CamelModel):
+    results: list[SearchResultOut] = []
+
+
+# --- Skill catalog ----------------------------------------------------------
+
+
+class SkillInfoOut(CamelModel):
+    name: str
+    title: str
+    description: str
+    examples: list[str] = []
+
+
+class SkillCatalogOut(CamelModel):
+    skills: list[SkillInfoOut] = []

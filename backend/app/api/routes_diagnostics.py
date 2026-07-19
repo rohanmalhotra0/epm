@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 from ..ai.registry import resolve_active_provider
 from ..config import get_settings
 from ..connector.epm_automate import EpmAutomateRunner
-from ..schemas.api import DiagnosticsReport, SubsystemStatus
+from ..logging import recent_logs
+from ..schemas.api import DiagnosticLogEntry, DiagnosticLogsOut, DiagnosticsReport, SubsystemStatus
 from ..schemas.common import (
     CONTEXT_MANIFEST_SCHEMA_VERSION,
     DEPLOYMENT_PLAN_SCHEMA_VERSION,
@@ -87,6 +88,12 @@ def _build_report(session: Session) -> DiagnosticsReport:
 @router.get("", response_model=DiagnosticsReport)
 def diagnostics(session: Session = Depends(get_db)) -> DiagnosticsReport:
     return _build_report(session)
+
+
+@router.get("/logs", response_model=DiagnosticLogsOut)
+def diagnostics_logs(limit: int = 200) -> DiagnosticLogsOut:
+    """Recent in-memory log entries (already redacted), newest first."""
+    return DiagnosticLogsOut(logs=[DiagnosticLogEntry(**entry) for entry in recent_logs(limit)])
 
 
 @router.get("/bundle")

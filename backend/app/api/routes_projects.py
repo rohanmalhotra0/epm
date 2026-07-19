@@ -5,8 +5,9 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..schemas.api import ProjectCreate, ProjectOut
+from ..schemas.api import ProjectCreate, ProjectOut, SearchResponse
 from ..services import projects as svc
+from ..services import search as search_svc
 from .deps import get_db
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
@@ -28,6 +29,13 @@ def get_project(project_id: str, session: Session = Depends(get_db)) -> ProjectO
     if project is None:
         raise HTTPException(404, "project not found")
     return svc._to_out(session, project)
+
+
+@router.get("/{project_id}/search", response_model=SearchResponse)
+def search_project(project_id: str, q: str, limit: int = 20, session: Session = Depends(get_db)) -> SearchResponse:
+    if svc.get_project(session, project_id) is None:
+        raise HTTPException(404, "project not found")
+    return SearchResponse(results=search_svc.global_search(session, project_id, q, limit))
 
 
 @router.post("/{project_id}/active-environment/{environment_id}", response_model=ProjectOut)
