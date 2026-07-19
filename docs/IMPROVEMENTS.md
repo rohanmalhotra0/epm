@@ -1,5 +1,16 @@
 # Improvement Ideas
 
+**Status update (2026-07-19):** most items below are now implemented on this
+branch — theme toggle, command palette + global search, keyboard shortcuts,
+first-run tour, message copy/regenerate, conversation rename/pin/archive/
+delete, Skills page, metadata explorer, artifact visual diff, deployment
+script export, Ollama preset + model discovery, project export/import
+bundles, DB backups + rotation, disk usage panel, diagnostics log viewer,
+and impact analysis. Still open: the bigger bets (Chrome extension, local
+vector retrieval, new artifact types, Playwright E2E), drag-and-drop
+attachments, user-defined skills, soft-delete grace period, and eval corpus
+growth.
+
 A brainstorm of possible additions and improvements. Everything here respects
 the core constraint: **EPM Wizard runs entirely locally**. No hosted services,
 no cloud infrastructure. Optional external AI providers only.
