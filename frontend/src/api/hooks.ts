@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./client";
+import { uploadProjectImport } from "./data";
 import { toast } from "../store/toast";
 import type {
   ArtifactOut,
@@ -27,6 +28,18 @@ export function useCreateProject() {
   });
 }
 
+export function useImportProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => uploadProjectImport(file),
+    onSuccess: (p) => {
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("Project imported", p?.name);
+    },
+    onError: (e: Error) => toast.error("Import failed", e.message),
+  });
+}
+
 // --- conversations ---
 export const useConversations = (projectId: string | undefined, search = "") =>
   useQuery({
@@ -36,6 +49,19 @@ export const useConversations = (projectId: string | undefined, search = "") =>
       api<ConversationOut[]>(
         `/api/projects/${projectId}/conversations${search ? `?search=${encodeURIComponent(search)}` : ""}`,
       ),
+  });
+
+/** Archived conversations only. Fetched lazily — enable when the section expands. */
+export const useArchivedConversations = (projectId: string | undefined, enabled = true) =>
+  useQuery({
+    queryKey: ["conversations", projectId, "archived"],
+    enabled: !!projectId && enabled,
+    queryFn: async () => {
+      const all = await api<ConversationOut[]>(
+        `/api/projects/${projectId}/conversations?include_archived=true`,
+      );
+      return all.filter((c) => c.archived);
+    },
   });
 
 export function useCreateConversation(projectId: string | undefined) {
@@ -56,6 +82,7 @@ export function useUpdateConversation(projectId: string | undefined) {
     mutationFn: ({ id, ...body }: { id: string } & Partial<ConversationOut>) =>
       api<ConversationOut>(`/api/conversations/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations", projectId] }),
+    onError: (e: Error) => toast.error("Could not update conversation", e.message),
   });
 }
 
@@ -64,6 +91,7 @@ export function useDeleteConversation(projectId: string | undefined) {
   return useMutation({
     mutationFn: (id: string) => api(`/api/conversations/${id}`, { method: "DELETE" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations", projectId] }),
+    onError: (e: Error) => toast.error("Could not delete conversation", e.message),
   });
 }
 
@@ -190,4 +218,59 @@ export const useDiagnostics = () =>
     queryKey: ["diagnostics"],
     queryFn: () => api<DiagnosticsReport>("/api/diagnostics"),
     refetchInterval: 30_000,
+  });
+
+// --- local data management (backups / disk / logs) ---
+// These shapes come from the diagnostics routes and are not part of the
+// generated schema file, so they are declared here.
+export interface BackupOut {
+  filename: string;
+  sizeBytes: number;
+  createdAt: string;
+}
+
+export interface DiskProjectUsage {
+  projectId: string;
+  name: string;
+  artifactBytes: number;
+  artifactCount: number;
+}
+
+export interface DiskUsageOut {
+  dbBytes: number;
+  backupsBytes: number;
+  projects: DiskProjectUsage[];
+}
+
+export interface LogEntryOut {
+  ts: string;
+  level: string;
+  event: string;
+  logger?: string | null;
+  data?: Record<string, unknown> | null;
+}
+
+export const useBackups = () =>
+  useQuery({ queryKey: ["backups"], queryFn: () => api<BackupOut[]>("/api/diagnostics/backups") });
+
+export function useCreateBackup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api<BackupOut>("/api/diagnostics/backups", { method: "POST" }),
+    onSuccess: (b) => {
+      qc.invalidateQueries({ queryKey: ["backups"] });
+      qc.invalidateQueries({ queryKey: ["diskUsage"] });
+      toast.success("Backup created", b?.filename);
+    },
+    onError: (e: Error) => toast.error("Backup failed", e.message),
+  });
+}
+
+export const useDiskUsage = () =>
+  useQuery({ queryKey: ["diskUsage"], queryFn: () => api<DiskUsageOut>("/api/diagnostics/disk") });
+
+export const useDiagnosticsLogs = (limit = 200) =>
+  useQuery({
+    queryKey: ["diagnosticsLogs", limit],
+    queryFn: () => api<{ logs: LogEntryOut[] }>(`/api/diagnostics/logs?limit=${limit}`),
   });
