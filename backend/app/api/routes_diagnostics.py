@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -11,7 +11,14 @@ from ..ai.registry import resolve_active_provider
 from ..config import get_settings
 from ..connector.epm_automate import EpmAutomateRunner
 from ..logging import recent_logs
-from ..schemas.api import DiagnosticLogEntry, DiagnosticLogsOut, DiagnosticsReport, SubsystemStatus
+from ..schemas.api import (
+    BackupFileOut,
+    DiagnosticLogEntry,
+    DiagnosticLogsOut,
+    DiagnosticsReport,
+    DiskUsageOut,
+    SubsystemStatus,
+)
 from ..schemas.common import (
     CONTEXT_MANIFEST_SCHEMA_VERSION,
     DEPLOYMENT_PLAN_SCHEMA_VERSION,
@@ -19,7 +26,8 @@ from ..schemas.common import (
     RULE_SPEC_SCHEMA_VERSION,
 )
 from ..security.redaction import REDACTION, redact_text
-from ..services import context_store, projects
+from ..services import backups as backups_svc
+from ..services import context_store, disk_usage, projects
 from .deps import get_db
 
 router = APIRouter(prefix="/api/diagnostics", tags=["diagnostics"])
@@ -94,6 +102,24 @@ def diagnostics(session: Session = Depends(get_db)) -> DiagnosticsReport:
 def diagnostics_logs(limit: int = 200) -> DiagnosticLogsOut:
     """Recent in-memory log entries (already redacted), newest first."""
     return DiagnosticLogsOut(logs=[DiagnosticLogEntry(**entry) for entry in recent_logs(limit)])
+
+
+@router.get("/backups", response_model=list[BackupFileOut])
+def list_backups() -> list[BackupFileOut]:
+    return backups_svc.list_backups()
+
+
+@router.post("/backups", response_model=BackupFileOut, status_code=201)
+def create_backup() -> BackupFileOut:
+    try:
+        return backups_svc.create_backup()
+    except OSError as exc:
+        raise HTTPException(500, f"backup failed: {exc}") from exc
+
+
+@router.get("/disk", response_model=DiskUsageOut)
+def disk(session: Session = Depends(get_db)) -> DiskUsageOut:
+    return disk_usage.disk_usage(session)
 
 
 @router.get("/bundle")

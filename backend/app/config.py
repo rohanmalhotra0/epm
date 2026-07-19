@@ -77,6 +77,9 @@ class Settings(BaseSettings):
     default_provider: str = "mock"
     default_model: str = "epmw-local-1"
 
+    # How many timestamped SQLite backups to keep in <data>/backups (EPMW_BACKUP_KEEP).
+    backup_keep: int = 5
+
     @property
     def db_path(self) -> Path:
         return self.data_dir / "epmwizard.db"
@@ -98,6 +101,10 @@ class Settings(BaseSettings):
         return self.data_dir / "secrets"
 
     @property
+    def backups_dir(self) -> Path:
+        return self.data_dir / "backups"
+
+    @property
     def runner_dir(self) -> Path:
         return self.data_dir / "runner"
 
@@ -113,6 +120,7 @@ class Settings(BaseSettings):
             self.secrets_dir,
             self.runner_dir,
             self.tmp_dir,
+            self.backups_dir,
         ):
             p.mkdir(parents=True, exist_ok=True)
         # Lock down the secrets directory where the OS supports it.

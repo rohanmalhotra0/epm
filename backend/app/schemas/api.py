@@ -256,3 +256,40 @@ class SkillInfoOut(CamelModel):
 
 class SkillCatalogOut(CamelModel):
     skills: list[SkillInfoOut] = []
+
+
+# --- Backups / disk usage (diagnostics) --------------------------------------
+
+
+class BackupFileOut(CamelModel):
+    filename: str
+    size_bytes: int
+    created_at: str
+
+
+class ProjectDiskUsageOut(CamelModel):
+    project_id: str
+    name: str
+    artifact_bytes: int = 0
+    artifact_count: int = 0
+
+
+class DiskUsageOut(CamelModel):
+    db_bytes: int = 0
+    backups_bytes: int = 0
+    projects: list[ProjectDiskUsageOut] = []
+
+
+# --- Impact analysis ---------------------------------------------------------
+
+
+class ImpactReferenceOut(CamelModel):
+    artifact_id: str
+    artifact_type: str
+    artifact_name: str
+    locations: list[str] = []
+
+
+class ImpactAnalysisOut(CamelModel):
+    query: str
+    references: list[ImpactReferenceOut] = []
