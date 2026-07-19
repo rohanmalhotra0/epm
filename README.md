@@ -92,7 +92,7 @@ Pydantic models  →  JSON Schema  →  TypeScript interfaces  →  Zod schemas
 | Connector boundary | `app/connector` | The one authoritative EPM boundary: Demo, Oracle REST, and a restricted EPM Automate runner (allowlist, no shell) |
 | Artifact engine | `app/artifacts` | Member resolution, validation, preview, deterministic XML render + round-trip parse, reproducible packaging |
 | Context engine | `app/context` | Quick/deep context, local retrieval, portable `.epwcontext` packages |
-| AI layer | `app/ai` | Provider-independent: deterministic **Mock** + Anthropic / OpenAI-compatible / Gemini adapters |
+| AI layer | `app/ai` | Provider-independent: deterministic **Mock** + IBM watsonx.ai / Anthropic / OpenAI-compatible / Gemini adapters |
 | Agent | `app/agent` | Intent router, tool framework, skills, streaming orchestrator |
 | Cube visualizer | `app/architecture` | Deterministic Cube Architecture, coverage, cell intersection, comparison, sizing, hierarchy |
 | API | `app/api` | FastAPI routes incl. SSE streaming chat |
@@ -139,6 +139,20 @@ a real environment, add it in **Settings → Oracle Environments** and click
   tenant — see [docs/ORACLE_ARTIFACT_RESEARCH.md](docs/ORACLE_ARTIFACT_RESEARCH.md).
   EPM Automate is not redistributed; mount/install it locally — see
   [docs/EPM_AUTOMATE.md](docs/EPM_AUTOMATE.md).
+
+---
+
+## All-IBM cloud deployment
+
+EPM Wizard can run entirely on IBM Cloud: **watsonx.ai** for inference (a
+first-class provider type in Settings), **Tuning Studio or GPU-as-a-Service**
+for training on your own EPM data, **Code Engine** for hosting, and a
+**Client-to-Site VPN** with email invites as the only way in.
+
+- Architecture, request flow, and training paths: [docs/IBM_CLOUD.md](docs/IBM_CLOUD.md)
+- Terraform + deploy script: [deploy/ibm-cloud/](deploy/ibm-cloud/)
+- Export a redacted fine-tuning corpus from your local data:
+  `python -m scripts.export_training_data` (from `backend/`)
 
 ---
 
