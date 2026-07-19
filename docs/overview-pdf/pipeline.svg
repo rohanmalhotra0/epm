@@ -1,0 +1,77 @@
+<svg viewBox="0 0 700 208" xmlns="http://www.w3.org/2000/svg">
+  <!-- row 1: left to right -->
+  <rect x="10" y="24" width="120" height="46" fill="none" stroke="black" stroke-width="1.2"/>
+  <text x="70" y="43" text-anchor="middle" font-family="Helvetica" font-size="9.5" font-weight="bold">User request</text>
+  <text x="70" y="57" text-anchor="middle" font-family="Helvetica" font-size="8">chat or /command</text>
+
+  <line x1="130" y1="47" x2="142" y2="47" stroke="black" stroke-width="1.2"/>
+  <polygon points="148,47 140,43 140,51" fill="black"/>
+
+  <rect x="148" y="24" width="120" height="46" fill="none" stroke="black" stroke-width="1.2"/>
+  <text x="208" y="43" text-anchor="middle" font-family="Helvetica" font-size="9.5" font-weight="bold">Intent router</text>
+  <text x="208" y="57" text-anchor="middle" font-family="Helvetica" font-size="8">deterministic</text>
+
+  <line x1="268" y1="47" x2="280" y2="47" stroke="black" stroke-width="1.2"/>
+  <polygon points="286,47 278,43 278,51" fill="black"/>
+
+  <rect x="286" y="24" width="120" height="46" fill="none" stroke="black" stroke-width="1.2"/>
+  <text x="346" y="43" text-anchor="middle" font-family="Helvetica" font-size="9.5" font-weight="bold">Context retrieval</text>
+  <text x="346" y="57" text-anchor="middle" font-family="Helvetica" font-size="8">local · identifier-first</text>
+
+  <line x1="406" y1="47" x2="418" y2="47" stroke="black" stroke-width="1.2"/>
+  <polygon points="424,47 416,43 416,51" fill="black"/>
+
+  <rect x="424" y="24" width="120" height="46" fill="none" stroke="#0f62fe" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="484" y="43" text-anchor="middle" font-family="Helvetica" font-size="9.5" font-weight="bold" fill="#0f62fe">Spec proposed</text>
+  <text x="484" y="57" text-anchor="middle" font-family="Helvetica" font-size="8" fill="#0f62fe">LLM · Form/RuleSpec</text>
+
+  <line x1="544" y1="47" x2="556" y2="47" stroke="black" stroke-width="1.2"/>
+  <polygon points="562,47 554,43 554,51" fill="black"/>
+
+  <rect x="562" y="24" width="120" height="46" fill="none" stroke="black" stroke-width="1.2"/>
+  <text x="622" y="43" text-anchor="middle" font-family="Helvetica" font-size="9.5" font-weight="bold">Pydantic validation</text>
+  <text x="622" y="57" text-anchor="middle" font-family="Helvetica" font-size="8">typed schemas</text>
+
+  <!-- down connector -->
+  <line x1="622" y1="70" x2="622" y2="98" stroke="black" stroke-width="1.2"/>
+  <polygon points="622,104 618,96 626,96" fill="black"/>
+
+  <!-- row 2: right to left -->
+  <rect x="562" y="104" width="120" height="46" fill="none" stroke="black" stroke-width="1.2"/>
+  <text x="622" y="123" text-anchor="middle" font-family="Helvetica" font-size="9.5" font-weight="bold">Tenant validation</text>
+  <text x="622" y="137" text-anchor="middle" font-family="Helvetica" font-size="8">cubes · members · sizing</text>
+
+  <line x1="562" y1="127" x2="550" y2="127" stroke="black" stroke-width="1.2"/>
+  <polygon points="544,127 552,123 552,131" fill="black"/>
+
+  <rect x="424" y="104" width="120" height="46" fill="none" stroke="black" stroke-width="1.2"/>
+  <text x="484" y="123" text-anchor="middle" font-family="Helvetica" font-size="9.5" font-weight="bold">Preview</text>
+  <text x="484" y="137" text-anchor="middle" font-family="Helvetica" font-size="8">in-chat grid</text>
+
+  <line x1="424" y1="127" x2="412" y2="127" stroke="black" stroke-width="1.2"/>
+  <polygon points="406,127 414,123 414,131" fill="black"/>
+
+  <rect x="286" y="104" width="120" height="46" fill="none" stroke="black" stroke-width="1.2"/>
+  <text x="346" y="123" text-anchor="middle" font-family="Helvetica" font-size="9.5" font-weight="bold">User approval</text>
+  <text x="346" y="137" text-anchor="middle" font-family="Helvetica" font-size="8">PROD safeguards</text>
+
+  <line x1="286" y1="127" x2="274" y2="127" stroke="black" stroke-width="1.2"/>
+  <polygon points="268,127 276,123 276,131" fill="black"/>
+
+  <rect x="148" y="104" width="120" height="46" fill="none" stroke="black" stroke-width="1.2"/>
+  <text x="208" y="123" text-anchor="middle" font-family="Helvetica" font-size="9.5" font-weight="bold">Generate &amp; deploy</text>
+  <text x="208" y="137" text-anchor="middle" font-family="Helvetica" font-size="8">safe XML · ZIP + SHA-256</text>
+
+  <line x1="148" y1="127" x2="136" y2="127" stroke="black" stroke-width="1.2"/>
+  <polygon points="130,127 138,123 138,131" fill="black"/>
+
+  <rect x="10" y="104" width="120" height="46" fill="none" stroke="black" stroke-width="1.2"/>
+  <text x="70" y="123" text-anchor="middle" font-family="Helvetica" font-size="9.5" font-weight="bold">Verify &amp; record</text>
+  <text x="70" y="137" text-anchor="middle" font-family="Helvetica" font-size="8">confirmed in Oracle · history</text>
+
+  <!-- legend -->
+  <rect x="10" y="172" width="26" height="14" fill="none" stroke="#0f62fe" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="44" y="183" font-family="Helvetica" font-size="8.5">the LLM only proposes</text>
+  <rect x="160" y="172" width="26" height="14" fill="none" stroke="black" stroke-width="1.2"/>
+  <text x="194" y="183" font-family="Helvetica" font-size="8.5">deterministic application code — everything that must be correct and reproducible</text>
+</svg>
