@@ -1,18 +1,21 @@
 # Deploying EPM Wizard on IBM Cloud
 
-The full architecture — service mapping, request flow, VPN invite flow, and
-the two AI-training paths — is in [`docs/IBM_CLOUD.md`](../../docs/IBM_CLOUD.md).
+The full architecture — service mapping, request flow, access design, and
+the two AI-training paths — is in [`docs/IBM_CLOUD.md`](../../docs/IBM_CLOUD.md);
+the end-to-end training runbook is [`docs/TRAINING.md`](../../docs/TRAINING.md).
 This directory holds the executable pieces.
 
 ## Layout
 
 ```
 deploy/ibm-cloud/
-├── terraform/               VPC, Client-to-Site VPN, COS, ICR, Code Engine
-│   ├── main.tf              project, optional GPU training instance
-│   ├── variables.tf
+├── terraform/               VPC, COS, ICR, Code Engine
+│   ├── main.tf              project, optional VPN, optional GPU training instance
+│   ├── variables.tf         toggles: enable_vpn (default false), enable_gpu_training
 │   └── outputs.tf
-└── deploy-code-engine.sh    build → push to ICR → create/update the two apps
+├── deploy-code-engine.sh    build → push to ICR → create/update the two apps
+├── upload_corpus.sh         create the COS bucket + upload training JSONL files
+└── training/                GPU (Path B) QLoRA kit — runs on the VSI, not the app
 ```
 
 ## 1. Provision infrastructure
@@ -22,14 +25,26 @@ cd deploy/ibm-cloud/terraform
 export IC_API_KEY=<ibm-cloud-api-key>
 
 terraform init
+terraform apply
+```
+
+No VPN certificates needed by default: `enable_vpn = false`, and the access
+design is the Code Engine **public HTTPS endpoint with App ID (OIDC) in
+front** — browser-only, nothing to install on a corporate laptop.
+
+For a private-endpoint-only topology instead:
+
+```bash
 terraform apply \
+  -var enable_vpn=true \
   -var vpn_server_cert_crn=crn:...:secret:... \
   -var vpn_client_ca_crn=crn:...:secret:...
 ```
 
 The two CRNs are certificates from **Secrets Manager** (server certificate,
-and the CA that signs client certificates). Everything lands in one resource
-group (`epmw-rg`) so billing is a single filtered view.
+and the CA that signs client certificates); they are required only when
+`enable_vpn = true`. Everything lands in one resource group (`epmw-rg`) so
+billing is a single filtered view.
 
 ## 2. Deploy the apps
 
@@ -41,24 +56,22 @@ REGION=us-south ICR_NAMESPACE=epmw CE_PROJECT=epmw-project \
   ./deploy-code-engine.sh
 ```
 
-Re-run the script to roll out a new image; it updates in place.
+Re-run the script to roll out a new image; it updates in place. The frontend
+deploys with a public endpoint by default (App ID in front); set
+`FRONTEND_VISIBILITY=private` for the VPN topology.
 
 ## 3. Train on your EPM data
 
-```bash
-cd backend
-python -m scripts.export_training_data --out data/training/epm-tuning.jsonl
-ibmcloud cos upload --bucket epmw-training-data \
-  --key epm-tuning.jsonl --file data/training/epm-tuning.jsonl
-```
-
-Then either tune in **watsonx.ai Tuning Studio** (managed) or set
-`-var enable_gpu_training=true -var ssh_key_name=<key>` and fine-tune on the
-GPU instance — details and trade-offs in `docs/IBM_CLOUD.md` §3. Destroy the
-GPU instance when the run finishes (`-var enable_gpu_training=false` + apply).
+Follow [`docs/TRAINING.md`](../../docs/TRAINING.md) — corpus build (synthetic
++ real export), `./upload_corpus.sh`, Tuning Studio (Path A) or the
+[`training/`](training/) GPU kit (Path B, `-var enable_gpu_training=true`),
+and the eval bake-off that gates the switch. Destroy the GPU instance when
+the run finishes (`-var enable_gpu_training=false` + apply).
 
 ## 4. Invite a user
 
-1. **App ID**: send the email invite (cloud directory).
-2. Send the OpenVPN client profile from the VPN server's client page.
-3. They connect to the VPN and open the private URL.
+Default topology: send the **App ID** email invite (cloud directory). They
+open the public URL in a browser and sign in — done.
+
+VPN topology only: additionally send the OpenVPN client profile from the VPN
+server's client page; they connect to the VPN and open the private URL.
