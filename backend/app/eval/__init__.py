@@ -22,6 +22,7 @@ Entry points:
 from __future__ import annotations
 
 from .corpus import BUILD_CASES, EDIT_CASES, INTENT_CASES
+from .llm_strategy import LlmStrategy, provider_complete
 from .runner import EvalReport, run_eval
 from .scorer import Check, Expect
 from .strategy import DeterministicStrategy, Strategy
@@ -35,5 +36,7 @@ __all__ = [
     "Check",
     "Expect",
     "DeterministicStrategy",
+    "LlmStrategy",
+    "provider_complete",
     "Strategy",
 ]
