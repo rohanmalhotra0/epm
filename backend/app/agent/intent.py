@@ -30,6 +30,9 @@ SLASH_SKILLS = {
     "epmautomate": "epmAutomate",
     "automate": "epmAutomate",
     "help": "help",
+    "spreadsheet": "spreadsheet",
+    "excel": "spreadsheet",
+    "sheet": "spreadsheet",
     # Cube Architecture & Dimensionality Visualizer (spec 4B)
     "architecture": "architecture",
     "dimensions": "architecture",
@@ -46,6 +49,11 @@ _RULES: list[tuple[re.Pattern[str], str]] = [
                 r"importSnapshot|exportSnapshot|copySnapshotFromInstance|clearCube|cloneEnvironment|refreshCube|"
                 r"importMetadata|exportMetadata|importData|exportData|setSubstVars|getSubstVar|restoreBackup|"
                 r"runDailyMaintenance|setApplicationAdminMode)\b"), "epmAutomate"),
+    # Uploaded spreadsheet follow-ups (the upload itself routes via attachments).
+    (re.compile(r"\b(spreadsheet|workbook|excel|xlsx|csv|file|sheet)\b.{0,40}\b(i\s+)?(uploaded|attached|dropped)\b|"
+                r"\b(uploaded|attached|dropped)\b.{0,40}\b(spreadsheet|workbook|excel|xlsx|csv|file|sheet)\b", re.I),
+     "spreadsheet"),
+    (re.compile(r"\bchart of accounts\b", re.I), "spreadsheet"),
     (re.compile(r"\b(build|create|refresh|learn|import|export)\s+(the\s+)?context\b", re.I), "context"),
     (re.compile(r"\b(learn|understand)\s+this\s+application\b", re.I), "context"),
     (re.compile(r"\brun\s+(the\s+)?[\w \-]*\brule\b", re.I), "rules"),

@@ -9,6 +9,7 @@ prose where a skill delegates to it.
 from __future__ import annotations
 
 import asyncio
+import re
 from collections.abc import AsyncIterator
 
 from sqlalchemy.orm import Session
@@ -29,6 +30,9 @@ from .tools import ToolContext
 
 log = get_logger(__name__)
 _SWITCH_INTENTS = {"rules", "context", "forms", "reports"}
+# Follow-ups that must stay with an active spreadsheet workflow even when they
+# look like a forms/reports intent ("create a form from this layout").
+_SPREADSHEET_FOLLOW_UP = re.compile(r"\b(layout|spreadsheet|worksheet|workbook|uploaded)\b", re.I)
 
 
 class _QueueEmitter(Emitter):
@@ -73,16 +77,29 @@ def _active_form_spec(wf: WorkflowState | None) -> FormSpecification | None:
     return None
 
 
-def _route(session: Session, conversation: Conversation, user_text: str) -> tuple[str, WorkflowState | None]:
+def _route(
+    session: Session, conversation: Conversation, user_text: str,
+    attachment_ids: list[str] | None = None,
+) -> tuple[str, WorkflowState | None]:
     intent = detect_intent(user_text)
     active_wf = _active_workflow(session, conversation.id)
+    # A message carrying attachments always goes to the spreadsheet skill
+    # (slash commands still win) — the upload is the intent.
+    if attachment_ids and not intent.is_slash:
+        if active_wf and active_wf.skill == "spreadsheet":
+            return "spreadsheet", active_wf
+        if active_wf:
+            active_wf.active = False
+        return "spreadsheet", None
     if active_wf and active_wf.skill in WORKFLOW_SKILLS:
         if intent.is_slash and intent.skill not in WORKFLOW_SKILLS:
             active_wf.active = False
             return intent.skill, None
         if (not intent.is_slash) and intent.skill in _SWITCH_INTENTS:
-            active_wf.active = False
-            return intent.skill, None
+            # "create a form from this layout" is a spreadsheet action, not a switch
+            if not (active_wf.skill == "spreadsheet" and _SPREADSHEET_FOLLOW_UP.search(user_text)):
+                active_wf.active = False
+                return intent.skill, None
         return active_wf.skill, active_wf
     return intent.skill, active_wf if (active_wf and active_wf.skill == intent.skill) else None
 
@@ -123,11 +140,12 @@ async def stream_turn(
     demo: bool,
     context_version_id: str | None,
     user_text: str,
+    attachment_ids: list[str] | None = None,
 ) -> AsyncIterator[StreamEvent]:
     queue: asyncio.Queue = asyncio.Queue()
     emit = _QueueEmitter(queue)
 
-    skill_name, workflow = _route(session, conversation, user_text)
+    skill_name, workflow = _route(session, conversation, user_text, attachment_ids)
     active_form_spec = _active_form_spec(_active_workflow(session, conversation.id) or workflow)
 
     tool_ctx = ToolContext(session=session, project=project, connector=connector, application=application,
@@ -138,6 +156,7 @@ async def stream_turn(
         intent=detect_intent(user_text), tool_ctx=tool_ctx, classification=classification,
         environment_name=environment_name, demo=demo, context_version_id=context_version_id,
         workflow=workflow, active_form_spec=active_form_spec,
+        attachment_ids=list(attachment_ids or []),
     )
 
     if looks_like_secret(user_text):

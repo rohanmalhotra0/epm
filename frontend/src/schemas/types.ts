@@ -116,6 +116,7 @@ export type ChatBlockType =
   "deploymentResult" |
   "diff" |
   "confirmation" |
+  "spreadsheetPreview" |
   "downloadableFile" |
   "errorDiagnostics" |
   "connectionStatus" |

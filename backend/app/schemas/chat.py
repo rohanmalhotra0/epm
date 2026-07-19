@@ -31,6 +31,7 @@ class ChatBlockType(str, Enum):
     deployment_result = "deploymentResult"
     diff = "diff"
     confirmation = "confirmation"
+    spreadsheet_preview = "spreadsheetPreview"
     downloadable_file = "downloadableFile"
     error_diagnostics = "errorDiagnostics"
     connection_status = "connectionStatus"

@@ -104,6 +104,10 @@ def downloadable_file(data: dict) -> ChatBlock:
     return _block(ChatBlockType.downloadable_file, data)
 
 
+def spreadsheet_preview(data: dict) -> ChatBlock:
+    return _block(ChatBlockType.spreadsheet_preview, data)
+
+
 def rule_preview(data: dict) -> ChatBlock:
     return _block(ChatBlockType.rule_preview, data)
 
