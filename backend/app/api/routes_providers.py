@@ -2,16 +2,27 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..ai.base import ProviderError
 from ..ai.registry import provider_from_profile
-from ..schemas.api import ProviderCreate, ProviderOut
+from ..schemas.api import (
+    ProviderCreate,
+    ProviderModelsDiscoverIn,
+    ProviderModelsDiscoverOut,
+    ProviderOut,
+)
 from ..services import providers as svc
 from .deps import get_db
 
 router = APIRouter(prefix="/api/providers", tags=["providers"])
+
+# Discovery probes a host the user just typed in, so fail fast instead of
+# letting the underlying client wait out its full timeout.
+_DISCOVER_TIMEOUT_S = 8.0
 
 
 @router.get("", response_model=list[ProviderOut])
@@ -44,6 +55,28 @@ def update_provider(provider_id: str, body: dict, session: Session = Depends(get
 @router.delete("/{provider_id}", status_code=204)
 def delete_provider(provider_id: str, session: Session = Depends(get_db)) -> None:
     svc.delete_provider(session, provider_id)
+
+
+@router.post("/models/discover", response_model=ProviderModelsDiscoverOut)
+async def discover_models(body: ProviderModelsDiscoverIn) -> ProviderModelsDiscoverOut:
+    """Probe a (possibly not-yet-saved) provider endpoint for its model list.
+
+    Reuses each provider class's existing ``list_models`` probe. Unreachable or
+    misbehaving hosts come back as a clean 502; a rejected key as a 400.
+    """
+    provider = svc.build_probe_provider(body.provider_type, body.base_url, body.api_key)
+    try:
+        models = await asyncio.wait_for(provider.list_models(), timeout=_DISCOVER_TIMEOUT_S)
+    except TimeoutError as exc:
+        raise HTTPException(502, f"The provider did not answer within {_DISCOVER_TIMEOUT_S:.0f}s.") from exc
+    except ProviderError as exc:
+        status = 400 if exc.category == "authentication" else 502
+        raise HTTPException(status, exc.message) from exc
+    return ProviderModelsDiscoverOut(
+        provider_type=body.provider_type,
+        base_url=getattr(provider, "base_url", None) or body.base_url,
+        models=models,
+    )
 
 
 @router.post("/{provider_id}/test")

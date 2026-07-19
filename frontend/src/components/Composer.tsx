@@ -151,7 +151,7 @@ export function Composer({
             <span className="conn-dot on" style={{ background: "#fa4d56" }} /> Listening… click the mic to stop
           </span>
         ) : (
-          <span>Enter to send · Shift+Enter for newline · / for commands{micSupported ? " · 🎤 to dictate" : ""}</span>
+          <span>Enter to send · Shift+Enter for newline · / for commands · Ctrl+K palette{micSupported ? " · 🎤 to dictate" : ""}</span>
         )}
       </div>
     </div>

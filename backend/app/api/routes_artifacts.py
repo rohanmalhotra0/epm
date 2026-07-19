@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from ..schemas.api import ArtifactOut, DeploymentOut, RuleExecutionOut
 from ..services import artifacts as artifacts_svc
+from ..services import automate_script
 from ..services import deployments as deployments_svc
 from ..services import rule_executions as rule_svc
 from .deps import get_db
@@ -67,6 +68,20 @@ def get_deployment(deployment_id: str, session: Session = Depends(get_db)) -> De
     if d is None:
         raise HTTPException(404, "deployment not found")
     return deployments_svc.to_out(d)
+
+
+@router.get("/api/deployments/{deployment_id}/script")
+def deployment_script(deployment_id: str, format: str = "sh", session: Session = Depends(get_db)) -> Response:
+    d = deployments_svc.get_deployment(session, deployment_id)
+    if d is None:
+        raise HTTPException(404, "deployment not found")
+    try:
+        script = automate_script.build_script(session, d, format)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    filename = f"deployment_{d.id}.{format}"
+    return Response(content=script, media_type="text/plain",
+                    headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
 
 @router.get("/api/projects/{project_id}/rule-executions", response_model=list[RuleExecutionOut])

@@ -115,6 +115,24 @@ export function ChatPage() {
 
   const empty = messages.length === 0 && !pendingUser && !live;
 
+  // "Regenerate" on the last assistant message: re-send the user message that
+  // preceded it through the normal send path (no separate streaming logic).
+  const msgs = messages as ChatMessage[];
+  let lastAssistantIdx = -1;
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    if (msgs[i].role === "assistant") {
+      lastAssistantIdx = i;
+      break;
+    }
+  }
+  const precedingUser = (() => {
+    for (let i = lastAssistantIdx - 1; i >= 0; i--) {
+      if (msgs[i].role === "user") return msgs[i].content;
+    }
+    return null;
+  })();
+  const canRegenerate = lastAssistantIdx >= 0 && precedingUser !== null && !live && !pendingUser;
+
   return (
     <div className="chat-split">
     <div className="main-col">
@@ -135,8 +153,13 @@ export function ChatPage() {
             </div>
           ) : (
             <>
-              {(messages as ChatMessage[]).map((m) => (
-                <MessageView key={m.id} message={m} onAction={send} />
+              {msgs.map((m, i) => (
+                <MessageView
+                  key={m.id}
+                  message={m}
+                  onAction={send}
+                  onRegenerate={canRegenerate && i === lastAssistantIdx ? () => send(precedingUser!) : undefined}
+                />
               ))}
               {pendingUser && <MessageView message={{ id: "pending", role: "user", content: pendingUser }} onAction={send} />}
               {live && (

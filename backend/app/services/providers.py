@@ -85,3 +85,14 @@ def delete_provider(session: Session, provider_id: str) -> None:
     if provider is not None:
         get_secret_store().delete(SECRET_NS, provider_id)
         session.delete(provider)
+
+
+def build_probe_provider(provider_type: str, base_url: str | None = None, api_key: str | None = None):
+    """Instantiate a transient AIProvider for probing an endpoint that has no
+    stored profile yet (Settings "Detect models"). Reuses the registry's class
+    mapping so each provider type goes through its existing /models logic."""
+    from ..ai.base import ProviderConfig
+    from ..ai.registry import _class_for
+
+    config = ProviderConfig(provider_type=provider_type, base_url=base_url or None, api_key=api_key or None)
+    return _class_for(provider_type)(config)

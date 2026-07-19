@@ -25,6 +25,7 @@ from .api import (
 from .config import get_settings
 from .db.init import initialize
 from .logging import configure_logging, get_logger
+from .services import backups
 
 log = get_logger("epmwizard")
 
@@ -34,6 +35,10 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     configure_logging(settings.log_level, settings.log_json)
     initialize(seed=True)
+    try:
+        backups.create_backup()
+    except OSError as exc:  # a failed backup must never block startup
+        log.warning("startup_backup_failed", error=str(exc))
     log.info("startup", app=settings.app_name, version=settings.version, data_dir=str(settings.data_dir))
     yield
     log.info("shutdown")

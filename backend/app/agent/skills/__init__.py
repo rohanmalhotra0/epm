@@ -48,5 +48,42 @@ def skill_specs() -> list[dict]:
     return [s.spec.model_dump(by_alias=True) for s in SKILLS.values()]
 
 
-__all__ = ["SKILLS", "get_skill", "skill_specs", "Skill", "SkillContext", "SkillResult",
-           "Emitter", "WORKFLOW_SKILLS", "ARCH_KEYWORDS"]
+# Human-readable titles for the skill catalog endpoint (/api/meta/skills).
+_SKILL_TITLES: dict[str, str] = {
+    "forms": "Form Builder",
+    "reports": "Report Builder",
+    "rules": "Business Rules",
+    "context": "Application Context",
+    "architecture": "Architecture Explorer",
+    "deploy": "Deployment",
+    "rollback": "Rollback",
+    "search": "Metadata Search",
+    "explain": "Explain",
+    "compare": "Compare",
+    "epmAutomate": "EPM Automate",
+    "help": "Help",
+    "chat": "Chat",
+}
+
+# Example prompts for skills whose specs declare no intent examples.
+_SKILL_EXAMPLE_FALLBACKS: dict[str, list[str]] = {
+    "chat": ["What does this application do?", "Summarize the cubes in this app"],
+}
+
+
+def skill_catalog() -> list[dict]:
+    """Registered skills as catalog entries: name, title, description, examples."""
+    entries: list[dict] = []
+    for key, skill in SKILLS.items():
+        spec = skill.spec
+        entries.append({
+            "name": key,
+            "title": _SKILL_TITLES.get(key, key.title()),
+            "description": spec.description,
+            "examples": list(spec.intent_examples) or _SKILL_EXAMPLE_FALLBACKS.get(key, []),
+        })
+    return entries
+
+
+__all__ = ["SKILLS", "get_skill", "skill_specs", "skill_catalog", "Skill", "SkillContext",
+           "SkillResult", "Emitter", "WORKFLOW_SKILLS", "ARCH_KEYWORDS"]

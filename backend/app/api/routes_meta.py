@@ -8,7 +8,9 @@ from pathlib import Path
 from fastapi import APIRouter
 
 from ..agent import TOOL_SPECS, skill_specs
+from ..agent.skills import skill_catalog
 from ..config import get_settings
+from ..schemas.api import SkillCatalogOut
 
 router = APIRouter(prefix="/api", tags=["meta"])
 _SCHEMA_PATH = Path(__file__).resolve().parents[3] / "frontend" / "src" / "schemas" / "schemas.json"
@@ -23,6 +25,11 @@ def health() -> dict:
 @router.get("/skills")
 def skills() -> dict:
     return {"skills": skill_specs()}
+
+
+@router.get("/meta/skills", response_model=SkillCatalogOut)
+def meta_skills() -> SkillCatalogOut:
+    return SkillCatalogOut(skills=skill_catalog())
 
 
 @router.get("/tools")
