@@ -104,4 +104,36 @@ describe("inline blocks", () => {
     expect(screen.getByText("Actual Revenue Report")).toBeInTheDocument();
     expect(screen.getByText("Open in panel ↗")).toBeInTheDocument();
   });
+
+  it("renders a spreadsheet preview with columns, samples, stats and issues", () => {
+    renderBlock("spreadsheetPreview", {
+      filename: "coa.xlsx",
+      sheetName: "Accounts",
+      kind: "chartOfAccounts",
+      columns: [
+        { index: 0, header: "Account", role: "memberName" },
+        { index: 1, header: "Parent", role: "parent" },
+      ],
+      sampleRows: [
+        ["Salaries", "Total Payroll"],
+        ["Wages", "Total Payroll"],
+      ],
+      memberCount: 120,
+      dimensionGuess: "Account",
+      issues: ["Row 14 has an empty parent"],
+    });
+    expect(screen.getByText("coa.xlsx")).toBeInTheDocument();
+    expect(screen.getByText("chart of accounts")).toBeInTheDocument();
+    expect(screen.getByText("memberName")).toBeInTheDocument();
+    expect(screen.getByText("Parent")).toBeInTheDocument();
+    expect(screen.getByText("Salaries")).toBeInTheDocument();
+    expect(screen.getByText("120")).toBeInTheDocument();
+    expect(screen.getByText("Row 14 has an empty parent")).toBeInTheDocument();
+  });
+
+  it("spreadsheet preview survives minimal data", () => {
+    renderBlock("spreadsheetPreview", {});
+    expect(screen.getByText("Spreadsheet")).toBeInTheDocument();
+    expect(screen.getByText("No preview details available.")).toBeInTheDocument();
+  });
 });

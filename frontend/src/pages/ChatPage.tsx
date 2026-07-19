@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { streamMessage } from "../api/client";
+import type { AttachmentOut } from "../api/attachments";
 import { useMessages } from "../api/hooks";
 import { MessageView, type ChatMessage } from "../components/Message";
 import { Composer } from "../components/Composer";
@@ -37,6 +38,9 @@ export function ChatPage() {
   const qc = useQueryClient();
   const { data: messages = [] } = useMessages(id);
   const [pendingUser, setPendingUser] = useState<string | null>(null);
+  // Chips on the pending user bubble only — persisted history does not carry
+  // attachment metadata, so they disappear once the exchange is reloaded.
+  const [pendingAttachments, setPendingAttachments] = useState<AttachmentOut[]>([]);
   const [live, setLive] = useState<Live | null>(null);
   const abortRef = useRef<null | (() => void)>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -51,6 +55,7 @@ export function ChatPage() {
 
   useEffect(() => {
     setPendingUser(null);
+    setPendingAttachments([]);
     setLive(null);
     abortRef.current?.();
   }, [id]);
@@ -59,9 +64,10 @@ export function ChatPage() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages, live, pendingUser]);
 
-  const send = (text: string) => {
+  const send = (text: string, attachments: AttachmentOut[] = []) => {
     if (!id || live) return;
     setPendingUser(text);
+    setPendingAttachments(attachments);
     setLive({ content: "", blocks: [], processSteps: [] });
     finalTextRef.current = "";
     abortRef.current = streamMessage(id, text, {
@@ -93,6 +99,7 @@ export function ChatPage() {
         toast.error("Message failed", e.message);
         setLive(null);
         setPendingUser(null);
+        setPendingAttachments([]);
         qc.invalidateQueries({ queryKey: ["messages", id] });
       },
       onDone: () => {
@@ -102,15 +109,17 @@ export function ChatPage() {
         qc.invalidateQueries({ queryKey: ["artifacts"] });
         if (useTts.getState().autoSpeak && finalTextRef.current.trim()) speak(finalTextRef.current);
         setPendingUser(null);
+        setPendingAttachments([]);
         setLive(null);
       },
-    });
+    }, undefined, attachments.map((a) => a.id));
   };
 
   const stop = () => {
     abortRef.current?.();
     setLive(null);
     setPendingUser(null);
+    setPendingAttachments([]);
   };
 
   const empty = messages.length === 0 && !pendingUser && !live;
@@ -161,7 +170,19 @@ export function ChatPage() {
                   onRegenerate={canRegenerate && i === lastAssistantIdx ? () => send(precedingUser!) : undefined}
                 />
               ))}
-              {pendingUser && <MessageView message={{ id: "pending", role: "user", content: pendingUser }} onAction={send} />}
+              {pendingUser && (
+                <MessageView
+                  message={{
+                    id: "pending",
+                    role: "user",
+                    content: pendingUser,
+                    attachments: pendingAttachments.length
+                      ? pendingAttachments.map((a) => ({ filename: a.filename, sizeBytes: a.sizeBytes, kindGuess: a.kindGuess }))
+                      : undefined,
+                  }}
+                  onAction={send}
+                />
+              )}
               {live && (
                 <MessageView
                   message={{ id: "live", role: "assistant", content: live.content, blocks: live.blocks, processSteps: live.processSteps }}
@@ -172,7 +193,7 @@ export function ChatPage() {
           )}
         </div>
       </div>
-      <Composer onSend={send} streaming={!!live} onStop={stop} />
+      <Composer onSend={send} streaming={!!live} onStop={stop} conversationId={id} />
     </div>
       <ArtifactsPanel />
     </div>

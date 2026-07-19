@@ -1,8 +1,10 @@
-import { Copy, Renew } from "@carbon/icons-react";
+import { Copy, Document, Renew } from "@carbon/icons-react";
 import { BlockRenderer, ProcessSteps, type ChatBlockT } from "../blocks";
 import { Markdown } from "../blocks/Markdown";
 import { SpeakButton } from "../tts/components";
 import { toast } from "../store/toast";
+import { attachmentKindLabel } from "../api/attachments";
+import { formatBytes } from "../utils/format";
 
 export interface ChatMessage {
   id: string;
@@ -10,6 +12,8 @@ export interface ChatMessage {
   content: string;
   blocks?: ChatBlockT[];
   processSteps?: Array<{ key: string; label: string; state: string }>;
+  /** Local-only (pending bubble): persisted history does not carry attachment metadata. */
+  attachments?: Array<{ filename: string; sizeBytes?: number; kindGuess?: string }>;
 }
 
 function copyMessage(content: string) {
@@ -58,6 +62,18 @@ export function MessageView({
         )}
         {message.content && (
           <div className="content">{isUser ? <div style={{ whiteSpace: "pre-wrap" }}>{message.content}</div> : <Markdown text={message.content} />}</div>
+        )}
+        {(message.attachments?.length ?? 0) > 0 && (
+          <div className="attach-chips msg-attach">
+            {message.attachments!.map((a, i) => (
+              <span className="attach-chip" key={i}>
+                <Document size={14} />
+                <span className="name mono">{a.filename}</span>
+                {a.sizeBytes != null && <span className="meta">{formatBytes(a.sizeBytes)}</span>}
+                <span className="tag-inline">{attachmentKindLabel(a.kindGuess)}</span>
+              </span>
+            ))}
+          </div>
         )}
         {(message.blocks || []).map((b) => (
           <BlockRenderer key={b.id} block={b} onAction={onAction} />
