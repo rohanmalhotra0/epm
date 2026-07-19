@@ -7,6 +7,9 @@ import { SignInGate } from "./components/SignIn";
 import { ChatPage } from "./pages/ChatPage";
 import { AboutPage, ArtifactsPage, ContextsPage, DeploymentsPage } from "./pages/SimplePages";
 import { SettingsPage } from "./pages/SettingsPage";
+import { SkillsPage } from "./pages/SkillsPage";
+import { ExplorerPage } from "./pages/ExplorerPage";
+import { DataPage } from "./pages/DataPage";
 import { Toaster } from "./components/Toaster";
 import { useConversations, useCreateConversation, useProjects } from "./api/hooks";
 import { useUi } from "./store/ui";
@@ -60,6 +63,9 @@ export function App() {
               <Route path="/contexts" element={<ContextsPage />} />
               <Route path="/artifacts" element={<ArtifactsPage />} />
               <Route path="/deployments" element={<DeploymentsPage />} />
+              <Route path="/skills" element={<SkillsPage />} />
+              <Route path="/explorer" element={<ExplorerPage />} />
+              <Route path="/data" element={<DataPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
