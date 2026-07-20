@@ -185,6 +185,7 @@ export function ChatPage() {
               )}
               {live && (
                 <MessageView
+                  streaming
                   message={{ id: "live", role: "assistant", content: live.content, blocks: live.blocks, processSteps: live.processSteps }}
                   onAction={send}
                 />

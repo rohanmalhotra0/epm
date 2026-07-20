@@ -113,11 +113,23 @@ class TenantMetadata:
         # Oracle's ':' range returns members at the same level as the endpoints,
         # e.g. Jan:Dec yields the 12 months, not the quarter headers between them.
         start_member = self.get_member(dimension, start)
-        if start_member is not None and start_member.level is not None:
-            same_level = [
-                n for n in window
-                if (m := self.get_member(dimension, n)) is not None and m.level == start_member.level
-            ]
+        if start_member is not None:
+            if start_member.level is not None:
+                same_level = [
+                    n for n in window
+                    if (m := self.get_member(dimension, n)) is not None and m.level == start_member.level
+                ]
+            else:
+                # Connectors don't always populate `level`. Leaf-ness draws the
+                # same line for a range like Jan:Dec — the months are leaves and
+                # the quarter headers sitting between them in outline order are
+                # not — so Jan:Dec yields 12 columns, not 15.
+                start_is_leaf = not start_member.children
+                same_level = [
+                    n for n in window
+                    if (m := self.get_member(dimension, n)) is not None
+                    and (not m.children) == start_is_leaf
+                ]
             if same_level:
                 return same_level
         return window

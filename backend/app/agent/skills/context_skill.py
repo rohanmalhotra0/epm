@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from ...context import build_context, diff_contexts, export_context_package
+from ...context import build_context, diff_contexts
 from ...context.engine import environment_fingerprint
+from ...context.report_docx import DOCX_MIME as _DOCX_MIME
+from ...context.report_docx import build_context_docx
 from ...schemas.tools import SkillSpec
 from ...services import artifacts as artifacts_svc
 from ...services import context_store, environments
@@ -21,8 +23,7 @@ class ContextSkill(Skill):
             return await self._export(ctx, emit)
         if "refresh" in tl:
             return await self._build(ctx, emit, refresh=True)
-        mode = "deep" if "deep" in tl else "quick"
-        return await self._build(ctx, emit, mode=mode)
+        return await self._build(ctx, emit)
 
     async def _build(self, ctx: SkillContext, emit: Emitter, mode: str = "quick", refresh: bool = False) -> SkillResult:
         emit.set_steps(blocks.steps("Understanding request", "Retrieving metadata", "Indexing context", "Saving version"))
@@ -78,7 +79,7 @@ class ContextSkill(Skill):
         if cv is None:
             await emit.block(blocks.markdown("No active context to export. Build one first with `/context build`."))
             return SkillResult(skill="context")
-        filename, data = export_context_package(ctx.session, cv.id)
+        filename, data = build_context_docx(ctx.session, cv.id)
         from ...config import get_settings
         path = get_settings().contexts_dir / filename
         path.write_bytes(data)
@@ -87,7 +88,7 @@ class ContextSkill(Skill):
         ctx.session.flush()
         await emit.prose(f"Exported the active context as **{filename}** ({len(data):,} bytes).\n\n")
         await emit.block(blocks.downloadable_file({
-            "filename": filename, "artifactId": artifact.id, "mediaType": "application/zip", "sizeBytes": len(data),
+            "filename": filename, "artifactId": artifact.id, "mediaType": _DOCX_MIME, "sizeBytes": len(data),
         }))
         return SkillResult(skill="context")
 

@@ -63,6 +63,9 @@ class LayoutParse(CamelModel):
 class DataTableParse(CamelModel):
     period_columns: list[str] = Field(default_factory=list)
     label_column: str | None = None
+    # The label-column values. Carried so a data table can feed the form/report
+    # builder, which previously only worked for `layout` sheets.
+    row_labels: list[str] = Field(default_factory=list)
     row_count: int = 0
     sample_rows: list[list[str]] = Field(default_factory=list)
     issues: list[str] = Field(default_factory=list)

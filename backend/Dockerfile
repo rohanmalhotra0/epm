@@ -6,6 +6,12 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     EPMW_DATA_DIR=/data
 
+# Install OpenJDK 21 for EPM Automate (EPM Automate works with Java 11+)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends openjdk-21-jre-headless && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Install dependencies first (cached layer). Copies pyproject so the deps

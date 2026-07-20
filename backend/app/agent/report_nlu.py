@@ -27,6 +27,7 @@ from ..schemas.report_spec import (
     SmartFormat,
 )
 from . import form_nlu
+from . import outline_defaults as od
 
 SCENARIO_WORDS = form_nlu.SCENARIO_WORDS
 
@@ -73,28 +74,46 @@ def build_initial_report(
 
     cube = form_nlu._infer_cube(text, md)
     inferences.append(f"Cube: {cube} (inferred)")
-    scenario = next((v for k, v in SCENARIO_WORDS.items() if re.search(rf"\b{k}\b", text, re.I)), "Actual")
+    scenario_word = next((v for k, v in SCENARIO_WORDS.items() if re.search(rf"\b{k}\b", text, re.I)), None)
 
-    # rows: <function> of <member>, default children of Total Revenue
+    # Dimensions are located by declared type, and members resolved against the
+    # outline — see outline_defaults for why the old literals were unusable.
+    acct_dim = od.find_dimension(md, "account", cube=cube) or "Account"
+    per_dim = od.find_dimension(md, "period", cube=cube) or "Period"
+
+    # rows: <function> of <member>, defaulting to the account dimension's top node
     sel_type = form_nlu._selection_type(text) or "children"
-    member = form_nlu.find_member(md, text, dimension="Account")
-    anchor = member[0] if member else "Total Revenue"
-    rows = [AxisMember(dimension="Account", selection=MemberSelection(type=sel_type, member=anchor), suppress_missing=True)]
+    member = form_nlu.find_member(md, text, dimension=acct_dim)
+    anchor = member[0] if member else od.anchor_member(md, acct_dim, *od.ROW_ANCHOR_DEFAULTS)
+    rows = [AxisMember(dimension=acct_dim, selection=MemberSelection(type=sel_type, member=anchor), suppress_missing=True)]
     inferences.append(f"Rows: {sel_type} of {anchor}")
 
-    # columns: months by default, quarters if "quarter" mentioned
-    if "quarter" in tl:
-        columns = [AxisMember(dimension="Period",
-                              selection=MemberSelection(type="memberList", members=["Q1", "Q2", "Q3", "Q4"]))]
+    # columns: the period dimension's base span, or quarters if "quarter" mentioned
+    quarters = [q for q in (od.resolve_member(md, per_dim, f"Q{i}") for i in (1, 2, 3, 4)) if q]
+    if "quarter" in tl and quarters:
+        columns = [AxisMember(dimension=per_dim,
+                              selection=MemberSelection(type="memberList", members=quarters))]
         inferences.append("Columns: quarters")
     else:
-        columns = [AxisMember(dimension="Period", selection=MemberSelection(type="range", start="Jan", end="Dec"))]
-        inferences.append("Columns: Jan–Dec")
+        col_sel = od.period_columns(md, per_dim)
+        if col_sel is None and (top := od.anchor_member(md, per_dim)) is not None:
+            col_sel = MemberSelection(type="children", member=top)
+        columns = [AxisMember(dimension=per_dim, selection=col_sel)] if col_sel else []
+        if col_sel:
+            inferences.append(f"Columns: {col_sel.describe()}")
 
-    pov = [
-        AxisMember(dimension="Scenario", selection=MemberSelection(type="member", member=scenario)),
-        AxisMember(dimension="Version", selection=MemberSelection(type="member", member="Working")),
-    ]
+    pov = []
+    scen_dim = od.find_dimension(md, "scenario", cube=cube)
+    scenario = od.resolve_member(md, scen_dim, scenario_word, *od.SCENARIO_DEFAULTS) if scen_dim else None
+    if scen_dim and scenario:
+        pov.append(AxisMember(dimension=scen_dim, selection=MemberSelection(type="member", member=scenario)))
+    elif scenario_word:
+        questions.append(f"I couldn't find a '{scenario_word}' member in the "
+                         f"{scen_dim or 'Scenario'} dimension — which scenario should this report use?")
+
+    ver_dim = od.find_dimension(md, "version", cube=cube)
+    if ver_dim and (sel := od.pov_selection(md, ver_dim, *od.VERSION_DEFAULTS)):
+        pov.append(AxisMember(dimension=ver_dim, selection=sel))
 
     fmt = _infer_smart_format(text)
     chart = _infer_chart(text)
@@ -111,7 +130,9 @@ def build_initial_report(
         show_row_totals="total" in tl,
     )
     spec = ReportSpecification(
-        name=_derive_name(text, scenario),
+        # the friendly word, not the technical member — "Actual Cash Report"
+        # reads better than "OEP_Actual Cash Report"
+        name=_derive_name(text, scenario_word or "New"),
         application=application,
         cube=cube,
         description=None,
@@ -221,25 +242,31 @@ def apply_report_edit(spec: ReportSpecification, text: str, md: TenantMetadata) 
         grid.chart = None
         changes.append("Chart removed")
 
-    # selection type on Account rows: reuse form vocabulary
+    # selection type on the row dimension: reuse form vocabulary
     sel = form_nlu._selection_type(text)
     if sel and ("instead" in tl or "use " in tl or "change" in tl):
-        member = form_nlu.find_member(md, text, dimension="Account")
-        target = next((am for am in grid.rows if am.dimension == "Account"), None)
+        target = grid.rows[0] if grid.rows else None
         if target:
+            member = form_nlu.find_member(md, text, dimension=target.dimension)
             anchor = member[0] if member else target.selection.member
             if anchor:
                 target.selection = MemberSelection(type=sel, member=anchor)
-                changes.append(f"Account rows → {sel} of {anchor}")
+                changes.append(f"{target.dimension} rows → {sel} of {anchor}")
 
     # scenario
     scen = next((v for k, v in SCENARIO_WORDS.items() if re.search(rf"\b{k}\b", text, re.I)), None)
     if scen and ("scenario" in tl or "change" in tl or "use" in tl):
-        for am in grid.pov:
-            if am.dimension == "Scenario":
-                am.selection = MemberSelection(type="member", member=scen)
-                changes.append(f"Scenario → {scen}")
-                break
+        scen_dim = od.find_dimension(md, "scenario", cube=spec.cube)
+        resolved = od.resolve_member(md, scen_dim, scen) if scen_dim else None
+        if resolved:
+            for am in grid.pov:
+                if am.dimension == scen_dim:
+                    am.selection = MemberSelection(type="member", member=resolved)
+                    changes.append(f"Scenario → {resolved}")
+                    break
+        else:
+            questions.append(f"There's no '{scen}' member in the "
+                             f"{scen_dim or 'Scenario'} dimension — which scenario did you mean?")
 
     # attach a rule
     m = re.search(r"\b(attach|associate|add)\s+(the\s+)?([\w \-]+?)\s+rule\b", text, re.I)

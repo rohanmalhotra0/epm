@@ -46,13 +46,19 @@ async def test_context_package_export_import(session):
     assert len(imported.records) == len(bundle.records)
 
 
+def _drop(spec, *dimensions: str):
+    """Strip dimensions off a spec's POV so coverage has something to report."""
+    spec.pov = [am for am in spec.pov if am.dimension not in dimensions]
+    return spec
+
+
 async def test_cube_architecture_deterministic():
     md = await _md()
     spec, *_ = build_initial_spec("Create an Actuals form with level-zero descendants of Total Payroll in rows", md, "MCWPCF")
-    model = arch.get_cube_architecture(md, spec.cube, spec)
+    model = arch.get_cube_architecture(md, spec.cube, _drop(spec, "Employee"))
     account = next(d for d in model.dimensions if d.name == "Account")
     assert account.type == "account" and account.used_on_axis == "rows" and account.status == "selected"
-    # a workforce-only dimension is custom and missing from this form
+    # a workforce-only dimension is custom, and unplaced once dropped
     employee = next(d for d in model.dimensions if d.name == "Employee")
     assert employee.type == "custom" and employee.status == "missing"
 
@@ -60,10 +66,19 @@ async def test_cube_architecture_deterministic():
 async def test_dimension_coverage_reports_missing():
     md = await _md()
     spec, *_ = build_initial_spec("Create an Actuals form with level-zero descendants of Total Payroll in rows", md, "MCWPCF")
-    report = arch.validate_dimension_coverage(md, spec.cube, spec)
+    report = arch.validate_dimension_coverage(md, spec.cube, _drop(spec, "Years"))
     assert not report.valid
     assert "Years" in report.missing_dimensions
     assert any(s.dimension == "Years" for s in report.suggestions)
+
+
+async def test_generated_form_covers_every_cube_dimension():
+    """A generated form must never leave a dimension to the renderer's default."""
+    md = await _md()
+    spec, *_ = build_initial_spec("Create an Actuals form with level-zero descendants of Total Payroll in rows", md, "MCWPCF")
+    report = arch.validate_dimension_coverage(md, spec.cube, spec)
+    assert report.valid, report.missing_dimensions
+    assert not report.missing_dimensions
 
 
 async def test_cell_intersection_one_member_per_dimension():

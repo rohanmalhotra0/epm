@@ -20,6 +20,7 @@ from ..schemas.form_spec import (
     FormSpecification,
     MemberSelection,
 )
+from . import outline_defaults as od
 
 SCENARIO_WORDS = {
     "actuals": "Actual", "actual": "Actual", "forecast": "Forecast",
@@ -118,6 +119,21 @@ def _infer_cube(text: str, md: TenantMetadata) -> str:
     return "OEP_FS" if md.has_cube("OEP_FS") else next(iter(md.cubes), "OEP_FS")
 
 
+# "like the SOFR loan form", "based on Actual Revenue Review" -> the name asked for.
+# Stops at a conjunction so "like the SOFR loan but fully working" doesn't swallow
+# the rest of the sentence.
+_REFERENCE_PHRASE = re.compile(
+    r"\b(?:like|based on|similar to|modelled on|modeled on)\s+(?:the\s+)?"
+    r"([\w][\w\- ]{1,40}?)(?=\s+(?:form|but|and|with|that|which|for)\b|[.,?!]|$)",
+    re.I,
+)
+
+
+def _referenced_name(text: str) -> str | None:
+    m = _REFERENCE_PHRASE.search(text)
+    return m.group(1).strip() if m else None
+
+
 def _find_reference(text: str, md: TenantMetadata) -> str | None:
     tl = text.lower()
     if not any(w in tl for w in ("like", "based on", "template", "similar to", "as the")):
@@ -146,29 +162,55 @@ def build_initial_spec(
         inferences.append(f"Reference form: {reference}")
     else:
         cube = _infer_cube(text, md)
-        spec = _default_spec(application, cube, scenario or "Actual")
+        spec = _default_spec(md, cube=cube, application=application, scenario=scenario)
         inferences.append(f"Cube: {cube} (inferred)")
+        # Don't quietly hand back a generic form when the user asked for a copy
+        # of a specific one — say why the reference couldn't be used.
+        if asked := _referenced_name(text):
+            questions.append(
+                f'I couldn\'t find a form called "{asked}" in this application, so this one is '
+                f"built from scratch — which existing form should I copy?" if md.forms else
+                f'I can\'t copy "{asked}" — forms aren\'t part of the loaded context, because the '
+                f"core REST metadata API doesn't expose them. Import them via Migration, or tell "
+                f"me the rows and columns you want and I'll build it directly.")
 
     if scenario:
-        _set_pov_member(spec, "Scenario", scenario)
-        inferences.append(f"Scenario: {scenario}")
+        # Only the user's own word is tried here — if they asked for Forecast and
+        # the outline has no Forecast, say so rather than quietly using Actual.
+        scen_dim = od.find_dimension(md, "scenario", cube=spec.cube)
+        resolved = od.resolve_member(md, scen_dim, scenario) if scen_dim else None
+        if scen_dim and resolved:
+            _set_pov_member(spec, scen_dim, resolved)
+            inferences.append(f"Scenario: {resolved}" if resolved == scenario
+                              else f"Scenario: {resolved} (matched \"{scenario}\")")
+        else:
+            questions.append(
+                f"I couldn't find a '{scenario}' member in the "
+                f"{scen_dim or 'Scenario'} dimension — which scenario should this form use?")
 
     # rows selection: "<function> of <member> in rows" — the anchor member may
     # belong to any dimension (Account, Employee, Entity, ...), not just Account.
     sel_type = _selection_type(text)
     member = find_member(md, text)
-    if sel_type and member:
-        dim = _set_rows(spec, member[1], sel_type, member[0])
-        inferences.append(f"Rows: {sel_type} of {member[0]} ({dim})")
-    elif member and "row" in text.lower():
-        dim = _set_rows(spec, member[1], "children", member[0])
-        inferences.append(f"Rows: children of {member[0]} ({dim})")
+    if member and (sel_type or "row" in text.lower()):
+        sel_type = sel_type or "children"
+        if (dim := _set_rows(spec, member[1], sel_type, member[0])) is not None:
+            inferences.append(f"Rows: {sel_type} of {member[0]} ({dim})")
+        else:
+            questions.append(
+                f"{member[1]} is already on the columns of this form — should I put "
+                f"{member[0]} on the rows and move {member[1]} to the POV?")
 
     # limit "N rows"
     n = _extract_count(text)
     if n and spec.rows:
         _limit_axis(spec.rows[0], md, n)
         inferences.append(f"Row limit: {n} members")
+
+    # Anything still unplaced would otherwise be silently defaulted by the
+    # renderer; pinning it here keeps the grid deterministic and visible.
+    if added := od.fill_pov(md, spec, spec.cube):
+        inferences.append(f"POV: {', '.join(added)} (defaulted)")
 
     spec.name = _derive_name(text, scenario, spec.cube)
     spec.application = application
@@ -211,13 +253,15 @@ def apply_edit(spec: FormSpecification, text: str, md: TenantMetadata) -> tuple[
     # change selection type: "use descendants instead of children" / "use level-zero descendants"
     sel = _selection_type(text)
     if sel and ("instead" in tl or "use " in tl or "change" in tl):
-        member = find_member(md, text, dimension="Account")
-        target_am = _first_axis_member(spec, "Account")
+        # Retarget whatever dimension is actually on rows — it is the account
+        # dimension on a default form, but not on one built from a reference.
+        target_am = spec.rows[0] if spec.rows else None
         if target_am:
+            member = find_member(md, text, dimension=target_am.dimension)
             anchor = member[0] if member else target_am.selection.member
             if anchor:
                 target_am.selection = MemberSelection(type=sel, member=anchor)
-                changes.append(f"Account rows: selection → {sel} of {anchor}")
+                changes.append(f"{target_am.dimension} rows: selection → {sel} of {anchor}")
 
     # hide member by name or ordinal column/row
     changes += _apply_hide(spec, text, md)
@@ -253,8 +297,14 @@ def apply_edit(spec: FormSpecification, text: str, md: TenantMetadata) -> tuple[
     # change scenario: "change scenario to Forecast" / "use Forecast scenario"
     scen = _detect_scenario(text)
     if scen and ("scenario" in tl or "change" in tl or "use" in tl):
-        if _set_pov_member(spec, "Scenario", scen):
-            changes.append(f"Scenario → {scen}")
+        scen_dim = od.find_dimension(md, "scenario", cube=spec.cube)
+        resolved = od.resolve_member(md, scen_dim, scen) if scen_dim else None
+        if scen_dim and resolved:
+            _set_pov_member(spec, scen_dim, resolved)
+            changes.append(f"Scenario → {resolved}")
+        else:
+            questions.append(f"There's no '{scen}' member in the "
+                             f"{scen_dim or 'Scenario'} dimension — which scenario did you mean?")
 
     return (bool(changes), changes, questions)
 
@@ -262,17 +312,59 @@ def apply_edit(spec: FormSpecification, text: str, md: TenantMetadata) -> tuple[
 # --- helpers ----------------------------------------------------------------
 
 
-def _default_spec(application: str, cube: str, scenario: str) -> FormSpecification:
+def _default_spec(
+    md: TenantMetadata, application: str, cube: str, scenario: str | None
+) -> FormSpecification:
+    """Skeleton form built from the tenant's own outline.
+
+    Every dimension is located by its declared type and every member is resolved
+    against the outline, so the skeleton is valid on any application — not just
+    ones that happen to use the Planning-standard names.
+    """
+    pov: list[AxisMember] = []
+    pages: list[AxisMember] = []
+    rows: list[AxisMember] = []
+    columns: list[AxisMember] = []
+
+    scen_dim = od.find_dimension(md, "scenario", cube=cube)
+    if scen_dim and (sel := od.pov_selection(md, scen_dim, scenario, *od.SCENARIO_DEFAULTS)):
+        pov.append(AxisMember(dimension=scen_dim, selection=sel))
+
+    ver_dim = od.find_dimension(md, "version", cube=cube)
+    if ver_dim and (sel := od.pov_selection(md, ver_dim, *od.VERSION_DEFAULTS)):
+        pov.append(AxisMember(dimension=ver_dim, selection=sel))
+
+    ent_dim = od.find_dimension(md, "entity", cube=cube)
+    if ent_dim and (sel := od.page_selection(md, ent_dim)):
+        pages.append(AxisMember(dimension=ent_dim, selection=sel))
+
+    acct_dim = od.find_dimension(md, "account", cube=cube)
+    if acct_dim and (anchor := od.anchor_member(md, acct_dim, *od.ROW_ANCHOR_DEFAULTS)):
+        rows.append(AxisMember(dimension=acct_dim, suppress_missing=True,
+                               selection=MemberSelection(type="children", member=anchor)))
+
+    per_dim = od.find_dimension(md, "period", cube=cube)
+    if per_dim and (sel := od.period_columns(md, per_dim)):
+        columns.append(AxisMember(dimension=per_dim, selection=sel))
+
+    # A grid needs both axes. An application without an account- or period-typed
+    # dimension is unusual but legal, so borrow any unplaced dimension rather
+    # than failing spec construction outright.
+    used = {am.dimension for am in pov + pages + rows + columns}
+    for axis, anchored in ((rows, True), (columns, False)):
+        if axis:
+            continue
+        for dim in od.cube_dimensions(md, cube):
+            if dim in used or (member := od.anchor_member(md, dim)) is None:
+                continue
+            axis.append(AxisMember(dimension=dim, suppress_missing=anchored,
+                                   selection=MemberSelection(type="children", member=member)))
+            used.add(dim)
+            break
+
     return FormSpecification(
         name="New Form", application=application, cube=cube, folder="EPM Wizard/Generated",
-        pov=[
-            AxisMember(dimension="Scenario", selection=MemberSelection(type="member", member=scenario)),
-            AxisMember(dimension="Version", selection=MemberSelection(type="member", member="Working")),
-        ],
-        pages=[AxisMember(dimension="Entity", selection=MemberSelection(type="userVariable", variable="CurrentEntity"))],
-        rows=[AxisMember(dimension="Account", selection=MemberSelection(type="children", member="Total Revenue"),
-                         suppress_missing=True)],
-        columns=[AxisMember(dimension="Period", selection=MemberSelection(type="range", start="Jan", end="Dec"))],
+        pov=pov, pages=pages, rows=rows, columns=columns,
     )
 
 
@@ -294,15 +386,16 @@ def _set_pov_member(spec: FormSpecification, dimension: str, member: str) -> boo
     return True
 
 
-def _set_rows(spec: FormSpecification, dimension: str, sel_type: str, member: str) -> str:
+def _set_rows(spec: FormSpecification, dimension: str, sel_type: str, member: str) -> str | None:
     """Place a single-dimension row selection, keeping the spec structurally valid.
 
-    Returns the dimension actually used. The dimension is freed from POV/Pages if
-    the default spec parked it there (e.g. Entity), and a collision with a column
-    dimension falls back to Account so the grid never ends up with a dimension on
-    two axes (which the FormSpecification validator rejects)."""
+    Returns the dimension used, or None if it couldn't be placed. The dimension is
+    freed from POV/Pages if the skeleton parked it there (e.g. Entity). A collision
+    with a column dimension is refused outright: the old code retargeted rows at
+    Account while keeping the anchor member from the *other* dimension, which
+    produced a spec that could never resolve."""
     if any(am.dimension == dimension for am in spec.columns):
-        dimension = "Account"
+        return None
     for axis in ("pov", "pages"):
         lst = _axis_list(spec, axis)
         for am in list(lst):

@@ -59,6 +59,42 @@ def _layout_workbook() -> Workbook:
     return wb
 
 
+def _daily_cash_workbook() -> Workbook:
+    """A daily cash sheet like a real treasury workbook: a title banner, an
+    Actual/weekday/date header stack, and one real-date column per business day.
+
+    Every one of those traits used to make the sheet unclassifiable — the dates
+    are ``datetime`` cells, not strings, so the period-row scan discarded them.
+    """
+    import datetime as dt
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Daily Cash Balance 2026"
+    ws["A1"] = "DAILY CASH BALANCES AND CASH FORECAST"
+
+    days: list[dt.date] = []
+    day = dt.date(2026, 1, 1)
+    while len(days) < 60:
+        if day.weekday() < 5:
+            days.append(day)
+        day += dt.timedelta(days=1)
+    for i, d in enumerate(days):
+        ws.cell(row=2, column=2 + i, value="Actual")
+        ws.cell(row=3, column=2 + i, value=d.strftime("%A"))
+        ws.cell(row=4, column=2 + i, value=dt.datetime(d.year, d.month, d.day))
+    for r, label in enumerate(["Total Payroll", "Salaries", "Wages"], start=5):
+        ws.cell(row=r, column=1, value=label)
+        for i in range(len(days)):
+            ws.cell(row=r, column=2 + i, value=1000 + r * 10 + i)
+
+    # a second, smaller tab that also classifies — the picker must not just take
+    # the first one in tab order
+    ws2 = wb.create_sheet("Recap")
+    ws2.append([None, "Jan"])
+    ws2.append(["Salaries", 5])
+    return wb
+
+
 def _data_table_workbook() -> Workbook:
     wb = Workbook()
     ws = wb.active
@@ -293,9 +329,10 @@ def test_layout_to_form_handoff_and_follow_up_edit(client):
     preview = _first_block(sse, "spreadsheetPreview")["data"]
     assert preview["kind"] == "layout"
     values = _action_values(sse)
-    assert "create a form from this layout" in values
-    assert "create a report from this layout" in values
+    assert "create a form from this sheet" in values
+    assert "create a report from this sheet" in values
 
+    # the older "…from this layout" phrasing must keep working
     sse = _send(client, cid, "create a form from this layout")
     types = _block_types(sse)
     assert "formPreview" in types
@@ -360,6 +397,64 @@ def test_data_table_offers_generation_only_load_plan(client):
     assert "uploadFile" in md
     assert "never executes" in md
     assert "generation only" in md
+
+
+# --- daily-date sheets --------------------------------------------------------
+
+
+def test_daily_date_sheet_builds_a_form_in_one_turn(client):
+    """Upload + "create a form that mimics this" must produce a form, not a
+    classification dump with only a load-plan button."""
+    _pid, cid = _new_project_conversation(client, "Daily Cash")
+    att_id = _upload(client, cid, _daily_cash_workbook(), "Daily bank balances.xlsx")
+    sse = _send(client, cid, "create a form that mimics all of this excel sheet",
+                attachments=[att_id])
+
+    preview = _first_block(sse, "spreadsheetPreview")["data"]
+    assert preview["sheetName"] == "Daily Cash Balance 2026"  # not the smaller Recap tab
+    assert preview["kind"] == "layout"
+
+    # the form is built on the upload turn — the user's words are not discarded
+    types = _block_types(sse)
+    assert "formPreview" in types and "formSpecification" in types
+
+    spec = _first_block(sse, "formSpecification")["data"]["spec"]
+    assert spec["rows"][0]["selection"]["members"] == ["Total Payroll", "Salaries", "Wages"]
+    # 60 daily columns collapse to the months they cover, and that is stated
+    cols = spec["columns"][0]
+    assert cols["dimension"] == "Period"
+    assert cols["selection"]["start"] == "Jan" and cols["selection"]["end"] == "Mar"
+    md = _markdown_text(sse) + "".join(
+        d.get("text", "") for name, d in _events(sse) if name == "token")
+    assert "daily column" in md and "collapsed" in md
+
+
+def test_sheet_picker_switches_the_active_sheet(client):
+    _pid, cid = _new_project_conversation(client, "Sheet Picker")
+    att_id = _upload(client, cid, _daily_cash_workbook(), "Daily bank balances.xlsx")
+    _send(client, cid, "have a look at this", attachments=[att_id])
+
+    sse = _send(client, cid, "list sheets")
+    assert "Daily Cash Balance 2026" in _markdown_text(sse)
+
+    sse = _send(client, cid, "use sheet Recap")
+    assert _first_block(sse, "spreadsheetPreview")["data"]["sheetName"] == "Recap"
+
+
+def test_unrelated_message_releases_a_stale_spreadsheet_workflow(client):
+    """An unrelated request must not be answered with "the workbook is still
+    loaded" forever — the only documented exit used to be the word "cancel"."""
+    _pid, cid = _new_project_conversation(client, "Sticky Workflow")
+    att_id = _upload(client, cid, _daily_cash_workbook(), "book.xlsx")
+    _send(client, cid, "have a look at this", attachments=[att_id])
+
+    _send(client, cid, "I want you to create the cash forcast plan")
+    sse = _send(client, cid, "I want you to create the cash forcast plan")
+    assert "still loaded" not in _markdown_text(sse)
+
+    # ...and the next message is handled normally
+    sse = _send(client, cid, "create an Actuals form")
+    assert "formPreview" in _block_types(sse)
 
 
 # --- formulas ----------------------------------------------------------------

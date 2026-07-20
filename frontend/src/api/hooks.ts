@@ -5,6 +5,7 @@ import { toast } from "../store/toast";
 import type {
   ArtifactOut,
   ContextVersionOut,
+  CubeArchitecture,
   ConversationOut,
   DeploymentOut,
   DiagnosticsReport,
@@ -90,7 +91,12 @@ export function useDeleteConversation(projectId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api(`/api/conversations/${id}`, { method: "DELETE" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["conversations", projectId] }),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: ["conversations", projectId] });
+      // Drop the deleted conversation's cached messages, otherwise its text stays
+      // on screen (React Query would keep serving the stale list).
+      qc.removeQueries({ queryKey: ["messages", id] });
+    },
     onError: (e: Error) => toast.error("Could not delete conversation", e.message),
   });
 }
@@ -171,6 +177,24 @@ export const useContexts = (projectId: string | undefined) =>
     queryKey: ["contexts", projectId],
     enabled: !!projectId,
     queryFn: () => api<ContextVersionOut[]>(`/api/projects/${projectId}/contexts`),
+  });
+
+export interface ArchitectureResponse {
+  cubes: string[];
+  cube: string;
+  architecture: CubeArchitecture;
+}
+
+/** Cube Architecture for the active context, powering the Context tab visualizer. */
+export const useArchitecture = (projectId: string | undefined, cube?: string) =>
+  useQuery({
+    queryKey: ["architecture", projectId, cube ?? ""],
+    enabled: !!projectId,
+    retry: false, // a missing/empty context is an expected 404, not worth retrying
+    queryFn: () =>
+      api<ArchitectureResponse>(
+        `/api/projects/${projectId}/architecture${cube ? `?cube=${encodeURIComponent(cube)}` : ""}`,
+      ),
   });
 
 export function useBuildContext(projectId: string | undefined) {

@@ -54,7 +54,9 @@ def _record(kind, name, data, dimension=None, cube=None, alias=None, parent=None
 async def build_context(
     connector: EpmConnector, application: str, mode: str = "quick", fingerprint: str = ""
 ) -> ContextBundle:
-    deep = mode == "deep"
+    # There is a single retrieval depth: everything the connector can supply is
+    # always fetched. `mode` is retained only as a label on the stored version
+    # (e.g. "imported"), not as a switch.
     now = datetime.now(UTC)
     label = f"{application}_{now:%Y-%m-%d_%H%M}"
     records: list[dict] = []
@@ -63,7 +65,7 @@ async def build_context(
     def section(name, count, status, note=None):
         sections.append(ContextSectionStatus(name=name, status=status, count=count, note=note))
 
-    # --- always retrieved (quick + deep) ---
+    # --- always retrieved ---
     apps = await connector.list_applications()
     for a in apps:
         records.append(_record("application", a.name, a.model_dump(by_alias=True), application=a.name))
@@ -111,9 +113,7 @@ async def build_context(
                                alias=m.alias, parent=m.parent, application=application,
                                search=f"{m.name} {m.alias or ''}"))
     if members:
-        section("Member Hierarchies", len(members),
-                CompletenessStatus.complete if deep else CompletenessStatus.partial,
-                note=None if deep else "Loaded for resolution; deep context confirms full coverage.")
+        section("Member Hierarchies", len(members), CompletenessStatus.complete)
     else:
         section("Member Hierarchies", 0, CompletenessStatus.unavailable,
                 note="Member enumeration was not available from this interface.")
@@ -123,20 +123,15 @@ async def build_context(
     has_formula = any(m.formula for m in members)
     section("Aliases", sum(1 for m in members if m.alias),
             CompletenessStatus.complete if has_alias else CompletenessStatus.unavailable)
-    if deep:
-        section("Storage Properties", sum(1 for m in members if m.storage),
-                CompletenessStatus.complete if members else CompletenessStatus.unavailable)
-        section("Member Formulas", sum(1 for m in members if m.formula),
-                CompletenessStatus.derived if has_formula else CompletenessStatus.unavailable)
-        # deep-only categories the connector cannot supply are reported honestly
-        for cat in ("Smart Lists", "Data Maps", "Valid Intersections", "Dashboards", "Action Menus", "Navigation Flows"):
-            section(cat, 0, CompletenessStatus.unavailable,
-                    note="Not retrievable through the available interface.")
-        section("Naming Conventions", 1, CompletenessStatus.derived, note="Inferred from existing artifact names.")
-    else:
-        for cat in ("Storage Properties", "Member Formulas", "Smart Lists", "Data Maps",
-                    "Valid Intersections", "Dashboards", "Action Menus", "Naming Conventions"):
-            section(cat, 0, CompletenessStatus.not_requested, note="Run deep context to attempt this.")
+    section("Storage Properties", sum(1 for m in members if m.storage),
+            CompletenessStatus.complete if members else CompletenessStatus.unavailable)
+    section("Member Formulas", sum(1 for m in members if m.formula),
+            CompletenessStatus.derived if has_formula else CompletenessStatus.unavailable)
+    # Categories the connector cannot supply are reported honestly.
+    for cat in ("Smart Lists", "Data Maps", "Valid Intersections", "Dashboards", "Action Menus", "Navigation Flows"):
+        section(cat, 0, CompletenessStatus.unavailable,
+                note="Not retrievable through the available interface.")
+    section("Naming Conventions", 1, CompletenessStatus.derived, note="Inferred from existing artifact names.")
 
     counts = {
         "applications": len(apps),

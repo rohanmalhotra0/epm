@@ -10,6 +10,7 @@ in ``issues`` instead of silently guessed away.
 from __future__ import annotations
 
 import csv
+import datetime as dt
 import io
 import re
 from pathlib import Path
@@ -29,7 +30,9 @@ from .models import (
 )
 
 MAX_ROWS = 5000
-MAX_COLS = 64
+# Daily cash sheets run a column per calendar day, so a year is ~260 columns plus
+# label/source columns. 64 clipped those to a single quarter.
+MAX_COLS = 400
 MAX_FORMULAS_PER_SHEET = 200
 MAX_SAMPLE_ROWS = 5
 MAX_SAMPLE_COLS = 20
@@ -44,6 +47,11 @@ _MONTHS = {
 _PERIOD_RE = re.compile(
     r"^(q[1-4]|fy[ -]?\d{2,4}|(19|20)\d{2}|ytd|qtd|mtd|yeartotal|year ?total|p\d{1,2}|period ?\d{1,2})$",
     re.IGNORECASE,
+)
+# A date typed as text: 12/31/25, 2026-01-01, 1.2.26. Anchored and bounded so it
+# can't swallow account codes like "4000.10".
+_DATE_TEXT_RE = re.compile(
+    r"^(?:\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2,4}|\d{4}[/\-.]\d{1,2}[/\-.]\d{1,2})$"
 )
 _LEVEL_RE = re.compile(r"^(level|gen(eration)?)[-_ ]?(\d+)$", re.IGNORECASE)
 _TOTAL_RE = re.compile(r"(?i)(^(sub[- ]?)?total\b|\btotal$)")
@@ -66,6 +74,12 @@ def _cell_text(value: object) -> str:
         return ""
     if isinstance(value, float) and value == int(value):
         return str(int(value))
+    # Render dates as dates. str(datetime) yields "2026-01-01 00:00:00", which is
+    # noise in a column header and defeats the date grammar below.
+    if isinstance(value, dt.datetime):
+        return value.date().isoformat() if value.time() == dt.time.min else value.isoformat(sep=" ")
+    if isinstance(value, dt.date):
+        return value.isoformat()
     return str(value).strip()
 
 
@@ -94,9 +108,25 @@ def _is_period_header(text: str) -> bool:
         return False
     if t in _MONTHS or _PERIOD_RE.match(t):
         return True
+    if _DATE_TEXT_RE.match(t):  # "12/31/25", "2026-01-01", "1.2.26"
+        return True
     # "Jan-24", "Jan 2025", "Oct FY24"
     first = re.split(r"[\s\-/]+", t)[0]
     return first in _MONTHS
+
+
+def _is_period_cell(value: object) -> bool:
+    """Period-ness of a raw cell, including real dates.
+
+    Excel stores ``12/31/25`` as a date, so openpyxl hands back a ``datetime``
+    however the cell is formatted. The old string-only test discarded those
+    silently, which made every daily-column sheet unclassifiable.
+    """
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, (dt.datetime, dt.date)):
+        return True
+    return isinstance(value, str) and _is_period_header(value)
 
 
 def _nonempty_count(row: list[object]) -> int:
@@ -160,11 +190,17 @@ def _build_columns(headers: list[str], body: list[list[object]]) -> list[ColumnI
 
 
 def _find_period_row(rows: list[list[object]], limit: int = 10) -> int | None:
+    """Index of the densest period-header row, or None.
+
+    Densest rather than first: a daily sheet stacks "Actual"/weekday/date rows,
+    and weekday names would otherwise win on a sheet where they happen to parse.
+    """
+    best_idx, best_n = None, 1
     for idx, row in enumerate(rows[:limit]):
-        n = sum(1 for v in row if isinstance(v, str) and _is_period_header(v))
-        if n >= 2:
-            return idx
-    return None
+        n = sum(1 for v in row if _is_period_cell(v))
+        if n > best_n:
+            best_idx, best_n = idx, n
+    return best_idx
 
 
 def _detect_subtotal_rows(body: list[list[object]], header_rows: int, issues: list[str]) -> None:
@@ -205,16 +241,26 @@ def _analyze_rows(
     header_row = rows[header_idx]
     combined = False
 
+    # Skip stacked banner rows. Real sheets stack more than one (a title, then a
+    # subtitle), so this repeats rather than firing once; bounded so a sheet of
+    # single-cell rows can't consume the whole body.
+    banner_from = header_idx
+    while header_idx + 2 < len(rows) and header_idx - banner_from < 4:
+        nxt = rows[header_idx + 1]
+        if not (_nonempty_count(header_row) == 1 and _nonempty_count(nxt) > 1 and _row_all_text(nxt)):
+            break
+        header_idx += 1
+        header_row = rows[header_idx]
+    if header_idx > banner_from:
+        issues.append(
+            f"row(s) {banner_from + 1}-{header_idx} look like title/banner rows; "
+            f"using row {header_idx + 1} as the header row"
+        )
+
     nxt = rows[header_idx + 1] if header_idx + 1 < len(rows) else None
     if nxt is not None and _row_all_text(nxt) and len(rows) > header_idx + 2:
         hr_n, nxt_n = _nonempty_count(header_row), _nonempty_count(nxt)
-        if hr_n == 1 and nxt_n > 1:
-            issues.append(
-                f"row {header_idx + 1} looks like a title/banner row; using row {header_idx + 2} as the header row"
-            )
-            header_idx += 1
-            header_row = rows[header_idx]
-        elif hr_n < nxt_n and hr_n > 1:
+        if hr_n < nxt_n and hr_n > 1:
             # two-tier header: forward-fill the top tier and combine
             filled: list[object] = []
             last = None
@@ -258,9 +304,18 @@ def _analyze_rows(
         p_body = rows[period_idx + 1:]
         p_columns = _build_columns(p_headers, p_body)
         period_cols = [c for c in p_columns if c.role == ColumnRole.period]
+        # De-duplicate: a daily sheet repeats "Actual" once per column, which
+        # would otherwise fill the hint list with 260 copies of one word.
+        seen_hints: set[str] = set()
         pov_hints: list[str] = []
         for r in rows[:period_idx]:
-            pov_hints.extend(_cell_text(v) for v in r if not _is_empty(v))
+            for v in r:
+                if _is_empty(v):
+                    continue
+                text = _cell_text(v)
+                if text.lower() not in seen_hints:
+                    seen_hints.add(text.lower())
+                    pov_hints.append(text)
         pov_hints = pov_hints[:10]
 
         first_col = [r[0] for r in p_body]
@@ -291,9 +346,15 @@ def _analyze_rows(
             )
         if numeric_frac >= 0.6 and p_body:
             label_col = next((c for c in p_columns if c.role == ColumnRole.label), None)
+            label_idx = label_col.index if label_col else 0
             table = DataTableParse(
                 period_columns=[c.header for c in period_cols],
                 label_column=label_col.header if label_col else (p_columns[0].header or None),
+                row_labels=[
+                    _cell_text(r[label_idx]) for r in p_body
+                    if label_idx < len(r) and not _is_empty(r[label_idx])
+                    and not _is_numericish(r[label_idx])
+                ][:200],
                 row_count=sum(1 for r in p_body if _nonempty_count(r) > 0),
                 sample_rows=[_stringify_row(r) for r in p_body[:MAX_SAMPLE_ROWS]],
                 issues=[],

@@ -32,7 +32,9 @@ log = get_logger(__name__)
 _SWITCH_INTENTS = {"rules", "context", "forms", "reports"}
 # Follow-ups that must stay with an active spreadsheet workflow even when they
 # look like a forms/reports intent ("create a form from this layout").
-_SPREADSHEET_FOLLOW_UP = re.compile(r"\b(layout|spreadsheet|worksheet|workbook|uploaded)\b", re.I)
+_SPREADSHEET_FOLLOW_UP = re.compile(
+    r"\b(layout|spreadsheet|worksheet|workbook|uploaded|attached|excel|xlsx|csv|"
+    r"sheet|tab|this file|these sheets)\b", re.I)
 
 
 class _QueueEmitter(Emitter):
@@ -95,9 +97,21 @@ def _route(
         if intent.is_slash and intent.skill not in WORKFLOW_SKILLS:
             active_wf.active = False
             return intent.skill, None
-        if (not intent.is_slash) and intent.skill in _SWITCH_INTENTS:
+        if not intent.is_slash:
             # "create a form from this layout" is a spreadsheet action, not a switch
-            if not (active_wf.skill == "spreadsheet" and _SPREADSHEET_FOLLOW_UP.search(user_text)):
+            follow_up = active_wf.skill == "spreadsheet" and _SPREADSHEET_FOLLOW_UP.search(user_text)
+            if active_wf.skill == "spreadsheet":
+                # A spreadsheet workflow is a transient analysis, not a multi-turn
+                # build. Anything that isn't about the file releases it — the old
+                # four-skill allow-list meant an unrelated question was answered
+                # with "the workbook is still loaded, say ... or cancel", with no
+                # way out but the exact word "cancel".
+                from .skills.spreadsheet_skill import matches_spreadsheet_action
+                release = intent.skill != "chat" and not (
+                    follow_up or matches_spreadsheet_action(user_text))
+            else:
+                release = intent.skill in _SWITCH_INTENTS
+            if release:
                 active_wf.active = False
                 return intent.skill, None
         return active_wf.skill, active_wf

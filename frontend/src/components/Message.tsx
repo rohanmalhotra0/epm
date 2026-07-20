@@ -23,17 +23,30 @@ function copyMessage(content: string) {
     .catch(() => toast.error("Copy failed"));
 }
 
+/** Animated "the assistant is working" indicator, shown before the first token. */
+function TypingDots() {
+  return (
+    <div className="typing-dots" role="status" aria-label="EPM Wizard is thinking">
+      <span /><span /><span />
+    </div>
+  );
+}
+
 export function MessageView({
   message,
   onAction,
   onRegenerate,
+  streaming = false,
 }: {
   message: ChatMessage;
   onAction: (v: string) => void;
   /** Present only on the last assistant message: re-send the preceding user message. */
   onRegenerate?: () => void;
+  /** True while this message is still being streamed — drives the typing animation. */
+  streaming?: boolean;
 }) {
   const isUser = message.role === "user";
+  const awaitingFirstToken = streaming && !message.content && !(message.blocks?.length);
   return (
     <div className={`msg ${isUser ? "user" : "assistant"}`}>
       <div className="avatar">{isUser ? "You" : "EW"}</div>
@@ -60,8 +73,18 @@ export function MessageView({
         {!isUser && message.processSteps && message.processSteps.length > 0 && (
           <ProcessSteps steps={message.processSteps} />
         )}
+        {awaitingFirstToken && <TypingDots />}
         {message.content && (
-          <div className="content">{isUser ? <div style={{ whiteSpace: "pre-wrap" }}>{message.content}</div> : <Markdown text={message.content} />}</div>
+          <div className="content">
+            {isUser ? (
+              <div style={{ whiteSpace: "pre-wrap" }}>{message.content}</div>
+            ) : (
+              <>
+                <Markdown text={message.content} />
+                {streaming && <span className="stream-caret" aria-hidden="true" />}
+              </>
+            )}
+          </div>
         )}
         {(message.attachments?.length ?? 0) > 0 && (
           <div className="attach-chips msg-attach">

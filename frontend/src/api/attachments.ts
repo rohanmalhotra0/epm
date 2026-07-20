@@ -18,7 +18,7 @@ export interface AttachmentOut {
   kindGuess: AttachmentKind;
 }
 
-export const ACCEPTED_EXTENSIONS = [".xlsx", ".xlsm", ".csv"];
+export const ACCEPTED_EXTENSIONS = [".xlsx", ".xlsm", ".csv", ".txt"];
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 const KIND_LABELS: Record<string, string> = {

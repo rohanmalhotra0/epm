@@ -79,6 +79,7 @@ class FormsSkill(Skill):
         if inferences:
             await emit.prose("Here's what I inferred from your request and the existing application:\n\n"
                              + "\n".join(f"- {i}" for i in inferences) + "\n\n")
+        await self._emit_questions(emit, questions)
         await self._emit_preview(ctx, emit, md, spec, steps_from=3)
         return _persist(spec, "preview", FormWorkflowState.preview_ready)
 
@@ -94,8 +95,17 @@ class FormsSkill(Skill):
         await emit.block(blocks.diff("Form changes",
                                      _short_json(before), _short_json(spec), language="json"))
         await emit.block(blocks.markdown("\n".join(f"- {c}" for c in changes)))
+        await self._emit_questions(emit, questions)
         await self._emit_preview(ctx, emit, md, spec)
         return _persist(spec, "preview", FormWorkflowState.awaiting_user_changes)
+
+    async def _emit_questions(self, emit: Emitter, questions: list[str]) -> None:
+        """Surface the builder's open questions — a default it had to guess at is
+        only useful to the user if they're told it was a guess."""
+        if questions:
+            await emit.block(blocks.markdown(
+                "A couple of things I need you to confirm:\n\n"
+                + "\n".join(f"- {q}" for q in questions)))
 
     async def _emit_preview(self, ctx: SkillContext, emit: Emitter, md, spec: FormSpecification, steps_from: int | None = None) -> None:
         report = validate_form(spec, md)

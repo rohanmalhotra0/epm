@@ -6,10 +6,11 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
+from ..architecture.service import get_cube_architecture
 from ..config import get_settings
 from ..context import build_context, import_context_package, search_members
 from ..context.engine import environment_fingerprint
-from ..context.package import export_context_package
+from ..context.report_docx import DOCX_MIME, build_context_docx
 from ..schemas.api import ContextVersionOut
 from ..services import context_store, projects
 from .deps import get_db, resolve_turn
@@ -50,13 +51,34 @@ def delete_context(context_version_id: str, session: Session = Depends(get_db)) 
     context_store.delete_context(session, context_version_id)
 
 
-@router.get("/api/contexts/{context_version_id}/export")
-def export_context(context_version_id: str, session: Session = Depends(get_db)) -> Response:
+@router.get("/api/projects/{project_id}/architecture")
+def project_architecture(project_id: str, cube: str | None = None,
+                         session: Session = Depends(get_db)) -> dict:
+    """Cube Architecture for the project's active context, for the Context tab's
+    visualizer. Returns the available cubes plus the model for the chosen one."""
+    project = projects.get_project(session, project_id)
+    if project is None:
+        raise HTTPException(404, "project not found")
+    cv = context_store.get_active_context(session, project_id)
+    if cv is None:
+        raise HTTPException(404, "no active context — build one first")
+    md = context_store.build_tenant_metadata(session, cv.id)
+    cubes = sorted(md.cubes)
+    if not cubes:
+        raise HTTPException(404, "the active context has no cubes")
+    chosen = cube if cube in md.cubes else cubes[0]
+    model = get_cube_architecture(md, chosen, None)
+    return {"cubes": cubes, "cube": chosen, "architecture": model.model_dump(by_alias=True)}
+
+
+@router.get("/api/contexts/{context_version_id}/export.docx")
+def export_context_word(context_version_id: str, session: Session = Depends(get_db)) -> Response:
+    """A human-readable Word document of the context (opens in Word/Pages/Docs)."""
     try:
-        filename, data = export_context_package(session, context_version_id)
+        filename, data = build_context_docx(session, context_version_id)
     except KeyError as exc:
         raise HTTPException(404, "context not found") from exc
-    return Response(content=data, media_type="application/zip",
+    return Response(content=data, media_type=DOCX_MIME,
                     headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
 

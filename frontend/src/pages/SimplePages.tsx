@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button } from "@carbon/react";
 import { api } from "../api/client";
-import { useArtifacts, useBuildContext, useContexts, useDeployments } from "../api/hooks";
+import { useArchitecture, useArtifacts, useBuildContext, useContexts, useDeployments } from "../api/hooks";
+import { CubeArchitectureBlock } from "../blocks/CubeArchitectureBlock";
 import { useUi } from "../store/ui";
 import { toast } from "../store/toast";
 import { diffSpecs, formatValue, type DiffRow } from "../utils/specDiff";
@@ -21,8 +22,9 @@ export function ContextsPage() {
       <h2>Contexts</h2>
       <div className="page-sub">Learn the connected EPM application. Contexts are stored locally and reused automatically.</div>
       <div className="action-row" style={{ marginBottom: 16 }}>
-        <Button size="sm" kind="primary" disabled={build.isPending} onClick={() => build.mutate("quick")}>Build quick context</Button>
-        <Button size="sm" kind="tertiary" disabled={build.isPending} onClick={() => build.mutate("deep")}>Build deep context</Button>
+        <Button size="sm" kind="primary" disabled={build.isPending} onClick={() => build.mutate("quick")}>
+          {build.isPending ? "Building context…" : "Build context"}
+        </Button>
       </div>
       <table className="data-table">
         <thead><tr><th>Version</th><th>Mode</th><th>Members</th><th>Forms</th><th>Rules</th><th>Active</th><th></th></tr></thead>
@@ -35,12 +37,52 @@ export function ContextsPage() {
               <td>{String(c.counts?.forms ?? "—")}</td>
               <td>{String(c.counts?.rules ?? "—")}</td>
               <td>{c.active ? <span className="tag-inline">active</span> : ""}</td>
-              <td><a href={`/api/contexts/${c.id}/export`} target="_blank" rel="noreferrer">Export .epwcontext</a></td>
+              <td><a href={`/api/contexts/${c.id}/export.docx`}>Download Word doc</a></td>
             </tr>
           ))}
           {contexts.length === 0 && <tr><td colSpan={7} style={{ color: "#8d8d8d" }}>No context yet — build one above.</td></tr>}
         </tbody>
       </table>
+      <ArchitectureViewer projectId={pid} />
+    </div>
+  );
+}
+
+/** Cube Architecture & Dimensionality visualizer for the active context. */
+function ArchitectureViewer({ projectId }: { projectId: string | undefined }) {
+  const [cube, setCube] = useState<string | undefined>(undefined);
+  const { data, isLoading, isError } = useArchitecture(projectId, cube);
+
+  if (!projectId) return null;
+  return (
+    <div style={{ marginTop: 32 }}>
+      <h3 style={{ fontSize: 16, marginBottom: 4 }}>Cube architecture</h3>
+      <div className="page-sub">
+        How dimensions form each cube in the active context. Select a cube to visualize it.
+      </div>
+      {isLoading && <div style={{ color: "#8d8d8d", fontSize: 13 }}>Loading architecture…</div>}
+      {isError && (
+        <div style={{ color: "#8d8d8d", fontSize: 13 }}>
+          No active context to visualize yet — build one above, then it appears here.
+        </div>
+      )}
+      {data && (
+        <>
+          <div className="action-row" style={{ margin: "12px 0" }}>
+            {data.cubes.map((c) => (
+              <Button
+                key={c}
+                size="sm"
+                kind={c === data.cube ? "primary" : "ghost"}
+                onClick={() => setCube(c)}
+              >
+                {c}
+              </Button>
+            ))}
+          </div>
+          <CubeArchitectureBlock data={data.architecture} onAction={() => {}} />
+        </>
+      )}
     </div>
   );
 }

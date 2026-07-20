@@ -30,16 +30,43 @@ from ...spreadsheet.context_merge import merge_hierarchy_into_context
 from ...spreadsheet.metadata_csv import render_metadata_csv, save_metadata_artifact
 from ...spreadsheet.models import HierarchyParse, SheetAnalysis, SheetKind
 from .. import blocks
+from .. import outline_defaults as od
 from .base import Emitter, Skill, SkillContext, SkillResult
 
-_CANCEL = re.compile(r"^\s*(cancel|stop|never mind|abort)\s*$", re.I)
+# Anchored match plus a lenient one: "ok cancel that" used to leave the user stuck
+# in a workflow whose only documented exit was the word "cancel".
+_CANCEL = re.compile(r"^\s*(cancel|stop|never ?mind|abort|forget it|nvm)\b[\s.!]*$", re.I)
 _MERGE = re.compile(r"\bmerge\b.*\bcontext\b", re.I)
 _METADATA_CSV = re.compile(r"\bmetadata\b.*\bcsv\b|\bcsv\b.*\bmetadata\b", re.I)
 _VALIDATE = re.compile(r"\bvalidate\b|\breconcile\b", re.I)
-_FORM_FROM_LAYOUT = re.compile(r"\bform\b.*\blayout\b|\blayout\b.*\bform\b", re.I)
-_REPORT_FROM_LAYOUT = re.compile(r"\breport\b.*\blayout\b|\blayout\b.*\breport\b", re.I)
+# "layout" is no longer mandatory — "create a form from this sheet", "make a form
+# like this excel", or a bare "create a form" while a workbook is loaded all count.
+_FORM_FROM_LAYOUT = re.compile(
+    r"\b(create|build|make|generate|mimic|replicate|recreate)\b[\w \-]*\bform\b|"
+    r"\bform\b[\w \-]*\b(from|like|based on|out of|mimick\w*)\b", re.I)
+_REPORT_FROM_LAYOUT = re.compile(
+    r"\b(create|build|make|generate|mimic|replicate|recreate)\b[\w \-]*\breport\b|"
+    r"\breport\b[\w \-]*\b(from|like|based on|out of|mimick\w*)\b", re.I)
 _LOAD_PLAN = re.compile(r"\bload[- ]?file plan\b|\bload plan\b|\bdata load\b", re.I)
 _EXPLAIN = re.compile(r"\bexplain\b.*\b(formulas?|macros?|vba)\b", re.I)
+_USE_SHEET = re.compile(r"\b(?:use|switch to|open|show|pick|select)\s+(?:the\s+)?"
+                        r"(?:sheet|tab|worksheet)\s+[\"'`]?([^\"'`\n]+?)[\"'`]?\s*$", re.I)
+_LIST_SHEETS = re.compile(r"\blist (the )?sheets?\b|\bwhich sheets?\b|\bwhat sheets?\b|"
+                          r"\b(another|different|other) (sheet|tab)\b", re.I)
+
+_ACTION_PATTERNS = (_CANCEL, _MERGE, _METADATA_CSV, _VALIDATE, _FORM_FROM_LAYOUT,
+                    _REPORT_FROM_LAYOUT, _LOAD_PLAN, _EXPLAIN, _USE_SHEET, _LIST_SHEETS)
+
+
+def matches_spreadsheet_action(text: str) -> bool:
+    """True when the text is one of this skill's own commands.
+
+    The orchestrator asks this before releasing an active spreadsheet workflow,
+    rather than keeping a second copy of the vocabulary that drifts out of sync —
+    "explain formulas" reads as an `explain` intent but belongs to this skill.
+    """
+    return any(p.search(text) for p in _ACTION_PATTERNS)
+
 
 _MAX_PREVIEW_SHEETS = 3
 _MAX_TABLE_ROWS = 25
@@ -96,6 +123,21 @@ class SpreadsheetSkill(Skill):
             return SkillResult(skill="spreadsheet", workflow_state="error", workflow_active=False)
         attachment, analysis, sheet = loaded
 
+        if _LIST_SHEETS.search(text):
+            await emit.block(blocks.markdown(_sheet_menu_markdown(analysis, sheet)))
+            return _persist(wf.data)
+        if (m := _USE_SHEET.search(text)) is not None:
+            picked = _find_sheet(analysis, m.group(1))
+            if picked is None:
+                await emit.block(blocks.markdown(
+                    f"There's no sheet called *{m.group(1).strip()}* in **{attachment.filename}**.\n\n"
+                    + _sheet_menu_markdown(analysis, sheet)))
+                return _persist(wf.data)
+            data = dict(wf.data or {}) | {"sheetName": picked.name}
+            await emit.block(blocks.spreadsheet_preview(_preview_data(attachment.filename, picked)))
+            await emit.block(blocks.confirmation(_confirm_prompt(picked), _actions_for(picked, analysis)))
+            return _persist(data)
+
         if _MERGE.search(text):
             return await self._merge(ctx, emit, wf, sheet)
         if _METADATA_CSV.search(text):
@@ -111,10 +153,21 @@ class SpreadsheetSkill(Skill):
         if _EXPLAIN.search(text):
             return await self._explain_formulas(ctx, emit, wf, analysis)
 
+        # Two strikes, then let go. Re-arming the workflow on every unmatched
+        # message meant an unrelated question got "the workbook is still loaded"
+        # forever, with the exact word "cancel" as the only exit.
+        misses = int((wf.data or {}).get("misses", 0)) + 1
+        if misses >= 2:
+            await emit.block(blocks.markdown(
+                f"That doesn't look like it's about **{attachment.filename}**, so I've set the "
+                f"workbook aside — ask me again and I'll answer it normally. To pick it back up, "
+                f"re-attach the file."))
+            return SkillResult(skill="spreadsheet", workflow_state="released", workflow_active=False)
         await emit.block(blocks.markdown(
             f"**{attachment.filename}** (sheet *{sheet.name}*, {_KIND_LABELS.get(str(sheet.kind), str(sheet.kind))}) "
             "is still loaded. " + _action_hint(sheet, analysis)))
-        return _persist(wf.data)
+        return SkillResult(skill="spreadsheet", workflow_state="actions", workflow_active=True,
+                           workflow_data=dict(wf.data or {}) | {"misses": misses})
 
     # --- analyze (a message with attachments) --------------------------------
 
@@ -141,18 +194,15 @@ class SpreadsheetSkill(Skill):
         await emit.step_running(1)
         attachment, analysis = loaded[0]
         primary = _primary_sheet(analysis)
+        # Preview only the sheet we're going to act on. Previewing three sheets of
+        # a twenty-tab workbook produced screens of text and still buried the one
+        # that mattered; the summary below lists the rest in one line each.
         for att, ana in loaded:
-            shown = 0
-            for sheet in ana.sheets:
-                if shown >= _MAX_PREVIEW_SHEETS:
-                    await emit.block(blocks.markdown(
-                        f"_{len(ana.sheets) - shown} further sheet(s) in **{att.filename}** not previewed._"))
-                    break
-                if sheet.kind == SheetKind.unknown.value and sheet is not _primary_sheet(ana):
-                    continue
-                await emit.block(blocks.spreadsheet_preview(_preview_data(att.filename, sheet)))
-                shown += 1
-            await emit.block(blocks.markdown(_summary_markdown(att.filename, ana)))
+            chosen = primary if ana is analysis else _primary_sheet(ana)
+            if chosen is not None:
+                await emit.block(blocks.spreadsheet_preview(_preview_data(att.filename, chosen)))
+            await emit.block(blocks.markdown(
+                _summary_markdown(att.filename, ana, current=chosen.name if chosen else None)))
         await emit.step_done(1)
 
         await emit.step_running(2)
@@ -173,11 +223,19 @@ class SpreadsheetSkill(Skill):
             else:
                 result = SkillResult(skill="spreadsheet")
         else:
+            # The upload turn used to discard ctx.user_text entirely, so "create a
+            # form that mimics this sheet" became a wall of analysis and a load-plan
+            # button. If they already said what they want, just do it.
+            if _FORM_FROM_LAYOUT.search(ctx.user_text) and _axes_source(primary) is not None:
+                await emit.step_done(2)
+                return await self._form_from_layout(ctx, emit, None, attachment, primary, data)
+            if _REPORT_FROM_LAYOUT.search(ctx.user_text) and _axes_source(primary) is not None:
+                await emit.step_done(2)
+                return await self._report_from_layout(ctx, emit, None, attachment, primary, data)
             if str(primary.kind) == SheetKind.data_table.value:
                 await emit.block(blocks.markdown(
-                    "Data loads are supported as **generation only**: I can draft an EPM "
-                    "Automate-style load-file plan for this table, but I never execute loads "
-                    "or touch the tenant."))
+                    "_Data loads are **generation only**: I can draft an EPM Automate-style "
+                    "load-file plan, but I never execute loads or touch the tenant._"))
             await emit.block(blocks.confirmation(
                 _confirm_prompt(primary), _actions_for(primary, analysis),
                 severity="info"))
@@ -334,12 +392,13 @@ class SpreadsheetSkill(Skill):
     # --- layout -> form / report handoff ------------------------------------
 
     async def _form_from_layout(self, ctx: SkillContext, emit: Emitter, wf,
-                                attachment: Attachment, sheet: SheetAnalysis) -> SkillResult:
+                                attachment: Attachment, sheet: SheetAnalysis,
+                                data: dict | None = None) -> SkillResult:
         md = await ctx.tool_ctx.metadata()
         built = _build_axes_from_layout(md, sheet)
         if built is None:
             await emit.block(blocks.markdown(_layout_failure_markdown(sheet)))
-            return _persist(wf.data)
+            return _persist(data if wf is None else wf.data)
         rows_axis, columns_axis, pov_axes, cube, notes, unresolved = built
         spec = FormSpecification(
             name=_artifact_name(attachment.filename, sheet.name, "Form"),
@@ -358,12 +417,13 @@ class SpreadsheetSkill(Skill):
             workflow_active=True)
 
     async def _report_from_layout(self, ctx: SkillContext, emit: Emitter, wf,
-                                  attachment: Attachment, sheet: SheetAnalysis) -> SkillResult:
+                                  attachment: Attachment, sheet: SheetAnalysis,
+                                  data: dict | None = None) -> SkillResult:
         md = await ctx.tool_ctx.metadata()
         built = _build_axes_from_layout(md, sheet)
         if built is None:
             await emit.block(blocks.markdown(_layout_failure_markdown(sheet)))
-            return _persist(wf.data)
+            return _persist(data if wf is None else wf.data)
         rows_axis, columns_axis, pov_axes, cube, notes, unresolved = built
         spec = ReportSpecification(
             name=_artifact_name(attachment.filename, sheet.name, "Report"),
@@ -500,15 +560,59 @@ def _registry_skill(name: str):
 
 
 def _persist(data: dict | None) -> SkillResult:
+    # Drop the miss counter: reaching here means a real action matched.
+    payload = {k: v for k, v in (data or {}).items() if k != "misses"}
     return SkillResult(skill="spreadsheet", workflow_state="actions",
-                       workflow_data=dict(data or {}), workflow_active=True)
+                       workflow_data=payload, workflow_active=True)
 
 
 def _primary_sheet(analysis: WorkbookAnalysis) -> SheetAnalysis | None:
+    """Best sheet to act on, not merely the leftmost one that classified.
+
+    Tab order put a three-year-old summary tab ahead of the sheet the user was
+    actually looking at. Prefer sheets a form can be built from, then bigger
+    grids, then later tabs — workbooks grow rightward as years are added.
+    """
+    def score(item: tuple[int, SheetAnalysis]) -> tuple:
+        idx, sheet = item
+        if sheet.kind == SheetKind.unknown.value:
+            return (-1, 0, 0)
+        buildable = 1 if _axes_source(sheet) is not None else 0
+        size = 0
+        if sheet.layout is not None:
+            size = len(sheet.layout.row_labels) * max(1, len(sheet.layout.column_labels))
+        elif sheet.data_table is not None:
+            size = sheet.data_table.row_count * max(1, len(sheet.data_table.period_columns))
+        elif sheet.hierarchy is not None:
+            size = len(sheet.hierarchy.members)
+        return (buildable, size, idx)
+
+    if not analysis.sheets:
+        return None
+    best = max(enumerate(analysis.sheets), key=score)
+    return best[1] if best[1].kind != SheetKind.unknown.value else analysis.sheets[0]
+
+
+def _find_sheet(analysis: WorkbookAnalysis, name: str) -> SheetAnalysis | None:
+    """Locate a sheet by exact, case-insensitive, then substring name match."""
+    query = name.strip().strip("*_`").lower()
+    if not query:
+        return None
     for sheet in analysis.sheets:
-        if sheet.kind != SheetKind.unknown.value:
+        if sheet.name.lower() == query:
             return sheet
-    return analysis.sheets[0] if analysis.sheets else None
+    matches = [s for s in analysis.sheets if query in s.name.lower()]
+    return matches[0] if len(matches) == 1 else None
+
+
+def _sheet_menu_markdown(analysis: WorkbookAnalysis, current: SheetAnalysis | None) -> str:
+    lines = ["**Sheets in this workbook** — say *use sheet <name>* to switch:", ""]
+    for sheet in analysis.sheets:
+        kind = _KIND_LABELS.get(str(sheet.kind), str(sheet.kind))
+        marker = " ← current" if current is not None and sheet.name == current.name else ""
+        buildable = " · can build a form" if _axes_source(sheet) is not None else ""
+        lines.append(f"- **{sheet.name}** — {kind}{buildable}{marker}")
+    return "\n".join(lines)
 
 
 def _has_formulas(analysis: WorkbookAnalysis) -> bool:
@@ -542,36 +646,56 @@ def _preview_data(filename: str, sheet: SheetAnalysis) -> dict:
     return data
 
 
-def _summary_markdown(filename: str, analysis: WorkbookAnalysis) -> str:
-    lines = [f"### What I detected in **{filename}**", ""]
+def _abbrev(values: list[str], limit: int) -> str:
+    """`a`, `b`, `c` … +N more — long header lists are noise, not information."""
+    if not values:
+        return "none"
+    shown = ", ".join(f"`{v}`" for v in values[:limit])
+    return shown if len(values) <= limit else f"{shown} … +{len(values) - limit} more"
+
+
+def _summary_markdown(filename: str, analysis: WorkbookAnalysis, current: str | None = None) -> str:
+    """One line per sheet.
+
+    This used to print every column and every issue for every sheet, which on a
+    20-tab workbook buried the one fact that mattered (which sheet was picked)
+    under several screens of text.
+    """
+    lines = [f"### Sheets in **{filename}**", ""]
+    skipped: list[str] = []
     for sheet in analysis.sheets:
+        if sheet.kind == SheetKind.unknown.value and sheet.name != current:
+            skipped.append(sheet.name)
+            continue
         kind = _KIND_LABELS.get(str(sheet.kind), str(sheet.kind))
-        lines.append(f"**Sheet *{sheet.name}*** — {kind}")
-        if sheet.columns:
-            cols = ", ".join(f"`{c.header or f'col {c.index + 1}'}` ({c.role})" for c in sheet.columns)
-            lines.append(f"- Columns: {cols}")
+        marker = " ← using this one" if sheet.name == current else ""
+        detail = ""
         if sheet.hierarchy is not None:
-            h = sheet.hierarchy
-            lines.append(f"- Hierarchy: {len(h.members)} members, {h.root_count} root(s), "
-                         f"dimension guess `{h.dimension_guess}`")
-        if sheet.layout is not None:
-            lines.append(f"- Layout: {len(sheet.layout.row_labels)} row label(s), "
-                         f"columns {', '.join(sheet.layout.column_labels) or 'none'}"
-                         + (f", POV hints: {', '.join(sheet.layout.pov_hints)}" if sheet.layout.pov_hints else ""))
-        if sheet.data_table is not None:
+            detail = (f" — {len(sheet.hierarchy.members)} members, {sheet.hierarchy.root_count} root(s), "
+                      f"dimension guess `{sheet.hierarchy.dimension_guess}`")
+        elif sheet.layout is not None:
+            detail = (f" — {len(sheet.layout.row_labels)} row label(s) × "
+                      f"{len(sheet.layout.column_labels)} column(s): "
+                      f"{_abbrev(sheet.layout.column_labels, 4)}")
+        elif sheet.data_table is not None:
             t = sheet.data_table
-            lines.append(f"- Data table: {t.row_count} row(s), label column `{t.label_column or 'first column'}`, "
-                         f"period columns {', '.join(t.period_columns) or 'none'}")
-        if sheet.formulas:
-            lines.append(f"- {len(sheet.formulas)} formula(s) extracted (never evaluated)")
-        issues = _sheet_issues(sheet)
-        if issues:
-            lines.append("- Issues:")
-            lines.extend(f"  - {i}" for i in issues)
-        lines.append("")
+            detail = (f" — {t.row_count} row(s) × {len(t.period_columns)} period column(s): "
+                      f"{_abbrev(t.period_columns, 4)}")
+        lines.append(f"- **{sheet.name}** ({kind}){detail}{marker}")
+        issues = [i for i in _sheet_issues(sheet) if not i.startswith("possible subtotal row")]
+        subtotals = sum(1 for i in _sheet_issues(sheet) if i.startswith("possible subtotal row"))
+        if subtotals:
+            issues.append(f"{subtotals} possible subtotal row(s) — exclude them before loading")
+        for issue in issues[:3]:
+            lines.append(f"  - _{issue}_")
+        if len(issues) > 3:
+            lines.append(f"  - _…{len(issues) - 3} further note(s)_")
+    if skipped:
+        lines += ["", f"_{len(skipped)} sheet(s) couldn't be classified and are not listed: "
+                      f"{', '.join(skipped[:6])}{' …' if len(skipped) > 6 else ''}._"]
     if analysis.vba_modules:
-        lines.append(f"**VBA:** {len(analysis.vba_modules)} module(s) extracted as inert, redacted text "
-                     "(never executed).")
+        lines += ["", f"**VBA:** {len(analysis.vba_modules)} module(s) extracted as inert, redacted "
+                      "text (never executed)."]
     return "\n".join(lines).rstrip()
 
 
@@ -579,8 +703,11 @@ def _confirm_prompt(sheet: SheetAnalysis) -> str:
     kind = str(sheet.kind)
     if kind == SheetKind.chart_of_accounts.value:
         return "This looks like a chart of accounts. What would you like to do with it?"
-    if kind == SheetKind.layout.value:
-        return "This looks like a form layout. What would you like to build from it?"
+    source = _axes_source(sheet)
+    if source is not None:
+        rows, cols, _ = source
+        return (f"*{sheet.name}* is a {len(rows)}-row × {len(cols)}-column grid. "
+                f"What would you like to build from it?")
     return "This looks like a data table. What would you like to do?"
 
 
@@ -596,13 +723,20 @@ def _actions_for(sheet: SheetAnalysis, analysis: WorkbookAnalysis) -> list[ChatA
         if _has_formulas(analysis):
             actions.append(blocks.action("explain", "Explain formulas", "explain formulas"))
         return actions + [cancel]
-    if kind == SheetKind.layout.value:
-        return [
-            blocks.action("form", "Create a form from this layout", "create a form from this layout", "primary"),
-            blocks.action("report", "Create a report from this layout", "create a report from this layout"),
-            cancel,
+    actions: list[ChatAction] = []
+    # A data table has row labels and period columns — everything the form builder
+    # needs — so it gets the same offer a layout does, not just a load plan.
+    if _axes_source(sheet) is not None:
+        actions += [
+            blocks.action("form", "Create a form from this sheet", "create a form from this sheet", "primary"),
+            blocks.action("report", "Create a report from this sheet", "create a report from this sheet"),
         ]
-    return [blocks.action("plan", "Generate load-file plan", "generate load-file plan", "primary"), cancel]
+    if kind == SheetKind.data_table.value:
+        actions.append(blocks.action("plan", "Generate load-file plan", "generate load-file plan",
+                                     "primary" if not actions else "secondary"))
+    if len([s for s in analysis.sheets if s.kind != SheetKind.unknown.value]) > 1:
+        actions.append(blocks.action("sheets", "Use a different sheet", "list sheets"))
+    return actions + [cancel]
 
 
 def _action_hint(sheet: SheetAnalysis, analysis: WorkbookAnalysis) -> str:
@@ -611,11 +745,16 @@ def _action_hint(sheet: SheetAnalysis, analysis: WorkbookAnalysis) -> str:
         extra = ", *explain formulas*" if _has_formulas(analysis) else ""
         return ("Say *merge into context*, *generate metadata csv*, "
                 f"*validate against tenant*{extra} or *cancel*.")
-    if kind == SheetKind.layout.value:
-        return "Say *create a form from this layout*, *create a report from this layout* or *cancel*."
+    options: list[str] = []
+    if _axes_source(sheet) is not None:
+        options += ["*create a form from this sheet*", "*create a report from this sheet*"]
     if kind == SheetKind.data_table.value:
-        return "Say *generate load-file plan* or *cancel*."
-    return "Say *explain formulas* (if any were extracted) or *cancel*."
+        options.append("*generate load-file plan*")
+    if len(analysis.sheets) > 1:
+        options.append("*list sheets*")
+    if not options:
+        options.append("*explain formulas* (if any were extracted)")
+    return "Say " + ", ".join(options) + " or *cancel*."
 
 
 # --- identifier-first resolution ---------------------------------------------
@@ -671,17 +810,69 @@ def _reconciliation_csv(rows: list[dict]) -> str:
 # --- layout -> axes ----------------------------------------------------------
 
 
-def _build_axes_from_layout(md: TenantMetadata, sheet: SheetAnalysis):
+_ISO_DATE_RE = re.compile(r"^(\d{4})-(\d{1,2})-(\d{1,2})$")
+
+
+def _axes_source(sheet: SheetAnalysis) -> tuple[list[str], list[str], list[str]] | None:
+    """(row_labels, column_labels, pov_hints) from a layout *or* a data table.
+
+    A data table carries the same three things a form needs; refusing to build
+    from one was an artificial restriction, not a modelling limit.
+    """
     layout = sheet.layout
-    if layout is None or not layout.row_labels or not layout.column_labels:
+    if layout is not None and layout.row_labels and layout.column_labels:
+        return layout.row_labels, layout.column_labels, layout.pov_hints
+    table = sheet.data_table
+    if table is not None and table.row_labels and table.period_columns:
+        return table.row_labels, table.period_columns, []
+    return None
+
+
+def _collapse_period_labels(labels: list[str]) -> tuple[list[str], str | None]:
+    """Daily date columns -> the distinct months they cover.
+
+    Planning period dimensions are monthly, so a column per calendar day has no
+    intersection to map onto. Collapsing is lossy, so the note is surfaced to the
+    user rather than applied silently.
+    """
+    months: list[str] = []
+    seen: set[str] = set()
+    years: set[int] = set()
+    for label in labels:
+        m = _ISO_DATE_RE.match(label.strip())
+        if m is None:
+            return labels, None  # not a date grid; leave the headers alone
+        years.add(int(m.group(1)))
+        name = _MONTH_ORDER[int(m.group(2)) - 1]
+        if name not in seen:
+            seen.add(name)
+            months.append(name)
+    note = (f"Columns: {len(labels)} daily column(s) collapsed to {len(months)} period "
+            f"member(s) — the period dimension is monthly, so day-level columns have no "
+            f"intersection to map onto")
+    if len(years) > 1:
+        note += (f". The sheet spans {min(years)}–{max(years)}, so Years belongs on the "
+                 f"POV or pages to keep the months unambiguous")
+    return months, note
+
+
+def _build_axes_from_layout(md: TenantMetadata, sheet: SheetAnalysis):
+    source = _axes_source(sheet)
+    if source is None:
         return None
+    row_labels, column_labels, pov_hints = source
+    period_dim = od.find_dimension(md, "period") or "Period"
 
     notes: list[str] = []
     unresolved: list[str] = []
 
+    column_labels, collapse_note = _collapse_period_labels(column_labels)
+    if collapse_note:
+        notes.append(collapse_note)
+
     # rows: resolve labels, use the dimension where most of them live
     resolutions: list[tuple[str, object, str, str]] = []  # (label, record, dim, method)
-    for label in layout.row_labels:
+    for label in row_labels:
         resolved = _resolve_identifier(md, label)
         if resolved is None:
             unresolved.append(f"row label **{label}** — no exact name or alias match in the tenant")
@@ -711,10 +902,10 @@ def _build_axes_from_layout(md: TenantMetadata, sheet: SheetAnalysis):
 
     # columns: detected period headers -> range when contiguous months, else memberList
     period_members: list[str] = []
-    for label in layout.column_labels:
-        resolved = _resolve_identifier(md, label, dimension="Period")
+    for label in column_labels:
+        resolved = _resolve_identifier(md, label, dimension=period_dim)
         if resolved is None:
-            unresolved.append(f"column header **{label}** — not a `Period` member in the tenant")
+            unresolved.append(f"column header **{label}** — not a `{period_dim}` member in the tenant")
         else:
             period_members.append(resolved[0].name)
     if not period_members:
@@ -725,18 +916,18 @@ def _build_axes_from_layout(md: TenantMetadata, sheet: SheetAnalysis):
         and month_positions == list(range(month_positions[0], month_positions[0] + len(month_positions)))
     )
     if contiguous_months:
-        columns_axis = AxisMember(dimension="Period", selection=MemberSelection(
+        columns_axis = AxisMember(dimension=period_dim, selection=MemberSelection(
             type="range", start=period_members[0], end=period_members[-1]))
         notes.append(f"Columns: contiguous months {period_members[0]}–{period_members[-1]} (range)")
     else:
-        columns_axis = AxisMember(dimension="Period", selection=MemberSelection(
+        columns_axis = AxisMember(dimension=period_dim, selection=MemberSelection(
             type="memberList", members=period_members))
-        notes.append(f"Columns: Period members {', '.join(period_members)}")
+        notes.append(f"Columns: {period_dim} members {', '.join(period_members)}")
 
     # POV from hints ("Scenario: Actual" style), only when resolvable
     pov_axes: list[AxisMember] = []
-    used_dims = {rows_dim, "Period"}
-    for hint in layout.pov_hints:
+    used_dims = {rows_dim, period_dim}
+    for hint in pov_hints:
         value = hint.split(":", 1)[1].strip() if ":" in hint else hint.strip()
         resolved = _resolve_identifier(md, value) if value else None
         if resolved is None:
@@ -750,23 +941,37 @@ def _build_axes_from_layout(md: TenantMetadata, sheet: SheetAnalysis):
         notes.append(f"POV: `{dim}` = `{rec.name}` (from hint *{hint}*)")
 
     cube = next((name for name, c in md.cubes.items()
-                 if rows_dim in c.dimensions and "Period" in c.dimensions), None)
+                 if rows_dim in c.dimensions and period_dim in c.dimensions), None)
     if cube is None:
         cube = next(iter(md.cubes), "OEP_FS")
-        notes.append(f"Cube: `{cube}` (fallback — no cube contains both `{rows_dim}` and `Period`)")
+        notes.append(f"Cube: `{cube}` (fallback — no cube contains both `{rows_dim}` and `{period_dim}`)")
     else:
-        notes.append(f"Cube: `{cube}` (contains `{rows_dim}` and `Period`)")
+        notes.append(f"Cube: `{cube}` (contains `{rows_dim}` and `{period_dim}`)")
 
     return rows_axis, columns_axis, pov_axes, cube, notes, unresolved
 
 
 def _layout_failure_markdown(sheet: SheetAnalysis) -> str:
-    if sheet.layout is None:
-        return (f"Sheet *{sheet.name}* was not classified as a form layout, so I can't build a "
-                "form or report from it.")
-    return ("I couldn't resolve enough of the layout against the tenant to build an artifact: "
-            "no row label or no column header matched a tenant member by exact name or alias. "
-            "I don't guess members — check the labels against the application and try again.")
+    """Say which stage failed and what would fix it — a dead end is worse than an error."""
+    if _axes_source(sheet) is None:
+        return (f"Sheet *{sheet.name}* doesn't have both row labels and period column headers, "
+                f"so there's nothing to build a form from. It was classified as "
+                f"*{_KIND_LABELS.get(str(sheet.kind), str(sheet.kind))}*. If another tab holds the "
+                f"grid you want, say *use sheet <name>*.")
+    row_labels, column_labels, _hints = _axes_source(sheet)
+    return "\n".join([
+        f"I read the grid on *{sheet.name}* ({len(row_labels)} row label(s), "
+        f"{len(column_labels)} column header(s)) but couldn't match enough of it to this "
+        f"application to build an artifact.",
+        "",
+        "Members are never guessed — a label only becomes a form row if it matches a tenant "
+        "member by exact name or alias. What usually fixes this:",
+        "",
+        "- the sheet describes a different application than the one loaded;",
+        "- the labels are business descriptions (*J.P. Morgan Concentration (..6967)*) rather than "
+        "member names — map them to members first, or import them as a chart of accounts;",
+        "- the right grid is on another tab — say *use sheet <name>*.",
+    ])
 
 
 def _artifact_name(filename: str, sheet_name: str, suffix: str) -> str:
