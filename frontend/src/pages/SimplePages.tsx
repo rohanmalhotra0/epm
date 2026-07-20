@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@carbon/react";
+import { ZoomIn, ZoomOut } from "@carbon/icons-react";
 import { api } from "../api/client";
 import { useArchitecture, useArtifacts, useBuildContext, useContexts, useDeployments } from "../api/hooks";
 import { CubeArchitectureBlock } from "../blocks/CubeArchitectureBlock";
 import { useUi } from "../store/ui";
 import { toast } from "../store/toast";
 import { diffSpecs, formatValue, type DiffRow } from "../utils/specDiff";
-import type { ArtifactOut } from "../schemas/types";
+import type { ArtifactOut, CubeArchitecture } from "../schemas/types";
 import "../styles/feature-pages.css";
 
 function usePid() {
@@ -27,7 +28,7 @@ export function ContextsPage() {
         </Button>
       </div>
       <table className="data-table">
-        <thead><tr><th>Version</th><th>Mode</th><th>Members</th><th>Forms</th><th>Rules</th><th>Active</th><th></th></tr></thead>
+        <thead><tr><th>Version</th><th>Mode</th><th>Members</th><th>Forms</th><th>Rules</th><th>Active</th><th>Export</th></tr></thead>
         <tbody>
           {contexts.map((c) => (
             <tr key={c.id}>
@@ -37,7 +38,13 @@ export function ContextsPage() {
               <td>{String(c.counts?.forms ?? "—")}</td>
               <td>{String(c.counts?.rules ?? "—")}</td>
               <td>{c.active ? <span className="tag-inline">active</span> : ""}</td>
-              <td><a href={`/api/contexts/${c.id}/export.docx`}>Download Word doc</a></td>
+              <td style={{ whiteSpace: "nowrap" }}>
+                <a href={`/api/contexts/${c.id}/export.docx`} title="Download as Word document">Word</a>
+                {" · "}
+                <a href={`/api/contexts/${c.id}/export.pdf`} title="Download as PDF with diagrams">PDF</a>
+                {" · "}
+                <a href={`/api/contexts/${c.id}/export.md`} title="Download as Markdown with Mermaid diagrams">Markdown</a>
+              </td>
             </tr>
           ))}
           {contexts.length === 0 && <tr><td colSpan={7} style={{ color: "#8d8d8d" }}>No context yet — build one above.</td></tr>}
@@ -48,9 +55,301 @@ export function ContextsPage() {
   );
 }
 
+/** Combined overview showing all cubes in one visualization */
+function CubeOverview({ projectId, cubes }: { projectId: string; cubes: string[] }) {
+  const [architectures, setArchitectures] = useState<Record<string, CubeArchitecture>>({});
+  const [loading, setLoading] = useState(true);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    const loadAllCubes = async () => {
+      setLoading(true);
+      const results: Record<string, CubeArchitecture> = {};
+
+      for (const cube of cubes) {
+        try {
+          const response = await api<{ cubes: string[]; cube: string; architecture: CubeArchitecture }>(
+            `/api/projects/${projectId}/architecture?cube=${encodeURIComponent(cube)}`
+          );
+          results[cube] = response.architecture;
+        } catch (err) {
+          console.error(`Failed to load cube ${cube}:`, err);
+        }
+      }
+
+      setArchitectures(results);
+      setLoading(false);
+    };
+
+    loadAllCubes();
+  }, [projectId, cubes]);
+
+  // Keyboard controls
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const panStep = 20;
+      const zoomStep = 0.2;
+
+      switch (e.key) {
+        case "ArrowUp":
+          e.preventDefault();
+          setPan(prev => ({ ...prev, y: prev.y + panStep }));
+          break;
+        case "ArrowDown":
+          e.preventDefault();
+          setPan(prev => ({ ...prev, y: prev.y - panStep }));
+          break;
+        case "ArrowLeft":
+          e.preventDefault();
+          setPan(prev => ({ ...prev, x: prev.x + panStep }));
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          setPan(prev => ({ ...prev, x: prev.x - panStep }));
+          break;
+        case "+":
+        case "=":
+          e.preventDefault();
+          setZoom(prev => Math.min(3, prev + zoomStep));
+          break;
+        case "-":
+        case "_":
+          e.preventDefault();
+          setZoom(prev => Math.max(0.5, prev - zoomStep));
+          break;
+        case "0":
+          e.preventDefault();
+          setZoom(1);
+          setPan({ x: 0, y: 0 });
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (e.button !== 0) return;
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!isDragging) return;
+    setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  if (loading) {
+    return <div style={{ color: "#8d8d8d", fontSize: 13, padding: 20 }}>Loading all cubes…</div>;
+  }
+
+  const cubesList = Object.entries(architectures);
+  const cols = Math.ceil(Math.sqrt(cubesList.length));
+  const rows = Math.ceil(cubesList.length / cols);
+  const cubeSize = 200;
+  const spacing = 80;
+  const totalWidth = cols * (cubeSize + spacing) + spacing;
+  const totalHeight = rows * (cubeSize + spacing) + spacing;
+
+  return (
+    <div style={{ marginBottom: 12 }}>
+      {/* Controls */}
+      <div style={{
+        display: "flex",
+        gap: 12,
+        marginBottom: 12,
+        padding: "8px 12px",
+        background: "#262626",
+        borderRadius: 4,
+        alignItems: "center"
+      }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button
+            onClick={() => setZoom(Math.max(0.5, zoom - 0.2))}
+            style={{
+              padding: 6,
+              background: "#1f1f1f",
+              border: "1px solid #393939",
+              borderRadius: 3,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center"
+            }}
+            title="Zoom out"
+          >
+            <ZoomOut size={16} color="#f4f4f4" />
+          </button>
+          <span style={{ fontSize: 12, color: "#a8a8a8", minWidth: 45, textAlign: "center" }}>
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            onClick={() => setZoom(Math.min(3, zoom + 0.2))}
+            style={{
+              padding: 6,
+              background: "#1f1f1f",
+              border: "1px solid #393939",
+              borderRadius: 3,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center"
+            }}
+            title="Zoom in"
+          >
+            <ZoomIn size={16} color="#f4f4f4" />
+          </button>
+          <button
+            onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}
+            style={{
+              padding: "6px 12px",
+              background: "#1f1f1f",
+              border: "1px solid #393939",
+              borderRadius: 3,
+              cursor: "pointer",
+              fontSize: 12,
+              color: "#f4f4f4"
+            }}
+          >
+            Reset
+          </button>
+        </div>
+        <div style={{ fontSize: 11, color: "#8d8d8d", marginLeft: "auto" }}>
+          Arrow keys: pan • +/−: zoom • 0: reset
+        </div>
+      </div>
+
+      {/* Overview visualization */}
+      <div style={{ position: "relative", overflow: "hidden", background: "#0f0f0f", borderRadius: 4 }}>
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${totalWidth} ${totalHeight}`}
+          width="100%"
+          style={{
+            maxHeight: 600,
+            cursor: isDragging ? "grabbing" : "grab",
+            transition: isDragging ? "none" : "transform 0.1s ease-out"
+          }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        >
+          <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
+            {cubesList.map(([cubeName, arch], idx) => {
+              const col = idx % cols;
+              const row = Math.floor(idx / cols);
+              const x = spacing + col * (cubeSize + spacing);
+              const y = spacing + row * (cubeSize + spacing);
+              const dimCount = arch.dimensions.length;
+
+              return (
+                <g key={cubeName} transform={`translate(${x}, ${y})`}>
+                  {/* Cube representation */}
+                  <rect
+                    width={cubeSize}
+                    height={cubeSize}
+                    rx={4}
+                    fill="#1f1f1f"
+                    stroke="#4589ff"
+                    strokeWidth={2}
+                  />
+
+                  {/* Cube name */}
+                  <text
+                    x={cubeSize / 2}
+                    y={30}
+                    fill="#f4f4f4"
+                    fontSize={16}
+                    fontWeight={600}
+                    textAnchor="middle"
+                  >
+                    {cubeName}
+                  </text>
+
+                  {/* Application name */}
+                  <text
+                    x={cubeSize / 2}
+                    y={50}
+                    fill="#8d8d8d"
+                    fontSize={11}
+                    textAnchor="middle"
+                  >
+                    {arch.application}
+                  </text>
+
+                  {/* Dimension count */}
+                  <text
+                    x={cubeSize / 2}
+                    y={cubeSize / 2 + 10}
+                    fill="#a8a8a8"
+                    fontSize={32}
+                    fontWeight={700}
+                    textAnchor="middle"
+                  >
+                    {dimCount}
+                  </text>
+
+                  <text
+                    x={cubeSize / 2}
+                    y={cubeSize / 2 + 32}
+                    fill="#8d8d8d"
+                    fontSize={12}
+                    textAnchor="middle"
+                  >
+                    dimensions
+                  </text>
+
+                  {/* Dimension names (small list at bottom) */}
+                  {arch.dimensions.slice(0, 5).map((dim, i) => (
+                    <text
+                      key={i}
+                      x={cubeSize / 2}
+                      y={cubeSize - 60 + i * 12}
+                      fill="#6f6f6f"
+                      fontSize={9}
+                      textAnchor="middle"
+                    >
+                      {dim.name.length > 20 ? dim.name.slice(0, 19) + "…" : dim.name}
+                    </text>
+                  ))}
+
+                  {dimCount > 5 && (
+                    <text
+                      x={cubeSize / 2}
+                      y={cubeSize - 8}
+                      fill="#6f6f6f"
+                      fontSize={9}
+                      textAnchor="middle"
+                    >
+                      +{dimCount - 5} more
+                    </text>
+                  )}
+                </g>
+              );
+            })}
+          </g>
+        </svg>
+      </div>
+
+      <div style={{ marginTop: 12, fontSize: 12, color: "#8d8d8d" }}>
+        Showing {cubesList.length} cube{cubesList.length !== 1 ? "s" : ""} from the active context
+      </div>
+    </div>
+  );
+}
+
 /** Cube Architecture & Dimensionality visualizer for the active context. */
 function ArchitectureViewer({ projectId }: { projectId: string | undefined }) {
   const [cube, setCube] = useState<string | undefined>(undefined);
+  const [showOverview, setShowOverview] = useState(false);
   const { data, isLoading, isError } = useArchitecture(projectId, cube);
 
   if (!projectId) return null;
@@ -69,18 +368,29 @@ function ArchitectureViewer({ projectId }: { projectId: string | undefined }) {
       {data && (
         <>
           <div className="action-row" style={{ margin: "12px 0" }}>
+            <Button
+              size="sm"
+              kind={showOverview ? "primary" : "ghost"}
+              onClick={() => setShowOverview(true)}
+            >
+              Overview
+            </Button>
             {data.cubes.map((c) => (
               <Button
                 key={c}
                 size="sm"
-                kind={c === data.cube ? "primary" : "ghost"}
-                onClick={() => setCube(c)}
+                kind={!showOverview && c === data.cube ? "primary" : "ghost"}
+                onClick={() => { setCube(c); setShowOverview(false); }}
               >
                 {c}
               </Button>
             ))}
           </div>
-          <CubeArchitectureBlock data={data.architecture} onAction={() => {}} />
+          {showOverview ? (
+            <CubeOverview projectId={projectId} cubes={data.cubes} />
+          ) : (
+            <CubeArchitectureBlock data={data.architecture} onAction={() => {}} />
+          )}
         </>
       )}
     </div>

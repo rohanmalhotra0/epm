@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <substitutionVariable>
+ <name>OEP_PriorYrActPeriodRange</name>
+ <value>OEP_Day1:OEP_Day1</value>
+ <planType>OEP_DCSH</planType>
+</substitutionVariable>

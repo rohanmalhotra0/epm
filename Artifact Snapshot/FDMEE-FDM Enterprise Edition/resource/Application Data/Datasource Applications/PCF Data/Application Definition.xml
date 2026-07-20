@@ -1,0 +1,210 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<TargetApplicationForLcmVO>
+   <TargetApplicationForLcmVORow>
+      <ApplicationName>PCF Data</ApplicationName>
+      <CreateDrillRegionFlag>N</CreateDrillRegionFlag>
+      <DataLoadMethod>ADAPTER</DataLoadMethod>
+      <DefaultLanguage>AMERICAN</DefaultLanguage>
+      <EssbaseDbName null="true"/>
+      <Intsystemkey>SOURCE</Intsystemkey>
+      <MarkedForDeletion>N</MarkedForDeletion>
+      <MetadataLoadMethod>ADAPTER</MetadataLoadMethod>
+      <SelectedFlag>Y</SelectedFlag>
+      <TargetApplicationName>PCF Data</TargetApplicationName>
+      <TargetApplicationSubType>ERPPCFDATA</TargetApplicationSubType>
+      <TargetApplicationType>DATASOURCE</TargetApplicationType>
+      <SourceSystemName>Data Source</SourceSystemName>
+      <TargetAppDimensionsForLcmVO>
+         <TargetAppDimensionsForLcmVORow>
+            <DimViewSeq>12</DimViewSeq>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>0</ValidForPlan1>
+            <TargetDimClassNameOrg>Generic</TargetDimClassNameOrg>
+            <TargetDimensionClassName>Version</TargetDimensionClassName>
+            <TargetDimensionName>Forecast Method</TargetDimensionName>
+            <TargetDimensionNameOrg>Forecast Method</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <BalanceColumnName>ACCOUNT</BalanceColumnName>
+            <DimViewSeq>11</DimViewSeq>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>0</ValidForPlan1>
+            <TargetDimClassNameOrg>Generic</TargetDimClassNameOrg>
+            <TargetDimensionClassName>Account</TargetDimensionClassName>
+            <TargetDimensionName>Source</TargetDimensionName>
+            <TargetDimensionNameOrg>Source</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <DimViewSeq>10</DimViewSeq>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>0</ValidForPlan1>
+            <TargetDimClassNameOrg>Generic</TargetDimClassNameOrg>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>Source Detail</TargetDimensionName>
+            <TargetDimensionNameOrg>Source Detail</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <DimViewSeq>9</DimViewSeq>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>0</ValidForPlan1>
+            <TargetDimClassNameOrg>Generic</TargetDimClassNameOrg>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>Time</TargetDimensionName>
+            <TargetDimensionNameOrg>Time</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <DimViewSeq>7</DimViewSeq>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>0</ValidForPlan1>
+            <TargetDimClassNameOrg>Generic</TargetDimClassNameOrg>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>Currency</TargetDimensionName>
+            <TargetDimensionNameOrg>Currency</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <DimViewSeq>6</DimViewSeq>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>0</ValidForPlan1>
+            <TargetDimClassNameOrg>Generic</TargetDimClassNameOrg>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>Legal Entity</TargetDimensionName>
+            <TargetDimensionNameOrg>Legal Entity</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <DimViewSeq>5</DimViewSeq>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>0</ValidForPlan1>
+            <TargetDimClassNameOrg>Generic</TargetDimClassNameOrg>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>Bank Account</TargetDimensionName>
+            <TargetDimensionNameOrg>Bank Account</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <DimViewSeq>4</DimViewSeq>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>0</ValidForPlan1>
+            <TargetDimClassNameOrg>Generic</TargetDimClassNameOrg>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>Business Unit</TargetDimensionName>
+            <TargetDimensionNameOrg>Business Unit</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <DimViewSeq>3</DimViewSeq>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>0</ValidForPlan1>
+            <TargetDimClassNameOrg>Generic</TargetDimClassNameOrg>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>Party</TargetDimensionName>
+            <TargetDimensionNameOrg>Party</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <DimViewSeq>1</DimViewSeq>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>0</ValidForPlan1>
+            <TargetDimClassNameOrg>Generic</TargetDimClassNameOrg>
+            <TargetDimensionClassName>Amount</TargetDimensionClassName>
+            <TargetDimensionName>Measure</TargetDimensionName>
+            <TargetDimensionNameOrg>Measure</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+      </TargetAppDimensionsForLcmVO>
+      <TargetApplicationPropertiesForLcmVO>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>AGGREGATION_LEVEL</PropertyType>
+            <PropertyValueId>-1</PropertyValueId>
+            <Condition>EQ</Condition>
+            <DefaultValue>Period</DefaultValue>
+            <DisplayOrder>2010</DisplayOrder>
+            <DisplayPrompt>Aggregation Level</DisplayPrompt>
+            <PropertyLevel>2000</PropertyLevel>
+            <ValidationObject>PCF_AGG_TYPE_LOV</ValidationObject>
+            <ValidationType>LOOKUP_VALIDATE</ValidationType>
+            <PropertyScope>SOURCE</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>Adapter_ExtractData</PropertyType>
+            <PropertyValue>FinancialDataQuality/bin/plugin/ERPCloudPCFExtractData.py</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>0</PropertyLevel>
+            <PropertyScope>SYSTEM</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>Adapter_jarfile</PropertyType>
+            <PropertyValue>FinancialDataQuality/lib/aif-file.jar</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>0</PropertyLevel>
+            <PropertyScope>SYSTEM</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>CONNECTION_NAME</PropertyType>
+            <PropertyValue>PCF_Conn</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <Condition>EQ</Condition>
+            <DisplayOrder>510</DisplayOrder>
+            <DisplayPrompt>Connection Name</DisplayPrompt>
+            <PropertyLevel>500</PropertyLevel>
+            <ValidationObject>FSGL_CONNECTIONS_LOV</ValidationObject>
+            <ValidationType>RESTLOV</ValidationType>
+            <PropertyScope>SOURCE</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>appcount</PropertyType>
+            <PropertyValue>SINGLE</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>0</PropertyLevel>
+            <PropertyScope>SYSTEM</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>code</PropertyType>
+            <PropertyValue>ERPPCFDATA</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>0</PropertyLevel>
+            <PropertyScope>SYSTEM</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>name</PropertyType>
+            <PropertyValue>Oracle Cash Forecasting Data</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>0</PropertyLevel>
+            <PropertyScope>SYSTEM</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>provider</PropertyType>
+            <PropertyValue>EPM</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>0</PropertyLevel>
+            <PropertyScope>SYSTEM</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>registrationfile</PropertyType>
+            <PropertyValue>FinancialDataQuality/database/adapters/plugin/ERPPCFDATA.json</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>0</PropertyLevel>
+            <PropertyScope>SYSTEM</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>registrationtype</PropertyType>
+            <PropertyValue>JSON</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>0</PropertyLevel>
+            <PropertyScope>SYSTEM</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>usage</PropertyType>
+            <PropertyValue>SOURCE</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>0</PropertyLevel>
+            <PropertyScope>SYSTEM</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+      </TargetApplicationPropertiesForLcmVO>
+   </TargetApplicationForLcmVORow>
+</TargetApplicationForLcmVO>

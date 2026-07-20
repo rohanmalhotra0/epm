@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <ApplicationPreferences xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" >
+ <ApplicationProperties>
+ <Property Name="ADD_HSP_RATES_DTURL_PATTERN" Value="/*HyperionFDM*/" />
+ <Property Name="EDIT_DIM_ENABLED" Value="true" />
+ <Property Name="ENABLE_FOR_OFFLINE" Value="true" />
+ <Property Name="ESSBASE_IS_HYBRID_APP" Value="true" />
+ <Property Name="ESSBASE_IS_IGNORE_CONSTANTS_ENABLED" Value="true" />
+ <Property Name="JDBC_MAX_CONNECTIONS" Value="10" />
+ <Property Name="JDBC_MIN_CONNECTIONS" Value="1" />
+ <Property Name="LOGO_IMAGE_TYPE" Value="PREDEFINED" />
+ <Property Name="OLAP_MAX_CONNECTIONS" Value="10" />
+ <Property Name="OLAP_MIN_CONNECTIONS" Value="1" />
+ <Property Name="SKIN_THEME" Value="REDWOOD_R13" />
+ <Property Name="SUPPORT_SV_NATIVE_ADHOC" Value="false" />
+ <Property Name="SUPPORTING_DETAIL_CACHE_SIZE" Value="20" />
+ <Property Name="SYNC_USER_ON_LOGON" Value="true" />
+ <Property Name="WATERMARK_IMAGE_TYPE" Value="PREDEFINED" />
+</ApplicationProperties>
+ <SystemSettings>
+ <EmailOptions EmailCharacterSet="utf-8" EmailServer="" />
+ <DisplayFullName>false</DisplayFullName>
+ <LoginLevel>Administrator</LoginLevel>
+ <SharedMemberSecurity>No</SharedMemberSecurity>
+ <DefaultAncestorAccess>NONE</DefaultAncestorAccess>
+ <JobTypesEnabledForNfts></JobTypesEnabledForNfts>
+ <supportedModules>OFFLINE,WORKFORCE</supportedModules>
+ <enabledModules>OFFLINE</enabledModules>
+ <AttributeDimDateFormat>MM-dd-yyyy</AttributeDimDateFormat>
+ <PMScenarioEnabled>true</PMScenarioEnabled>
+ <PMVersionEnabled>true</PMVersionEnabled>
+ <AllowDrillOnSharedMbrs>false</AllowDrillOnSharedMbrs>
+ <DrillToAllLevelsInBase>false</DrillToAllLevelsInBase>
+ <EmailNotificationLevelCompact>false</EmailNotificationLevelCompact>
+ <SuppressAppMgmtInSV>false</SuppressAppMgmtInSV>
+ <UseAllAliasTablesForAdhoc>false</UseAllAliasTablesForAdhoc>
+ <CheckSecurityOnHiddenPrompts>true</CheckSecurityOnHiddenPrompts>
+ <ExportSmartListDataInAMW>false</ExportSmartListDataInAMW>
+ <AccountLinkedByDefault>false</AccountLinkedByDefault>
+ <ScenarioUpperLevelStartAndEndYearsReplacedWithLevelZero>false</ScenarioUpperLevelStartAndEndYearsReplacedWithLevelZero>
+ <AttribDimReorderThreshold>500</AttribDimReorderThreshold>
+</SystemSettings>
+ <CustomTools>
+</CustomTools>
+ <ApplicationSettings>
+ <EmailOptions>
+ <EnableEmail>No</EnableEmail>
+ <PMNotification>No</PMNotification>
+ <EmailId></EmailId>
+ <CopyAppOwner>No</CopyAppOwner>
+ <NotifyJobStatusChange>No</NotifyJobStatusChange>
+</EmailOptions>
+ <DisplayAlias AliasTable="Default" />
+ <MemberNameAliasDisplay>Default</MemberNameAliasDisplay>
+ <MemberSelectionOptions ShowMemberDesc="No" ShowMemberAlias="No" />
+ <PUOptions DisplayPUNotStarted="No" DisplayPUAliasInEmail="No" DisplayPUAlias="No" />
+ <OutOfOfficeOptions>
+ <EnableOutOfOffice>No</EnableOutOfOffice>
+</OutOfOfficeOptions>
+ <OptionsJson><![CDATA[{"enableConsolidationLogging":false,"smartViewSuppression":1,"smartViewAdhocBehavior":2,"artifactDisplays":[],"currencyScenarioTPOption":false,"smPrefs":null,"mrPrefs":{},"enableDataLoadForAdhocReadOnlyRole":false,"maxRuleUIBlockTime":180000,"showAutocorrectErrorsOption":false,"webAdhocGrid":2,"uiLogLevel":3,"clientSideFormulaCreationEnabled":false,"gridTooltipEnabled":true,"fccsDateViewCalcsDisabled":false,"filterOutExcludedMembersInSegDropdown":true,"legacyListPageDropdown":false,"dynamicTabInNavFlow":false,"dashboardSeriesColor":"N","formsMode":1,"renderGridForInvalidInterSection":true,"oglAppId":"","oglServerUrl":"https://guidedlearning.oracle.com","svGoogleSheetSupport":false,"svKeepInvMbrsSupport":false,"pcmcsPrefs":{},"aiFeatures":[],"upperLevelWriteBack":false,"13PeriodModelEndMonth":0,"13PeriodModelEndWeekDay":0,"13PeriodModelLeapWeekPeriod":0,"13PeriodModelExtraPeriodInQtr":0,"13PeriodModelWeekDayClosestToEndMonth":false}]]></OptionsJson>
+ <RebrandingImageInfo>
+ <LogoImage>
+</LogoImage>
+ <WatermarkImage>
+</WatermarkImage>
+</RebrandingImageInfo>
+</ApplicationSettings>
+ <DisplayOptions>
+ <NumberFormat>
+ <ThousandSeparator>none</ThousandSeparator>
+ <DecimalSeparator>dot</DecimalSeparator>
+ <NegativeSeparator>CurrencyString</NegativeSeparator>
+ <NegativeColor>CurrencyString</NegativeColor>
+</NumberFormat>
+ <PageOptions PageDisplay="Indent level-zero members only" EnableMRU="Yes" AllowPageSerach="100" />
+ <OtherOptions>
+ <EnableMRUScreen>Yes</EnableMRUScreen>
+ <FormWarning>5000</FormWarning>
+ <PartialGridFetchSize>25,17</PartialGridFetchSize>
+ <PageSize>25</PageSize>
+ <AccessControlPageSize>25</AccessControlPageSize>
+ <showConsolidationOperators>Data Form Setting</showConsolidationOperators>
+ <DateFormat>UseAppDefault</DateFormat>
+ <UserInterfaceDisplayMode>Simplified Interface</UserInterfaceDisplayMode>
+</OtherOptions>
+</DisplayOptions>
+ <auditOptions>
+ <auditMembers>No</auditMembers>
+ <auditAliasTables>No</auditAliasTables>
+ <auditData>No</auditData>
+ <auditCalcs>No</auditCalcs>
+ <auditForms>No</auditForms>
+ <auditFormFolders>No</auditFormFolders>
+ <auditProcessManagement>No</auditProcessManagement>
+ <auditCopyVersion>No</auditCopyVersion>
+ <auditSecurity>No</auditSecurity>
+ <auditUsers>No</auditUsers>
+ <auditGroups>No</auditGroups>
+ <auditOffline>No</auditOffline>
+ <auditTaskLists>No</auditTaskLists>
+ <auditCopyData>No</auditCopyData>
+ <auditClearCellDetails>No</auditClearCellDetails>
+ <auditJournals>No</auditJournals>
+ <auditVariables>No</auditVariables>
+ <auditEpcmModel>No</auditEpcmModel>
+ <auditEpcmRuleSet>No</auditEpcmRuleSet>
+ <auditEpcmRule>No</auditEpcmRule>
+ <auditEpcmPointOfView>No</auditEpcmPointOfView>
+ <auditEpcmProfitCurve>No</auditEpcmProfitCurve>
+ <auditAppAdministration>Yes</auditAppAdministration>
+ <auditOptionsExt>0</auditOptionsExt>
+</auditOptions>
+</ApplicationPreferences>

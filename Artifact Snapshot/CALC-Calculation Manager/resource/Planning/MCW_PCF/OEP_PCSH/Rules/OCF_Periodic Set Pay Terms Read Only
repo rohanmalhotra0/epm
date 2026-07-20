@@ -1,0 +1,24 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<HBRRepo><variables/><rulesets/><rules><rule id="1" name="OCF_Periodic Set Pay Terms Read Only" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_PCSH</property><property name="seeded">true</property><script type="groovy">					/*
+					Purpose: This rule is invoked from the Pay terms rules.
+							 1) If the form contains pay terms, milestones, and installment members, this rule sets to read-only.  							 
+					*/
+					Cube cashFlowCube = operation.application.getCube("OEP_PCSH");
+					List&lt;String> lstCurrencies=operation.application.getDimension("Currency",cashFlowCube).getEvaluatedMembers('ILvl0Descendants("Input Currencies")',cashFlowCube).collect{it.toString()};
+					UserVariable uvVariable=operation.application.getUserVariable("OEP_Currency")	;
+					String selectedCurrency=uvVariable.value.name;
+					if (lstCurrencies.contains(selectedCurrency))
+					{
+						operation.grid.dataCellIterator("OCF_Pay Term1","OCF_Pay Term2","OCF_Pay Term3","OCF_Pay Term4","OCF_Pay Term5","OCF_Calculated Cashflow","OCF_Milestone 1","OCF_Milestone 2","OCF_Milestone 3","OCF_Tax Installment1","OCF_Tax Installment2","OCF_Tax Installment3","OCF_Tax Installment4").each {
+						it.setForceReadOnly(true);
+						}		
+					}
+					else
+					{
+					operation.grid.dataCellIterator().each {
+						it.setForceReadOnly(true);					
+							}
+					}
+				
+							
+			</script></rule></rules><components/><deployobjects><deployobject product="2" application="mcw_pcf" plantype="oep_pcsh" obj_id="1" obj_type="1" name="OCF_PERIODIC SET PAY TERMS READ ONLY"/></deployobjects></HBRRepo>

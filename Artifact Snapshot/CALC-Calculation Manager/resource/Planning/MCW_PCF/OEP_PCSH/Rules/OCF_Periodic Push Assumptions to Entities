@@ -1,0 +1,232 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<HBRRepo><variables><variable name="OCF_Scenario" type="member" usage="const" id="1" product="Planning"><property name="application">MCW_PCF</property><property name="dimensionInputMode">type</property><property name="dimensionType">Scenario</property><property name="prompt_text">LABEL_OCF_CASH_FORECST_PRMPT_SCENARIO</property><property name="scope">ruleset</property><property name="seeded">true</property><value/></variable><variable name="OCF_SrcEntity" type="member" usage="const" id="3" product="Planning"><property name="application">MCW_PCF</property><property name="dimensionInputMode">type</property><property name="dimensionType">Entity</property><property name="prompt_text">LABEL_OCF_CASH_FORECST_PRMPT_SOURCE_ENTITY</property><property name="scope">ruleset</property><property name="seeded">true</property><value/></variable><variable name="OCF_TgtEntity" type="member" usage="const" id="4" product="Planning"><property name="application">MCW_PCF</property><property name="dimensionInputMode">type</property><property name="dimensionType">Entity</property><property name="prompt_text">LABEL_OCF_CASH_FORECST_PRMPT_TARGET_ENTITY</property><property name="scope">ruleset</property><property name="seeded">true</property><value/></variable><variable name="OCF_Version" type="member" usage="const" id="2" product="Planning"><property name="application">MCW_PCF</property><property name="dimensionInputMode">type</property><property name="dimensionType">Version</property><property name="prompt_text">LABEL_OCF_CASH_FORECST_PRMPT_VERSION</property><property name="scope">ruleset</property><property name="seeded">true</property><value/></variable></variables><rulesets/><rules><rule id="1" name="OCF_Periodic Push Assumptions to Entities" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_PCSH</property><property name="seeded">true</property><variable_references><variable_reference name="OCF_Scenario" id="1"><property name="application">MCW_PCF</property><property name="hidden">false</property><property name="rule_name">OCF_Periodic Push Assumptions to Entities</property><property name="seq">1</property><property name="type">3</property><property name="useAsOverrideValue">false</property><property name="validation_value">"OEP_Forecast"</property><property name="value">"OEP_Forecast"</property></variable_reference><variable_reference name="OCF_Version" id="2"><property name="application">MCW_PCF</property><property name="hidden">false</property><property name="rule_name">OCF_Periodic Push Assumptions to Entities</property><property name="seq">2</property><property name="type">3</property><property name="useAsOverrideValue">false</property><property name="validation_value">"OEP_Working"</property><property name="value">"OEP_Working"</property></variable_reference><variable_reference name="OCF_SrcEntity" id="3"><property name="application">MCW_PCF</property><property name="hidden">false</property><property name="rule_name">OCF_Periodic Push Assumptions to Entities</property><property name="seq">3</property><property name="type">3</property><property name="useAsOverrideValue">false</property><property name="validation_value">"OEP_No Entity"</property></variable_reference><variable_reference name="OCF_TgtEntity" id="4"><property name="application">MCW_PCF</property><property name="hidden">false</property><property name="rule_name">OCF_Periodic Push Assumptions to Entities</property><property name="seq">4</property><property name="type">3</property><property name="useAsOverrideValue">false</property><property name="validation_value">"OEP_No Entity"</property></variable_reference></variable_references><script type="groovy">			/*RTPS: {OCF_Scenario} {OCF_Version} {OCF_SrcEntity} {OCF_TgtEntity} */
+			/*
+			* Purpose: This rule will push assumptions entered in one entity to all level zero entity of parent entity.
+			* 1. Pick the entity where already assumptions are loaded.
+			* 2. Pick the target entity member to copy assumptions across all level zero members of this entity.
+			*/
+			%Template(name:="OCF_Push Assumptions to Entities_GT",plantype:="OEP_DCSH",dtps:=()) 
+				StringBuilder cscript = new StringBuilder();
+                String entityAssumptionsPush;
+				String cubeName="OEP_PCSH"
+				String srcEntityMember = rtps.OCF_SrcEntity.member.name; 
+				String tgtEntityMember = rtps.OCF_TgtEntity.member.name;  
+				String versionMember =rtps.OCF_Version.member.name;
+				String scenarioMember = rtps.OCF_Scenario.member.name; 
+				entityAssumptionsPush=calculatePushAssumptionstoEntities(cubeName,scenarioMember,versionMember,srcEntityMember,tgtEntityMember)
+				cscript.append(entityAssumptionsPush)					
+				return cscript;
+								
+			</script></rule></rules><components/><deployobjects><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="1" obj_type="19" name="OCF_PUSH ASSUMPTIONS TO ENTITIES_GT"/><deployobject product="2" application="mcw_pcf" plantype="oep_pcsh" obj_id="1" obj_type="1" name="OCF_PERIODIC PUSH ASSUMPTIONS TO ENTITIES"/></deployobjects><templates><template custom="yes" id="1" name="OCF_Push Assumptions to Entities_GT" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><property name="standAlone">false</property><script type="groovy">				/**
+				* @param: Cube name, Scenario, Version, Src Entity and target Entity
+				*  Rule copies assumption from Src Enity to target entity level zero members.
+				**/
+				String	calculatePushAssumptionstoEntities(cubeName,scenarioMember,versionMember,srcEntityMember,tgtEntityMember)
+				{		
+					// variable declarations
+					StringBuilder finalScript = new StringBuilder();
+					Application app = operation.application
+					Cube cube = operation.application.getCube("$cubeName")
+					Cube lookupCube = operation.getApplication().getCube("$cubeName");
+					String flexDim1Name = "flexDimension1"; 
+					String flexDim2Name = "flexDimension2";
+					String flexDim3Name = "flexDimension3";
+					String currencyDimName="Currency";
+					String partyDimName="Party";
+					String buDimName="Business Unit";
+					String bankDimName="Bank";
+					String prjDimName="Category"
+					String forecastMethodDimName = "Forecast Method";
+					String yearDimName="Years"
+					String lineItemDimName="Line Item"
+					String entityDimName = "Entity";
+					String sRTP;
+					List&lt;String> fixMembers = new ArrayList&lt;String>();
+					String sScenario
+					String sEntity
+					String sVersion
+					String sBank
+					String sBusinessUnit
+					String sParty
+					String sCategory
+					String sYears
+					String sCurrency
+					String sLineItem
+					String sCustom
+					List&lt;String> povdims
+					def rowMembers
+					String srowMembers
+					def gridColumns
+					def columnMembers
+					String scolumnMembers
+					def rowDimensions
+					 if (operation.hasGrid())
+					 {
+					def gridPov = operation.grid.getPov()
+					def povDimensions = gridPov.collect {
+					  it.DimName
+					}
+					povdims = gridPov.collect{it.DimName}
+					}
+							//check if FlexDim1Name dimension exists
+								   if(operation.application.hasDimension(flexDim1Name, lookupCube)) {
+										   if (operation.hasGrid())
+										   {
+										   fixMembers.add('@Relative("'+operation.grid.pov.find { it.dimName == flexDim1Name }.essbaseMbrName+'",0)')
+										   }
+										   else
+										   {
+										   fixMembers.add('@Relative("Total '+ flexDim1Name +'",0)')
+										   }
+
+								   }
+							//check if FlexDim2Name dimension exists
+								   if(operation.application.hasDimension(flexDim2Name, lookupCube)) {
+										   if (operation.hasGrid())
+										   {
+										   fixMembers.add('@Relative("'+operation.grid.pov.find { it.dimName == flexDim2Name }.essbaseMbrName+'",0)')
+										   }
+										   else
+										   {
+										   fixMembers.add('@Relative("Total '+ flexDim2Name +'",0)')
+										   }
+
+								   }
+							//check if FlexDim3Name dimension exists
+								   if(operation.application.hasDimension(flexDim3Name, lookupCube)) {
+										   if (operation.hasGrid())
+										   {
+										   fixMembers.add('@Relative("'+operation.grid.pov.find { it.dimName == flexDim3Name }.essbaseMbrName+'",0)')
+										   }
+										   else
+										   {
+										   fixMembers.add('@Relative("Total '+ flexDim3Name +'",0)')
+										   }
+									}
+
+									
+					 if (operation.hasGrid())
+					{
+							
+							for (int j = 0; j &lt; povdims.size(); j++) {						 
+							  
+							  String sdimName = povdims[j]
+							  if (sdimName == 'Scenario') {
+								 sScenario = '"' + operation.grid.pov.find{it.dimName == 'Scenario'}.essbaseMbrName + '"'
+							  }
+							  if (sdimName == "$entityDimName") {
+								 sEntity = '"' + operation.grid.pov.find{it.dimName == "$entityDimName"}.essbaseMbrName + '"'
+							  }
+							  if (sdimName == 'Version') {
+								 sVersion = '"' + operation.grid.pov.find{it.dimName == 'Version'}.essbaseMbrName + '"'
+							  }
+								if (sdimName == "$bankDimName") {
+								 sBank = '"' + operation.grid.pov.find{it.dimName == "$bankDimName"}.essbaseMbrName + '"'
+								 fixMembers.add(sBank)
+							  }
+								if (sdimName == "$buDimName") {
+								 sBusinessUnit = '"' + operation.grid.pov.find{it.dimName == "$buDimName"}.essbaseMbrName + '"'
+								 fixMembers.add(sBusinessUnit)
+							  }
+								if (sdimName == "$partyDimName") {
+								 sParty = '"' + operation.grid.pov.find{it.dimName == "$partyDimName"}.essbaseMbrName + '"'
+								 fixMembers.add(sParty)
+							  }  
+								if (sdimName == "$prjDimName") {
+								 sCategory = '"' + operation.grid.pov.find{it.dimName == "$prjDimName"}.essbaseMbrName + '"'
+								 fixMembers.add(sCategory)	
+							  }    
+								  if (sdimName == 'Years') {
+								 sYears = '"' + operation.grid.pov.find{it.dimName == 'Years'}.essbaseMbrName + '"'
+							  }  
+									if (sdimName == 'Currency') {
+								 sCurrency = '"' + operation.grid.pov.find{it.dimName == 'Currency'}.essbaseMbrName + '"'
+							  }  							  
+							//Only for project assumptions form, projects are in rows and accounts in columns.. so below condition  
+							if (sdimName == 'Line Item') {
+								 sCategory = '"' + operation.grid.pov.find{it.dimName == 'Line Item'}.essbaseMbrName + '"'	
+								fixMembers.add(sCategory)	
+							  }  
+							}
+							DataGrid curgrid = operation.getGrid()
+							gridColumns = operation.grid.getColumns()
+							columnMembers = gridColumns*.collect{DataGrid.HeaderCell it -> it.MbrName}.flatten().unique() as List&lt;String>
+							  def gridRows = operation.grid.rows as List &lt; DataGrid.Row >
+							rowDimensions = gridRows[0].headers*.collect{DataGrid.HeaderCell dim -> dim.dimName}.flatten().unique() as List&lt;String>
+							rowMembers = gridRows.headers*.collect{DataGrid.HeaderCell mbr -> mbr.MbrName}.flatten().unique() as List&lt;String>
+							srowMembers = '"' + rowMembers.join(',').replaceAll(',', '","') + '"'
+							scolumnMembers = '"' + columnMembers.join(',').replaceAll(',', '","') + '"'
+							 
+							 
+							sCustom = fixMembers.join(',')	
+					 String finalCalc="""
+					Fix(@Relative("$tgtEntityMember",0),$sCustom,"No Year","No Currency","$versionMember")
+						Fix($srowMembers,$scolumnMembers)
+						"$scenarioMember"
+						(
+						"$scenarioMember" = "$scenarioMember"->"$srcEntityMember";
+						)
+						Endfix
+					Endfix	
+					"""					
+					return finalCalc.toString()
+					}
+					else
+					{
+							  if(operation.application.hasDimension('Scenario', lookupCube)) {
+									 sScenario = scenarioMember
+								  }
+								  if(operation.application.hasDimension('Version', lookupCube))  {
+									 sVersion = versionMember
+								  }
+									if(operation.application.hasDimension("$bankDimName", lookupCube))  {
+									 sBank = '@Relative("OEP_Total '+ "$bankDimName" +'",0)'	
+										fixMembers.add(sBank)	
+								  }  							  
+									if(operation.application.hasDimension("$buDimName", lookupCube))  {
+									 sBusinessUnit = '@Relative("OEP_Total '+ "$buDimName" +'",0)'	
+									fixMembers.add(sBusinessUnit)		
+								  }  
+									if(operation.application.hasDimension("$partyDimName", lookupCube))  {
+									 sParty = '@Relative("OEP_Total '+ "$partyDimName" +'",0)'	
+										fixMembers.add(sParty)										 
+								  }  		  
+								  
+									if(operation.application.hasDimension("$prjDimName", lookupCube))  {
+									 sCategory = '@Relative("OEP_Total '+ "$prjDimName" +'",0)'	
+									fixMembers.add(sCategory)		
+								  } 	  
+
+									if(operation.application.hasDimension('Currency', lookupCube))  {
+									 sCurrency = '@Relative("Input Currencies",0)'								
+								  }  
+								  sCustom = fixMembers.join(',')
+					     List&lt;String> lvl0Entities=operation.application.getDimension(entityDimName,lookupCube).getEvaluatedMembers('ILvl0Descendants("'+tgtEntityMember+'")',lookupCube).collect{it.toString()};
+
+						 String targetEntity= ""	  
+						 String finalCalc="""
+							Fix("$scenarioMember",$sCustom,"No Year","No Currency","$versionMember")							
+							"""		
+						finalScript.append(finalCalc)
+						if (lvl0Entities.size() > 0)
+						{	
+							lvl0Entities.each {
+								targetEntity=it.toString();
+								finalCalc=""" DATACOPY "$srcEntityMember" to "$targetEntity"; 
+											"""
+									finalScript.append(finalCalc)	
+								}
+						}
+						else
+						{
+							finalCalc=""" DATACOPY "$srcEntityMember" to "$tgtEntityMember"; """
+								finalScript.append(finalCalc)
+						}
+						finalCalc="""
+											Endfix	
+						"""	
+						finalScript.append(finalCalc)												
+						return finalScript.toString()
+					}
+			}
+</script><template_wizard/><template_prompts><restricted_prompt name="Application Type" type="Application Type" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Generic</property><property name="value">GENERAL</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PFP</property><property name="value">PROJECT</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PSB</property><property name="value">PSB</property></restricted_prompt_item></restricted_prompt><restricted_prompt name="Application" type="Application" isPrompt="no"><property name="is_system">true</property><value>Is Single Currency</value><restricted_prompt_item><property name="prompt">Is Multi Currency</property><property name="value">multi</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Single Currency</property><property name="value">single</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Simple Currency</property><property name="value">simple</property></restricted_prompt_item></restricted_prompt><template_slice_prompt name="UpperPOV" type="Member Range" isPrompt="false"><property name="is_system">true</property></template_slice_prompt><restricted_prompt name="Essbase Mode" type="Essbase Mode" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Hybrid</property><property name="value">Hybrid</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is NonHybrid</property><property name="value">NonHybrid</property></restricted_prompt_item></restricted_prompt></template_prompts></template></templates></HBRRepo>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <substitutionVariable>
+ <name>OEP_ActPeriod</name>
+ <value>OEP_Day201</value>
+ <planType>OEP_DCSH</planType>
+</substitutionVariable>

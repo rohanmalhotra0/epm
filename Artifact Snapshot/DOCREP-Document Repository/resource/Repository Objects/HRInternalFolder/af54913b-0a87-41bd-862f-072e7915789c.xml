@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<FRFolder isInternal="true" isBrowsable="true">
+    <identifier>af54913b-0a87-41bd-862f-072e7915789c</identifier>
+    <Author>epm_default_cloud_admin</Author>
+    <CreationDate>Sat Jun 13 12:56:53 UTC 2026</CreationDate>
+    <Description/>
+    <LastModifiedBy/>
+    <LastModifiedDate/>
+    <ParentUUID>ROOTfr</ParentUUID>
+    <Path>/</Path>
+    <Name>HRInternalFolder</Name>
+    <Type>FOLDER</Type>
+    <Properties/>
+    <Properties size="4">
+        <Property Name="NAME" Value="HRInternalFolder"/>
+        <BINARY NAME="Value"><![CDATA[TmFtZT1IUkludGVybmFsRm9sZGVydHlwZT1GT0xERVJBdXRob3I9ZXBtX2RlZmF1bHRfY2xvdWRfYWRtaW4=]]></BINARY>
+        <Property Name="jcr:data"/>
+        <Property Name="fileSize" Value="62"/>
+        <BINARY NAME="Value"><![CDATA[AAABnsEOf1c=]]></BINARY>
+        <Property Name="jcr:lastModifiedby"/>
+    </Properties>
+</FRFolder>

@@ -1,0 +1,226 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<HBRRepo><variables/><rulesets/><rules/><components/><deployobjects><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="1" obj_type="19" name="OCF_MERGE WHAT IF_GT"/></deployobjects><templates><template custom="yes" id="1" name="OCF_Merge What If_GT" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><property name="standAlone">false</property><script type="groovy">	   /***
+		 * Merge What if on Rolling forecast Form.
+		 * @param cube,mbrScenario,mbrVersion, mbrEntity,mbrYear,mbrPeriod,mbrCurrency will be passed from form context.
+		 * 1) Copies data of what if version from the starting period of create to what if to end period of rolling forecast int to working version.
+		 * 2) Clears data from what if version
+		 * 3) Clears data of OCF_Display Scenario member from both versions. this clear will be used to hide the row in rolling forecast form.
+		 * 4) OEP_NumberOfYears sub variable value is used to determine if rolling window in the cross year. where we need to show/hide data in two years.
+		 * Note: OCF_Display Scenario Line item member is used show and hide what if/working text in the rolling forecast form as we had to hide version dimension members.
+		 * @return  - returns create What if version code.
+		 **/
+		String mergeWhatIf(String cube,String mbrScenario,String mbrVersion,String mbrEntity,String mbrYear,String mbrPeriod,String mbrCurrency)
+		{
+					String flexDim1Name = "flexDimension1";
+						String flexDim2Name = "flexDimension2";
+						String flexDim3Name = "flexDimension3";
+						String partyDimName="Party";
+						String buDimName="Business Unit";
+						String prjDimName="Category";
+						String bankDimName="Bank";
+						List&lt;String> noFixMembersList=[];
+						List&lt;String> fixMembersList=[];
+						String[] fRange,fmbrList;
+						String numOfPeriods,forecastRange,Years,currentYearStartPeriod,currentYearEndPeriod,nextYearForecastRange,nexttYearStartPeriod,nextYearEndPeriod,noFixMembers,fixMembers;						
+						def calcString;						
+						Application application = operation.application;
+						Cube cashFlowCube = application.getCube("$cube");
+						numOfPeriods = getNumberOfYears(cashFlowCube);
+						Years=getCurrentYear(cashFlowCube);											
+						SubstitutionVariable subVariablePeriodRange=cashFlowCube.getSubstitutionVariable("OEP_CurrYrPeriodRange");
+						forecastRange=subVariablePeriodRange.getValue()
+						fRange = forecastRange.split(":");
+						currentYearStartPeriod=fRange[0];
+						currentYearEndPeriod=fRange[1];
+						if (numOfPeriods=="2")
+						{
+							SubstitutionVariable subVariableNextPeriodRange=cashFlowCube.getSubstitutionVariable("OEP_NextYrPeriodRange");
+							nextYearForecastRange=subVariableNextPeriodRange.getValue()
+							fmbrList = nextYearForecastRange.split(":");
+							nexttYearStartPeriod=fmbrList[0];
+							nextYearEndPeriod=fmbrList[1];
+						}
+						if(application.hasDimension(flexDim1Name, cashFlowCube)) 
+						{
+						  noFixMembersList.add('"No '+ flexDim1Name +'"') 
+						  fixMembersList.add('@Relative("Total '+ flexDim1Name +'",0)') 
+						}
+						if(operation.application.hasDimension(flexDim2Name, cashFlowCube))
+						{
+						  noFixMembersList.add('"No '+ flexDim2Name +'"') 
+						  fixMembersList.add('@Relative("Total '+ flexDim2Name +'",0)')     
+						}
+						if(operation.application.hasDimension(flexDim3Name, cashFlowCube))
+						{
+						  noFixMembersList.add('"No '+ flexDim3Name +'"') 
+						  fixMembersList.add('@Relative("Total '+ flexDim3Name +'",0)') 
+						}
+						if(operation.application.hasDimension(partyDimName, cashFlowCube))
+						{
+						  noFixMembersList.add('"OEP_Any '+ partyDimName +'"') 
+						  fixMembersList.add('@Relative("OEP_Total '+ partyDimName +'",0)') 
+						}
+						if(operation.application.hasDimension(buDimName, cashFlowCube))
+						{
+						  noFixMembersList.add('"OEP_Any '+ buDimName +'"') 
+						  fixMembersList.add('@Relative("OEP_Total '+ buDimName +'",0)') 
+						}						
+						if(operation.application.hasDimension(bankDimName, cashFlowCube))
+						{
+						  noFixMembersList.add('"OEP_Any '+ bankDimName +'"') 
+						  fixMembersList.add('@Relative("OEP_Any '+ bankDimName +'",0)') 
+						}
+						noFixMembers=noFixMembersList.join(',');
+						fixMembers=fixMembersList.join(',');
+
+						if (numOfPeriods=="2")
+							{
+							if ("$mbrYear" == "$Years")
+							{						
+							calcString =
+							"""
+							 SET UPDATECALC OFF;
+							 SET AGGMISSG ON;
+							 FIX("$mbrScenario","$mbrEntity","OCF_Forecasted","OCF_Adjustments","$mbrCurrency")
+							   FIX(&amp;OEP_CurrYr,$mbrPeriod:$currentYearEndPeriod)
+									FIX($fixMembers)
+										FIX(@Relative("OEP_Total $prjDimName",0))
+											FIX(@Relative("OCF_Total Cash",0))               
+												DATACOPY "$mbrVersion" to "OEP_Working";
+											ENDFIX
+											FIX("OEP_What If",@Relative("OCF_Total Cash",0),"OCF_Opening Balance")
+												CLEARBLOCK All;
+											ENDFIX;										
+											FIX("OEP_Working")
+												"OCF_Opening Balance" (
+													IF (NOT @ISMBR(&amp;OEP_FcstStartPeriod))
+														"OCF_Opening Balance"= @PRIOR("OCF_Opening Balance")+( @PRIOR("OCF_Operating Cash Inflow")+ @PRIOR("OCF_Financing Cash Inflows")+@PRIOR("OCF_Investing Cash Inflows"))-( @PRIOR("OCF_Operating Cash Outflow")+ @PRIOR("OCF_Financing Cash Outflows")+ @PRIOR("OCF_Investing Cash Outflows") +@PRIOR("OCF_Cash Outflows for Fixed Assets"));
+													ENDIF;
+													); 
+											ENDFIX;
+										ENDFIX;
+										FIX(@Relative("OCF_Total Cash",0),"OCF_Opening Balance","OEP_Working","OEP_What If")		
+												@IDESCENDANTS("OEP_Total $prjDimName");
+										ENDFIX;
+									ENDFIX
+									FIX($noFixMembers,"OEP_Working","$mbrVersion")
+									   FIX(@Relative("OEP_Any $prjDimName",0))
+										CLEARDATA "OCF_Display Scenario";
+									   ENDFIX;
+									   @IANCESTOR("OEP_Any $prjDimName");
+									ENDFIX
+							   ENDFIX;
+							   FIX(&amp;OEP_NextYr,$nexttYearStartPeriod:$nextYearEndPeriod)
+									FIX($fixMembers)
+										FIX(@Relative("OEP_Total $prjDimName",0))
+											FIX(@Relative("OCF_Total Cash",0))
+												DATACOPY "$mbrVersion" to "OEP_Working";
+											ENDFIX
+											FIX("OEP_What If",@Relative("OCF_Total Cash",0),"OCF_Opening Balance")
+												CLEARBLOCK All;
+											ENDFIX;
+											FIX("OEP_Working")
+												"OCF_Opening Balance" (
+													 IF ( @ISMBR("$nexttYearStartPeriod"))									
+														"OCF_Opening Balance"= "OCF_Opening Balance"->&amp;OEP_CurrYr->"$currentYearEndPeriod"+( "OCF_Operating Cash Inflow"->&amp;OEP_CurrYr->"$currentYearEndPeriod"+ "OCF_Financing Cash Inflows"->&amp;OEP_CurrYr->"$currentYearEndPeriod"+"OCF_Investing Cash Inflows"->&amp;OEP_CurrYr->"$currentYearEndPeriod")-( "OCF_Operating Cash Outflow"->&amp;OEP_CurrYr->"$currentYearEndPeriod"+ "OCF_Financing Cash Outflows"->&amp;OEP_CurrYr->"$currentYearEndPeriod"+ "OCF_Investing Cash Outflows"->&amp;OEP_CurrYr->"$currentYearEndPeriod" + "OCF_Cash Outflows for Fixed Assets"->&amp;OEP_CurrYr->"$currentYearEndPeriod");
+													ElSE
+														"OCF_Opening Balance"= @PRIOR("OCF_Opening Balance")+( @PRIOR("OCF_Operating Cash Inflow")+ @PRIOR("OCF_Financing Cash Inflows")+@PRIOR("OCF_Investing Cash Inflows"))-( @PRIOR("OCF_Operating Cash Outflow")+ @PRIOR("OCF_Financing Cash Outflows")+ @PRIOR("OCF_Investing Cash Outflows")+@PRIOR("OCF_Cash Outflows for Fixed Assets"));
+													ENDIF;
+													);
+											ENDFIX;											
+										ENDFIX;
+										FIX("OEP_Working","OEP_What If",@Relative("OCF_Total Cash",0),"OCF_Opening Balance",@Relative("OCF_Total Forecasted Cash",0))
+												@IDESCENDANTS("OEP_Total $prjDimName");
+										ENDFIX;
+									ENDFIX
+									FIX($noFixMembers,"OEP_Working","$mbrVersion")
+									   FIX(@Relative("OEP_Any $prjDimName",0))
+										CLEARDATA "OCF_Display Scenario";
+									   ENDFIX;
+									   @IANCESTOR("OEP_Any $prjDimName");
+									ENDFIX
+							   ENDFIX;
+							 ENDFIX;
+							"""
+							}
+						else
+							{
+							calcString =
+							"""
+							 SET UPDATECALC OFF;
+							 SET AGGMISSG ON;	
+							 FIX("$mbrScenario","$mbrEntity","OCF_Forecasted","OCF_Adjustments","$mbrCurrency")
+							   FIX(&amp;OEP_NextYr,$mbrPeriod:$nextYearEndPeriod)
+									FIX($fixMembers)
+										FIX(@Relative("OEP_Total $prjDimName",0))
+											FIX(@Relative("OCF_Total Cash",0),"OCF_Opening Balance")
+												 DATACOPY "$mbrVersion" to "OEP_Working";
+											ENDFIX
+											FIX("OEP_What If",@Relative("OCF_Total Cash",0),"OCF_Opening Balance")
+												CLEARBLOCK All;
+											ENDFIX;
+											FIX( "OEP_Working")
+												   "OCF_Opening Balance" (
+													 IF ( @ISMBR("$nexttYearStartPeriod"))									
+														"OCF_Opening Balance"= "OCF_Opening Balance"->&amp;OEP_CurrYr->"$currentYearEndPeriod"+( "OCF_Operating Cash Inflow"->&amp;OEP_CurrYr->"$currentYearEndPeriod"+ "OCF_Financing Cash Inflows"->&amp;OEP_CurrYr->"$currentYearEndPeriod"+"OCF_Investing Cash Inflows"->&amp;OEP_CurrYr->"$currentYearEndPeriod")-( "OCF_Operating Cash Outflow"->&amp;OEP_CurrYr->"$currentYearEndPeriod"+ "OCF_Financing Cash Outflows"->&amp;OEP_CurrYr->"$currentYearEndPeriod"+ "OCF_Investing Cash Outflows"->&amp;OEP_CurrYr->"$currentYearEndPeriod" + "OCF_Cash Outflows for Fixed Assets"->&amp;OEP_CurrYr->"$currentYearEndPeriod");
+													ElSE
+														"OCF_Opening Balance"= @PRIOR("OCF_Opening Balance")+( @PRIOR("OCF_Operating Cash Inflow")+ @PRIOR("OCF_Financing Cash Inflows")+@PRIOR("OCF_Investing Cash Inflows"))-( @PRIOR("OCF_Operating Cash Outflow")+ @PRIOR("OCF_Financing Cash Outflows")+ @PRIOR("OCF_Investing Cash Outflows")+@PRIOR("OCF_Cash Outflows for Fixed Assets"));
+													ENDIF;
+													); 						   
+											ENDFIX;
+										ENDFIX;
+										FIX("OEP_Working","OEP_What If",@Relative("OCF_Total Cash",0),"OCF_Opening Balance")
+											@IDESCENDANTS("OEP_Total $prjDimName");	
+										ENDFIX;		
+									ENDFIX;										
+									FIX($noFixMembers,"OEP_Working","$mbrVersion")
+									   FIX(@Relative("OEP_Any $prjDimName",0))
+										CLEARDATA "OCF_Display Scenario";
+									   ENDFIX;
+									   @IANCESTOR("OEP_Any $prjDimName");
+									ENDFIX
+
+							   ENDFIX;
+							 ENDFIX;
+							"""
+							}
+						}
+						else
+						{
+							calcString =
+							"""
+							 SET UPDATECALC OFF;
+							 SET AGGMISSG ON;
+							 FIX("$mbrScenario","$mbrEntity","OCF_Forecasted","OCF_Adjustments","$mbrCurrency")
+							   FIX(&amp;OEP_CurrYr,$mbrPeriod:$currentYearEndPeriod)
+									FIX($fixMembers,@Relative("OEP_Total $prjDimName",0),@Relative("OCF_Total Cash",0))
+										 DATACOPY "$mbrVersion" to "OEP_Working";
+									ENDFIX
+									FIX( $fixMembers,@Relative("OEP_Total $prjDimName",0),"OEP_Working")
+										   "OCF_Opening Balance" (
+											IF (NOT @ISMBR(&amp;OEP_FcstStartPeriod))
+												"OCF_Opening Balance"= @PRIOR("OCF_Opening Balance")+( @PRIOR("OCF_Operating Cash Inflow")+ @PRIOR("OCF_Financing Cash Inflows")+@PRIOR("OCF_Investing Cash Inflows"))-( @PRIOR("OCF_Operating Cash Outflow")+ @PRIOR("OCF_Financing Cash Outflows")+ @PRIOR("OCF_Investing Cash Outflows") +@PRIOR("OCF_Cash Outflows for Fixed Assets"));
+											ENDIF;
+											); 						   
+									ENDFIX;
+									FIX($fixMembers,@Relative("OCF_Total Cash",0),"OCF_Opening Balance")
+										FIX(@Relative("OEP_Total $prjDimName",0),"OEP_What If")
+											CLEARBLOCK All;
+										ENDFIX;
+										FIX("$mbrVersion")
+											@IDESCENDANTS("OEP_Total $prjDimName");
+										ENDFIX;
+									ENDFIX
+									FIX($noFixMembers,"OEP_Working","$mbrVersion")	
+										FIX("OEP_Any $prjDimName")
+											CLEARDATA "OCF_Display Scenario";
+										ENDFIX;
+										@IANCESTOR("OEP_Any $prjDimName");	
+									ENDFIX									
+							   ENDFIX;
+							 ENDFIX;
+							"""
+						}						
+						return calcString;
+		}
+</script><template_wizard/><template_prompts><restricted_prompt name="Application Type" type="Application Type" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Generic</property><property name="value">GENERAL</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PFP</property><property name="value">PROJECT</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PSB</property><property name="value">PSB</property></restricted_prompt_item></restricted_prompt><restricted_prompt name="Application" type="Application" isPrompt="no"><property name="is_system">true</property><value>Is Single Currency</value><restricted_prompt_item><property name="prompt">Is Multi Currency</property><property name="value">multi</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Single Currency</property><property name="value">single</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Simple Currency</property><property name="value">simple</property></restricted_prompt_item></restricted_prompt><template_slice_prompt name="UpperPOV" type="Member Range" isPrompt="false"><property name="is_system">true</property></template_slice_prompt><restricted_prompt name="Essbase Mode" type="Essbase Mode" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Hybrid</property><property name="value">Hybrid</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is NonHybrid</property><property name="value">NonHybrid</property></restricted_prompt_item></restricted_prompt></template_prompts></template></templates></HBRRepo>

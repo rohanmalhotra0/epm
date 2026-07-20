@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <fuseStructure name="Controller Admin" modifiedBy="Shubham.Shinde2@ibm.com" usageLevel="3" xmlns="http://xmlns.oracle.com/epm/common/structure" productId="" version="11_124800_33" properties="1" description="Navigation flow for Controller" modified="1781615982000" roleGroupSid="MCW_EPM_Admins_PCF" templateName="Controller" >
+ <usageXML><![CDATA[<?xml version = '1.0' encoding = 'UTF-8'?>
+<fuseStructureUsage xmlns="http://xmlns.oracle.com/epm/common/structure">
+   <categories>
+      <category id="OCF">
+         <card id="EPM_CA_1" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_cashflow.svg" uiType="FUSE" label="Daily Cash Forecast" tabOrientation="V" refObjectDefId="CUSTOM_CARD" refNodeId="" refFlowName="" internalID="CUSTOM">
+            <tab horizontalTabIcon="" id="EPM_TA_1" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_investment.svg" uiType="FUSE" label="Daily Rolling Forecast" refObjectDefId="EFS_CHILD_TABS_TF" refNodeId="" refFlowName="" internalID="CUSTOM">
+               <tab horizontalTabIcon="navi_piechart.svg" id="EPM_TA_3" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_task.svg" uiType="FUSE" label="Summary" refObjectDefId="DASHBOARDS_RT_TF" refNodeId="" refFlowName="" internalID="CUSTOM">
+                  <tfParameters>
+                     <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="displayHeader" listValueIsLabel="false" value="Y" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+                     <tfParameter artifactUID="107~~~OCF_Daily Summary Controller Dashboard" valueTypeClass="java.lang.Integer" name="formId" listValueIsLabel="false" artifactName="OCF_Daily Summary Controller Dashboard" valueType="SIMPLE" isEncoded="N"/>
+                  </tfParameters>
+               </tab>
+               <tab horizontalTabIcon="navi_piechart.svg" id="EPM_TA_4" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_task.svg" uiType="FUSE" label="Rolling Forecast" refObjectDefId="DASHBOARDS_RT_TF" refNodeId="" refFlowName="" internalID="CUSTOM">
+                  <tfParameters>
+                     <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="displayHeader" listValueIsLabel="false" value="Y" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+                     <tfParameter artifactUID="107~~~OCF_Daily Controller Rolling Forecast Dashboard" valueTypeClass="java.lang.Integer" name="formId" listValueIsLabel="false" artifactName="OCF_Daily Controller Rolling Forecast Dashboard" valueType="SIMPLE" isEncoded="N"/>
+                  </tfParameters>
+               </tab>
+            </tab>
+         </card>
+         <card id="EPM_CA_2" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_interim_provision.svg" uiType="FUSE" label="Periodic Cash Forecast" tabOrientation="V" refObjectDefId="CUSTOM_CARD" refNodeId="" refFlowName="" internalID="CUSTOM">
+            <tab horizontalTabIcon="" id="EPM_TA_35" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_investment.svg" uiType="FUSE" label="Periodic Rolling Forecast" refObjectDefId="EFS_CHILD_TABS_TF" refNodeId="" refFlowName="" internalID="CUSTOM">
+               <tab horizontalTabIcon="navi_piechart.svg" id="EPM_TA_37" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_task.svg" uiType="FUSE" label="Summary" refObjectDefId="DASHBOARDS_RT_TF" refNodeId="" refFlowName="" internalID="CUSTOM">
+                  <tfParameters>
+                     <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="displayHeader" listValueIsLabel="false" value="Y" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+                     <tfParameter artifactUID="107~~~OCF_Periodic Summary Controller Dashboard" valueTypeClass="java.lang.Integer" name="formId" listValueIsLabel="false" artifactName="OCF_Periodic Summary Controller Dashboard" valueType="SIMPLE" isEncoded="N"/>
+                  </tfParameters>
+               </tab>
+               <tab horizontalTabIcon="navi_piechart.svg" id="EPM_TA_38" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_task.svg" uiType="FUSE" label="Rolling Forecast" refObjectDefId="DASHBOARDS_RT_TF" refNodeId="" refFlowName="" internalID="CUSTOM">
+                  <tfParameters>
+                     <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="displayHeader" listValueIsLabel="false" value="Y" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+                     <tfParameter artifactUID="107~~~OCF_Periodic Controller Rolling Forecast Dashboard" valueTypeClass="java.lang.Integer" name="formId" listValueIsLabel="false" artifactName="OCF_Periodic Controller Rolling Forecast Dashboard" valueType="SIMPLE" isEncoded="N"/>
+                  </tfParameters>
+               </tab>
+            </tab>
+         </card>
+         <card id="EPM_CA_3" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_dashboard.svg" uiType="FUSE" label="Dashboards" tabOrientation="V" refObjectDefId="DASHBOARDS" refNodeId="" refFlowName="" internalID="OCF.DASHBOARDS">
+            <tab horizontalTabIcon="" id="EPM_TA_70" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_task.svg" uiType="FUSE" label="Dashboards" refObjectDefId="DASHBOARDS_TF" refNodeId="" refFlowName="" internalID="OCF.DASHBOARDS.DASHBOARDS_TF">
+               <tfParameters>
+                  <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="Application" listValueIsLabel="false" value="#{pageFlowScope.Application}" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+                  <tfParameter artifactUID="" valueTypeClass="java.lang.Integer" name="dashboardType" listValueIsLabel="false" value="1" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+               </tfParameters>
+            </tab>
+         </card>
+         <card id="EPM_CA_4" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_form.svg" uiType="FUSE" label="Data" tabOrientation="V" refObjectDefId="FUSEFORMMGMT" refNodeId="" refFlowName="" internalID="PBCS.FUSEFORMMGMT">
+            <tab horizontalTabIcon="" id="EPM_TA_71" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_table_cube.svg" uiType="FUSE" label="Data" refObjectDefId="FUSE_FORM_MANAGEMENT_TF" refNodeId="" refFlowName="" internalID="PBCS.FUSEFORMMGMT.FUSE_FORM_MANAGEMENT_TF">
+               <tfParameters>
+                  <tfParameter artifactUID="" valueTypeClass="java.lang.Integer" name="folderId" listValueIsLabel="false" value="" artifactName="Forms" valueType="SIMPLE" isEncoded="N"/>
+                  <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="Application" listValueIsLabel="false" value="#{pageFlowScope.Application}" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+                  <tfParameter artifactUID="" valueTypeClass="java.lang.Integer" name="formId" listValueIsLabel="false" value="-1" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+                  <tfParameter artifactUID="" valueTypeClass="java.lang.Integer" name="FormType" listValueIsLabel="false" value="-1" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+               </tfParameters>
+            </tab>
+         </card>
+         <card id="EPM_CA_5" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_rule.svg" uiType="FUSE" label="Rules" tabOrientation="V" refObjectDefId="RULES" refNodeId="" refFlowName="" internalID="OCF.RULES">
+            <tab horizontalTabIcon="" id="EPM_TA_72" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_activity_stream.svg" uiType="FUSE" label="Rules" refObjectDefId="RULES_TF" refNodeId="" refFlowName="" internalID="OCF.RULES.RULES_TF">
+               <tfParameters>
+                  <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="Application" listValueIsLabel="false" value="#{pageFlowScope.Application}" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+               </tfParameters>
+            </tab>
+         </card>
+         <card id="EPM_CA_6" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_reports.svg" uiType="FUSE" label="Reports" tabOrientation="V" refObjectDefId="REPORTS" refNodeId="" refFlowName="" internalID="OCF.REPORTS">
+            <tab horizontalTabIcon="" id="EPM_TA_73" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_reports.svg" uiType="FUSE" label="Reports" refObjectDefId="MR_REPORTS_TF" refNodeId="" refFlowName="" internalID="OCF.MR_REPORTS_TF">
+               <tfParameters>
+                  <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="Application" listValueIsLabel="false" value="#{pageFlowScope.Application}" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+               </tfParameters>
+            </tab>
+         </card>
+         <card id="EPM_CA_61" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_financial_reports.svg" uiType="FUSE" label="Financial Reports" tabOrientation="" refObjectDefId="FR_REPORTS" refNodeId="" refFlowName="" internalID="PBCS.FR_REPORTS">
+            <tab horizontalTabIcon="" id="EPM_TA_74" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_financial_reports.svg" uiType="FUSE" label="Financial Reports" refObjectDefId="FR_REPORTS_TF" refNodeId="" refFlowName="" internalID="OCF.REPORTS.FR_REPORTS_TF">
+               <tfParameters>
+                  <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="Application" listValueIsLabel="false" value="#{pageFlowScope.Application}" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+               </tfParameters>
+            </tab>
+         </card>
+         <card id="EPM_CA_62" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_docs_detail.svg" uiType="FUSE" label="Documents" tabOrientation="" refObjectDefId="DOCUMENTS" refNodeId="" refFlowName="" internalID="PBCS.DOCUMENTS">
+            <tab horizontalTabIcon="" id="EPM_TA_75" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_docs_detail.svg" uiType="FUSE" label="Documents" refObjectDefId="DOCUMENTS_TF" refNodeId="" refFlowName="" internalID="OCF.REPORTS.DOCUMENTS_TF">
+               <tfParameters>
+                  <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="Application" listValueIsLabel="false" value="#{pageFlowScope.Application}" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+               </tfParameters>
+            </tab>
+         </card>
+         <card id="EPM_CA_7" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_jobs.svg" uiType="FUSE" label="Jobs" tabOrientation="V" refObjectDefId="JOBS" refNodeId="" refFlowName="" internalID="OCF.JOBS">
+            <tab horizontalTabIcon="" id="EPM_TA_76" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_jobs.svg" uiType="FUSE" label="Jobs" refObjectDefId="JOB_LISTING_TF" refNodeId="" refFlowName="" internalID="OCF.CONSOLE.JOB_LISTING_TF">
+               <tfParameters>
+                  <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="Application" listValueIsLabel="false" value="#{pageFlowScope.Application}" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+               </tfParameters>
+            </tab>
+         </card>
+         <card id="EPM_CA_58" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_analysis.svg" uiType="FUSE" label="Analysis" tabOrientation="" refObjectDefId="CUSTOM_CARD" refNodeId="" refFlowName="" internalID="CUSTOM">
+            <tab horizontalTabIcon="navi_form_designer.svg" id="EPM_TA_145" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_task.svg" uiType="FUSE" label="Overview" refObjectDefId="EFS_CHILD_TABS_TF" refNodeId="" refFlowName="" internalID="CUSTOM">
+               <tab horizontalTabIcon="navi_form_designer.svg" id="EPM_TA_150" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_task.svg" uiType="FUSE" label="Daily Analysis by Entity" refObjectDefId="DASHBOARDS_RT_TF" refNodeId="" refFlowName="" internalID="CUSTOM">
+                  <tfParameters>
+                     <tfParameter artifactUID="107~~~OCF_Reporting Daily Analysis by Entity" valueTypeClass="java.lang.Integer" name="formId" listValueIsLabel="false" artifactName="OCF_Reporting Daily Analysis by Entity" valueType="SIMPLE" isEncoded="N"/>
+                  </tfParameters>
+               </tab>
+               <tab horizontalTabIcon="navi_form_designer.svg" id="EPM_TA_152" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_task.svg" uiType="FUSE" label="Periodic Analysis by Entity" refObjectDefId="DASHBOARDS_RT_TF" refNodeId="" refFlowName="" internalID="CUSTOM">
+                  <tfParameters>
+                     <tfParameter artifactUID="107~~~OCF_Reporting Periodic Analysis by Entity" valueTypeClass="java.lang.Integer" name="formId" listValueIsLabel="false" artifactName="OCF_Reporting Periodic Analysis by Entity" valueType="SIMPLE" isEncoded="N"/>
+                  </tfParameters>
+               </tab>
+            </tab>
+         </card>
+         <card id="EPM_CA_8" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_sub_dashboards.svg" uiType="FUSE" label="Infolets" tabOrientation="V" refObjectDefId="INFOLETS" refNodeId="" refFlowName="" internalID="OCF.INFOLETS">
+            <tab horizontalTabIcon="" id="EPM_TA_77" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_task.svg" uiType="FUSE" label="Infolets" refObjectDefId="INFOLETS_TF" refNodeId="" refFlowName="" internalID="OCF.INFOLETS.INFOLETS_TF">
+               <tfParameters>
+                  <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="Application" listValueIsLabel="false" value="#{pageFlowScope.Application}" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+                  <tfParameter artifactUID="" valueTypeClass="java.lang.Integer" name="dashboardType" listValueIsLabel="false" value="2" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+               </tfParameters>
+            </tab>
+         </card>
+         <card id="EPM_CA_9" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_approval.svg" uiType="FUSE" label="Approvals" tabOrientation="V" refObjectDefId="APPROVALS" refNodeId="" refFlowName="" internalID="OCF.APPROVALS">
+            <tab horizontalTabIcon="" id="EPM_TA_78" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_directory.svg" uiType="FUSE" label="Approvals" refObjectDefId="APPROVALS_TF" refNodeId="" refFlowName="" internalID="OCF.APPROVALS.APPROVALS_TF">
+               <tfParameters>
+                  <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="Application" listValueIsLabel="false" value="#{pageFlowScope.Application}" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+               </tfParameters>
+            </tab>
+         </card>
+         <cardCluster id="EPM_CL_3" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_tools.svg" uiType="FUSE" label="Tools" refObjectDefId="CUSTOM_CLUSTER" refNodeId="" refFlowName="" internalID="OCF.TOOLS">
+            <card id="EPM_CA_22" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_navigation_flow.svg" uiType="FUSE" label="Navigation Flows" tabOrientation="V" refObjectDefId="STRUCTURE" refNodeId="" refFlowName="" internalID="OCF.TOOLS.STRUCTURE">
+               <tab horizontalTabIcon="" id="EPM_TA_101" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="N" isClassicUI="N" icon="navi_navigation_flow.svg" uiType="FUSE" label="Navigation Flows" refObjectDefId="STRUCTURE_DT" refNodeId="" refFlowName="" internalID="OCF.SETTINGS.STRUCTURE_LISTING_TF"/>
+            </card>
+            <card id="EPM_CA_28" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_user_preference.svg" uiType="FUSE" label="User Preferences" tabOrientation="V" refObjectDefId="USER_PREFS_JET" refNodeId="" refFlowName="" internalID="OCF.TOOLS.USER_PREFERENCES">
+               <tab horizontalTabIcon="" id="EPM_TA_112" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_user_preference.svg" uiType="FUSE" label="User Preferences" refObjectDefId="USER_PREFS_JET_TF" refNodeId="" refFlowName="" internalID="OCF.TOOLS.USER_PREFERENCES_TAB">
+                  <tfParameters>
+                     <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="Application" listValueIsLabel="false" value="#{pageFlowScope.Application}" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+                  </tfParameters>
+               </tab>
+            </card>
+         </cardCluster>
+         <card id="EPM_CA_29" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_academy.svg" uiType="FUSE" label="Academy" tabOrientation="V" refObjectDefId="ACADEMY" refNodeId="" refFlowName="" internalID="OCF.ACADEMY">
+            <tab horizontalTabIcon="" id="EPM_TA_113" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_docs_detail.svg" uiType="FUSE" label="Academy" refObjectDefId="ACADEMY_TF" refNodeId="" refFlowName="" internalID="OCF.ACADEMY.ACADEMY_TF">
+               <tfParameters>
+                  <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="Application" listValueIsLabel="false" value="#{pageFlowScope.Application}" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+               </tfParameters>
+            </tab>
+         </card>
+         <cardCluster id="EPM_CL_7" isHidden="N" canChangeHidden="Y" isClassicUI="Y" icon="navi_reports.svg" uiType="CLASSIC" label="Actions" refObjectDefId="CUSTOM_CLUSTER" refNodeId="" refFlowName="" internalID="OCF.ACTIONS">
+            <card id="EPM_CA_43" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_task.svg" uiType="FUSE" label="Clear Cell Details" tabOrientation="" refObjectDefId="CUSTOM_CARD" refNodeId="" refFlowName="" internalID="OCF.MANAGE.CLEAR_CELL_DETAILS">
+               <tab horizontalTabIcon="" id="EPM_TA_127" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="" uiType="FUSE" label="Clear Cell Details" refObjectDefId="CLEAR_CELL_DETAILS_CTF" refNodeId="" refFlowName="" internalID="OCF.MANAGE.CLEAR_CELL_DETAILS.TAB">
+                  <tfParameters>
+                     <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="launchFromNavContext" listValueIsLabel="false" value="Y" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+                  </tfParameters>
+               </tab>
+            </card>
+            <card id="EPM_CA_44" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_task.svg" uiType="FUSE" label="Copy Data" tabOrientation="" refObjectDefId="CUSTOM_CARD" refNodeId="" refFlowName="" internalID="OCF.MANAGE.COPY_DATA">
+               <tab horizontalTabIcon="" id="EPM_TA_128" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="" uiType="FUSE" label="Copy Data" refObjectDefId="COPY_DATA_CTF" refNodeId="" refFlowName="" internalID="OCF.MANAGE.COPY_DATA.TAB">
+                  <tfParameters>
+                     <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="launchFromNavContext" listValueIsLabel="false" value="Y" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+                  </tfParameters>
+               </tab>
+            </card>
+            <card id="EPM_CA_45" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_task.svg" uiType="FUSE" label="Copy Versions" tabOrientation="" refObjectDefId="CUSTOM_CARD" refNodeId="" refFlowName="" internalID="OCF.MANAGE.COPY_VERSIONS">
+               <tab horizontalTabIcon="" id="EPM_TA_129" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="" uiType="FUSE" label="Copy Versions" refObjectDefId="COPY_VERSION_CTF" refNodeId="" refFlowName="" internalID="OCF.MANAGE.COPY_VERSIONS.TAB">
+                  <tfParameters>
+                     <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="launchFromNavContext" listValueIsLabel="false" value="Y" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+                  </tfParameters>
+               </tab>
+            </card>
+         </cardCluster>
+         <cardCluster id="EPM_CL_12" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_intelligence.svg" uiType="FUSE" label="IPM" refObjectDefId="CUSTOM_CLUSTER" refNodeId="" refFlowName="" internalID="OCF.IPM">
+            <card id="EPM_CA_56" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_solutions.svg" uiType="FUSE" label="Insights" tabOrientation="" refObjectDefId="INSIGHTS" refNodeId="" refFlowName="" internalID="OCF.IPM.INSIGHTS">
+               <tab horizontalTabIcon="" id="EPM_TA_256" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_solutions.svg" uiType="FUSE" label="Insights" refObjectDefId="EFS_CHILD_TABS_TF" refNodeId="" refFlowName="" internalID="IPM_CLUSTER.INSIGHTS_WRAPPER">
+                  <tab horizontalTabIcon="" id="EPM_TA_139" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_solutions.svg" uiType="FUSE" label="Insights" refObjectDefId="INSIGHTS_TF" refNodeId="" refFlowName="" internalID="OCF.IPM.INSIGHTS_TF">
+                     <tfParameters>
+                        <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="pageType" listValueIsLabel="false" value="insightlisting" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+                        <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="Application" listValueIsLabel="false" value="#{pageFlowScope.Application}" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+                        <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="insightId" listValueIsLabel="false" value="#{pageFlowScope.insightId}" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+                     </tfParameters>
+                  </tab>
+                  <tab horizontalTabIcon="" id="EPM_TA_257" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_solutions.svg" uiType="FUSE" label="Summary" refObjectDefId="IPM_INS_SUMMARY_TF" refNodeId="" refFlowName="" internalID="OCF.IPM.IPM_INS_SUMMARY_TF">
+                     <tfParameters>
+                        <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="Application" listValueIsLabel="false" value="#{pageFlowScope.Application}" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+                     </tfParameters>
+                  </tab>
+               </tab>
+            </card>
+            <card id="EPM_CA_59" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_data_map.svg" uiType="FUSE" label="ML Models" tabOrientation="" refObjectDefId="MLMODELS" refNodeId="" refFlowName="" internalID="OCF.MLMODELS">
+               <tab horizontalTabIcon="" id="EPM_TA_157" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_data_map.svg" uiType="FUSE" label="MLModels" refObjectDefId="MLMODELS_TF" refNodeId="" refFlowName="" internalID="OCF.MLMODELS.MLMODELS_TF">
+                  <tfParameters>
+                     <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="Application" listValueIsLabel="false" value="#{pageFlowScope.Application}" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+                  </tfParameters>
+               </tab>
+            </card>
+            <card id="EPM_CA_60" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_talent.svg" uiType="FUSE" label="Tags" tabOrientation="" refObjectDefId="TAGS" refNodeId="" refFlowName="" internalID="OCF.IPM.TAGS">
+               <tab horizontalTabIcon="" id="EPM_TA_158" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_talent.svg" uiType="FUSE" label="Tags" refObjectDefId="TAGS_TF" refNodeId="" refFlowName="" internalID="OCF.IPM.TAGS_TF">
+                  <tfParameters>
+                     <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="Application" listValueIsLabel="false" value="#{pageFlowScope.Application}" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+                  </tfParameters>
+               </tab>
+            </card>
+            <card id="EPM_CA_70" isHidden="N" canChangeHidden="Y" isClassicUI="N" icon="navi_settings.svg" uiType="FUSE" label="Settings" tabOrientation="" refObjectDefId="IPM_SETTINGS" refNodeId="" refFlowName="" internalID="OCF.IPM.SETTINGS">
+               <tab horizontalTabIcon="" id="EPM_TA_191" isHidden="N" cannotReferenceRemotely="N" canChangeHidden="Y" isClassicUI="N" icon="navi_operational_effectiveness.svg" uiType="FUSE" label="Settings" refObjectDefId="IPM_SETTINGS_TF" refNodeId="" refFlowName="" internalID="OCF.IPM.SETTINGS_TF">
+                  <tfParameters>
+                     <tfParameter artifactUID="" valueTypeClass="java.lang.String" name="Application" listValueIsLabel="false" value="#{pageFlowScope.Application}" artifactName="" valueType="SIMPLE" isEncoded="N"/>
+                  </tfParameters>
+               </tab>
+            </card>
+         </cardCluster>
+      </category>
+   </categories>
+</fuseStructureUsage>]]></usageXML> <upgradeScriptXML><![CDATA[<?xml version = '1.0' encoding = 'UTF-8'?>
+<StructureUpgradeDetails>
+   <update batchId="21">
+      <changeDef structureName="Default"/>
+   </update>
+   <update batchId="22">
+      <changeDef structureName="Default" categoryId="OCF" changeType="ADD" objectType="CARD" id="EPM_CA_60" parentId="EPM_CL_12" addAfterId="EPM_CA_59"/>
+   </update>
+   <update batchId="23">
+      <changeDef structureName="Default"/>
+   </update>
+   <update batchId="24">
+      <changeDef structureName="Default"/>
+   </update>
+   <update batchId="25">
+      <changeDef structureName="Default"/>
+   </update>
+   <update batchId="26">
+      <changeDef structureName="Default"/>
+   </update>
+   <update batchId="27">
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_139" parentId="EPM_CA_56"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_256" parentId="EPM_CA_56"/>
+   </update>
+   <update batchId="28">
+      <changeDef structureName="Admin" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_74" parentId="EPM_CA_6"/>
+      <!-- Financial Reports -->
+      <changeDef structureName="Controller" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_74" parentId="EPM_CA_6"/>
+      <!-- Financial Reports -->
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_74" parentId="EPM_CA_6"/>
+      <!-- Financial Reports -->
+   </update>
+   <update batchId="29">
+      <changeDef structureName="Admin" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_75" parentId="EPM_CA_6"/>
+      <!-- Documents -->
+      <changeDef structureName="Controller" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_75" parentId="EPM_CA_6"/>
+      <!-- Documents -->
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_75" parentId="EPM_CA_6"/>
+      <!-- Documents -->
+   </update>
+   <update batchId="30">
+      <changeDef structureName="Admin" categoryId="OCF" changeType="ADD" objectType="CARD" id="EPM_CA_61" parentId="" addAfterId="EPM_CA_6"/>
+      <!-- Separate Financial Reports card -->
+      <changeDef structureName="Admin" categoryId="OCF" changeType="ADD" objectType="CARD" id="EPM_CA_62" parentId="" addAfterId="EPM_CA_61"/>
+      <!-- Separate Documents card -->
+      <changeDef structureName="Controller" categoryId="OCF" changeType="ADD" objectType="CARD" id="EPM_CA_61" parentId="" addAfterId="EPM_CA_6"/>
+      <!-- Separate Financial Reports card -->
+      <changeDef structureName="Controller" categoryId="OCF" changeType="ADD" objectType="CARD" id="EPM_CA_62" parentId="" addAfterId="EPM_CA_61"/>
+      <!-- Separate Documents card -->
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="CARD" id="EPM_CA_61" parentId="" addAfterId="EPM_CA_6"/>
+      <!-- Separate Financial Reports card -->
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="CARD" id="EPM_CA_62" parentId="" addAfterId="EPM_CA_61"/>
+      <!-- Separate Documents card -->
+   </update>
+   <update batchId="31">
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_21" parentId="EPM_CA_1"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_24" parentId="EPM_CA_1"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_34" parentId="EPM_CA_1"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_163" parentId="EPM_CA_1" addAfterId="EPM_TA_141"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_164" parentId="EPM_TA_163"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_34" parentId="EPM_TA_163"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_160" parentId="EPM_TA_141" addAfterId="EPM_TA_142"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_159" parentId="EPM_TA_141" addAfterId="EPM_TA_142"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_11" parentId="EPM_TA_8"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_184" parentId="EPM_TA_8"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_10" parentId="EPM_TA_8"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_168" parentId="EPM_TA_8"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_9" parentId="EPM_TA_8"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_167" parentId="EPM_TA_8"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_20" parentId="EPM_TA_12"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_185" parentId="EPM_TA_12"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_19" parentId="EPM_TA_12"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_175" parentId="EPM_TA_12"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_18" parentId="EPM_TA_12"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_174" parentId="EPM_TA_12"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_17" parentId="EPM_TA_12"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_173" parentId="EPM_TA_12"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_16" parentId="EPM_TA_12"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_172" parentId="EPM_TA_12"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_15" parentId="EPM_TA_12"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_171" parentId="EPM_TA_12"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_14" parentId="EPM_TA_12"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_170" parentId="EPM_TA_12"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_13" parentId="EPM_TA_12"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_169" parentId="EPM_TA_12"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_56" parentId="EPM_CA_2"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_59" parentId="EPM_CA_2"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_69" parentId="EPM_CA_2"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_165" parentId="EPM_CA_2" addAfterId="EPM_TA_143"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_189" parentId="EPM_TA_165"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_166" parentId="EPM_TA_165"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_69" parentId="EPM_TA_165"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_162" parentId="EPM_TA_143" addAfterId="EPM_TA_144"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_161" parentId="EPM_TA_143" addAfterId="EPM_TA_144"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_46" parentId="EPM_TA_43"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_186" parentId="EPM_TA_43"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_45" parentId="EPM_TA_43"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_177" parentId="EPM_TA_43"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_44" parentId="EPM_TA_43"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_176" parentId="EPM_TA_43"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_55" parentId="EPM_TA_47"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_187" parentId="EPM_TA_47"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_54" parentId="EPM_TA_47"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_188" parentId="EPM_TA_47"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_53" parentId="EPM_TA_47"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_183" parentId="EPM_TA_47"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_52" parentId="EPM_TA_47"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_182" parentId="EPM_TA_47"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_51" parentId="EPM_TA_47"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_181" parentId="EPM_TA_47"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_50" parentId="EPM_TA_47"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_180" parentId="EPM_TA_47"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_49" parentId="EPM_TA_47"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_179" parentId="EPM_TA_47"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="DELETE" objectType="TAB" id="EPM_TA_48" parentId="EPM_TA_47"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="TAB" id="EPM_TA_178" parentId="EPM_TA_47"/>
+   </update>
+   <update batchId="32">
+      <changeDef structureName="Admin" categoryId="OCF" changeType="UPDATE" objectType="TAB" id="EPM_TA_97">
+         <updateProperty name="label" oldValue="Manage Application Roles" newValue="Manage Granular Roles"/>
+      </changeDef>
+   </update>
+   <update batchId="33">
+      <changeDef structureName="Admin" categoryId="OCF" changeType="ADD" objectType="CARD" id="EPM_CA_70" parentId="EPM_CL_12" addAfterId="EPM_CA_60"/>
+      <changeDef structureName="Controller" categoryId="OCF" changeType="ADD" objectType="CARD" id="EPM_CA_70" parentId="EPM_CL_12" addAfterId="EPM_CA_60"/>
+      <changeDef structureName="Cash Manager" categoryId="OCF" changeType="ADD" objectType="CARD" id="EPM_CA_70" parentId="EPM_CL_12" addAfterId="EPM_CA_60"/>
+   </update>
+</StructureUpgradeDetails>]]></upgradeScriptXML></fuseStructure>

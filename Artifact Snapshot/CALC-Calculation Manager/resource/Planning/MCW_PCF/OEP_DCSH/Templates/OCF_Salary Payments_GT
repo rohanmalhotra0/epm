@@ -1,0 +1,396 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<HBRRepo><variables/><rulesets/><rules/><components/><deployobjects><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="1" obj_type="19" name="OCF_SALARY PAYMENTS_GT"/></deployobjects><templates><template custom="yes" id="1" name="OCF_Salary Payments_GT" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><property name="standAlone">false</property><script type="groovy">	    /***
+		 * Calculate Salary Payments using mile stone dates and pay term percentages.
+		 * @param cube, scenario, version, entity will be passed from form context.
+		 * @param  startperiod  and end periods, Daily, weekly and Monthly first and last period of corresponding period dimension.
+		 * @param fixParallelDim  - name of the dimension on which fix parallel to be applied.
+		 * @return  - returns calculation script to compute Salary payments, populate results into rolling forecast screen based on forecast method settings, and calculation logic to compute opening balance.
+		 * Additional Notes
+		 *		1. Groovy script generates calc script based on the request type, if request comes onsave rule, script generated on specific intersection, if request is coming from rules, card script runs 
+		 *		for all intersection, if request is coming from DM, request gets executed for specific date.
+		 *	 	2. Based on fix parallel dimension, logic gets aligned accordingly
+		 *		3. For daily model Period dimension has 366 days, Logic excludes Feb 29 for non-leap years
+		 *		4. Salary Basis- Monthly Salary Incidence - End of Period, Annual Salary/12 and posted on last date of the month.
+		 *		5. Salary Basis- Monthly Salary Incidence - End of Period, Annual Salary/12 and posted on First date of the month.
+		 *		6. Salary Basis- Monthly Salary Incidence - SemiMonthly, Annual Salary/24 and posted on the 15th and End date of the month.
+		 *		7. Salary Basis- Monthly Salary Incidence - Bi Weekly, Annual Salary/24 and posted on every 14 days.
+		 *		8. Salary Basis- Annual  Annual Payment Due Date, Annual Salary amount gets posted on specific date.
+		 *		9. Pay terms will be applied from above posted date.
+		 *		10. For Bi weekly, exception logic is written to identify correct posting period.
+		 *		11. Once payterms are calculated, based on the drivers setting, numbers will copied from cash drivers to forecast.
+		 *		12. Opening balance is recomputed.
+		 **/
+	   String calculateSalarayPayments(Cube cashFlowCube,String scenarioMember,String versionMember,String entityMember,String startPeriod,String endPeriod,String fixParallelDim, int totalPeriods, String periodRollup,String mbrSalaryBasis,String flexDim1Member,String flexDim2Member,String flexDim3Member,String partyMember,String buMember,String prjMember,String currencyMember)
+		{
+				String fixParalleFixStmt,calcCopyString,calcOpenBal,catStartFix,catEndFix;
+				boolean chkEntityIsFixParallel=false,chkCategoryFixParallel=false;
+				String  lineItemsMemberGroup='ILvl0Descendants("OCF_Total Salary Payments")';
+				String yearOne,yearTwo,yearThree,noFixMembersJoinStr,entityBeginStr,entityEndStr,finalCalc,clrInstallements;
+				String payTermCalculationStrForYearOneandTwo,payTermCalculationStrForYearTwoandThree,yearOneFinalCalc,yearTwoFinalCalc
+				StringBuilder cscript = new StringBuilder();									
+				List&lt;String> fixMembers = new ArrayList&lt;String>();
+				List&lt;String> noFixMembers = new ArrayList&lt;String>();
+				String fixMembersJoin;
+				String calcString;	
+				String fixCategory,aggCategory;	
+				String calcBiWeekly;
+				String flexDim1Name = "flexDimension1";
+				String flexDim2Name = "flexDimension2";
+				String flexDim3Name = "flexDimension3";
+				String currencyDimName="Currency";
+				String partyDimName="Party";
+				String buDimName="Business Unit";
+				String prjDimName="Category"
+				String forecastMethodDimName = "Forecast Method";
+				String yearDimName="Years"
+				String lineItemDimName="Line Item"
+				String bankDimName="Bank";
+				String entityDimName = "Entity";
+                String variableDeclarationForFixPrarallel ="";
+				String variableDeclaration ="";
+				String startFixParallel =""
+				String endFixParallel ="";				
+				def isflexDim1Enabled = "NoSalaryflexdim1" == "No flexDimension1"				
+				def isflexDim2Enabled = "NoSalaryflexdim2" == "No flexDimension2"				
+				def isflexDim3Enabled = "NoSalaryflexdim3" == "No flexDimension3"
+				def isPartyEnabled = "No Party" == "No Party"
+				def isBuEnabled = "No Business Unit" == "No Business Unit"
+				def isPrjEnabled = "No Category" == "No Category"						
+				Application application = operation.application;				
+				List&lt;String> payTerms=application.getDimension(forecastMethodDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("OCF_Total Cashflow")',cashFlowCube).collect{it.toString()};			
+				List&lt;String> lstYears=application.getDimension(yearDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("All Years")',cashFlowCube).collect{it.toString()};
+				String numOfPeriods = getNumberOfYears(cashFlowCube);
+				String currYear=getCurrentYear(cashFlowCube);	
+				String nextPeriod=getFirstForecastPeriod(cashFlowCube);
+				yearOne=currYear;
+				yearTwo=nextYear(yearOne,lstYears);
+				yearThree=nextYear(yearTwo,lstYears);
+				calcCopyString=populateFinalForecastMethod(cashFlowCube,scenarioMember,versionMember,entityMember,"OCF_Total Salary Payments",fixMembers);
+				calcOpenBal=calculateOpeningBalanceForOnsave(numOfPeriods,startPeriod,endPeriod,"OCF_Forecasted");	
+				String variableString=getPreferedRangeVarialbeDeclaration();
+				String varialStringForFixParallel=getPreferedRangeFixParllelVarialbeDeclaration();
+				fixParalleFixStmt='FIXPARALLEL (4,@RELATIVE("'+fixParallelDim+'",0))';	
+				if ( operation.hasGrid() ) fixParallelDim ="none";
+				if (fixParallelDim==entityDimName) chkEntityIsFixParallel=true;
+				if (fixParallelDim==prjDimName) chkCategoryFixParallel=true;
+				if (fixParallelDim==partyDimName)  partyDimName="NoDimension";
+				if (fixParallelDim==flexDim1Name)  flexDim1Name="NoDimension";
+				if (fixParallelDim==flexDim2Name) flexDim2Name="NoDimension";				
+				if (fixParallelDim==flexDim3Name) flexDim3Name="NoDimension";
+				populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim1Name,flexDim1Member,isflexDim1Enabled,fixMembers);
+				populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim2Name,flexDim2Member,isflexDim2Enabled,fixMembers);
+				populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim3Name,flexDim3Member,isflexDim3Enabled,fixMembers);
+				populateFixMembersPostDimCheckForStdDim(cashFlowCube,partyDimName,partyMember,isPartyEnabled,fixMembers);
+				populateFixMembersPostDimCheckForStdDim(cashFlowCube,buDimName,buMember,isBuEnabled,fixMembers);
+				fixCategory=getFixOfCategoryDimension(cashFlowCube,prjDimName,prjMember,isPrjEnabled)
+				aggCategory=getAggOfCategoryDimension(cashFlowCube,prjDimName,prjMember,isPrjEnabled)
+				catStartFix= """ FIX($fixCategory) """
+				catEndFix =""" ENDFIX """
+				addCurrency(fixMembers,currencyMember);
+				addNoCurrency(noFixMembers);
+				if(operation.application.hasDimension(bankDimName, cashFlowCube))
+				{
+					noFixMembers.add('"OEP_Any '+bankDimName+'"');
+					fixMembers.add('"OEP_Any ' +bankDimName+'"');
+				}
+				if (totalPeriods == 366)
+				{
+					calcBiWeekly="""
+						IF (@CalcMgrIsLeapYear("OCF_Tp_date"))
+						    IF (@REMAINDER("OCF_Period Number"/14) == 0.0)
+								 MonthlySalaryDate="OCF_Tp_date";
+							 ENDIF;
+						ELSE
+							FirstMonth=@INT(("OCF_Tp_date"->"OEP_Day1" - (@INT("OCF_Tp_date"->"OEP_Day1"/10000 )*10000 ))/100 );
+							IF (FirstMonth == 1)
+								LeapDayNumber = 60;
+							ELSEIF(FirstMonth == 2)
+								LeapDayNumber = 29;
+							ELSEIF(FirstMonth == 3)
+								LeapDayNumber = 366;
+							ELSEIF(FirstMonth == 4)
+								LeapDayNumber = 335;
+							ELSEIF(FirstMonth == 5)
+								LeapDayNumber = 305;
+							ELSEIF(FirstMonth == 6)
+								LeapDayNumber = 274;
+							ELSEIF(FirstMonth == 7)
+								LeapDayNumber = 244;
+							ELSEIF(FirstMonth == 8)
+								LeapDayNumber = 213;
+							ELSEIF(FirstMonth == 9)
+								LeapDayNumber = 182;
+							ELSEIF(FirstMonth == 10)
+								LeapDayNumber = 152;
+							ELSEIF(FirstMonth == 11)
+								LeapDayNumber = 121;
+							ELSE
+								LeapDayNumber = 91;	
+							ENDIF;
+							IF (("OCF_Period Number">LeapDayNumber))
+								IF (@REMAINDER(("OCF_Period Number"-1)/14) == 0.0)
+									MonthlySalaryDate="OCF_Tp_date";
+								ENDIF;
+							ELSE
+								 IF (@REMAINDER("OCF_Period Number"/14) == 0.0)
+									MonthlySalaryDate="OCF_Tp_date";
+								ENDIF;
+							ENDIF;
+								
+						ENDIF;	
+							"""
+				}				
+				else if ((totalPeriods==52) || (totalPeriods==53))
+				{
+					calcBiWeekly="""
+						    IF (@REMAINDER("OCF_Period Number"/2) == 0.0)
+								 MonthlySalaryDate="OCF_Tp_date";
+							 ENDIF;								
+							"""
+				}
+				else
+				{
+					calcBiWeekly ="""
+						MonthlySalaryDate=(@INT("OCF_Tp_date"/100 )*100 )+01;
+					"""
+				}	
+				noFixMembersJoinStr=noFixMembers.join("->");
+				fixMembersJoin=fixMembers.join(",");
+				entityBeginStr =(chkEntityIsFixParallel==true) ? fixParalleFixStmt : "FIX($entityMember)"
+				entityEndStr =(chkEntityIsFixParallel==true) ? "ENDFIXPARALLEL" : "ENDFIX"
+				payTermCalculationStrForYearOneandTwo=payTermCalculation(yearOne,yearTwo,noFixMembersJoinStr,payTerms,nextPeriod,startPeriod,endPeriod,"OCF_Annual Payment",totalPeriods).toString()
+				payTermCalculationStrForYearTwoandThree=payTermCalculation(yearTwo,yearThree,noFixMembersJoinStr,payTerms,startPeriod,startPeriod,endPeriod,"OCF_Annual Payment",totalPeriods).toString();
+				String salaryScript= """
+								 
+                                                	  IF (( "No Currency"->"$mbrSalaryBasis"->"Begbalance" == 1) )
+                                                          Month=@INT(("OCF_Tp_date" - (@INT("OCF_Tp_date"/10000 )*10000 ))/100 );
+                                                          IF ("No Currency"->"OCF_Salary Incidence"->"Begbalance" == 2)
+                                                                 MonthlySalaryDate=(@INT("OCF_Tp_date"/100 )*100 )+01;
+                                                          ELSEIF(("No Currency"->"OCF_Salary Incidence"->"Begbalance" == 3) AND (("OCF_Tp_date"-@INT("OCF_Tp_date"/100 )*100 )&lt;16 ) )
+																 MonthlySalaryDate=(@INT("OCF_Tp_date"/100 )*100 )+15;
+														  ELSEIF(("No Currency"->"OCF_Salary Incidence"->"Begbalance" == 4))																
+																$calcBiWeekly
+														  ELSE
+                                                            	IF(( Month==1 ) OR ( Month==3 ) OR ( Month==5 ) OR  ( Month==7 ) OR ( Month==8 ) OR ( Month==10) OR ( Month==12 ))
+                                                                  MonthlySalaryDate=(@INT("OCF_Tp_date"/100 )*100 )+31;
+																ENDIF;
+																IF ( ( Month==4 ) OR ( Month==6 ) OR ( Month==9 ) OR ( Month==11 ))
+																	MonthlySalaryDate=(@INT("OCF_Tp_date"/100 )*100 )+30;
+																ENDIF;
+																IF ( ( Month==2 ) )
+																	IF (@CalcMgrIsLeapYear("OCF_Tp_date"))
+																		MonthlySalaryDate=(@INT("OCF_Tp_date"/100 )*100 )+29;
+																	ELSE
+																		MonthlySalaryDate=(@INT("OCF_Tp_date"/100 )*100 )+28;
+																	ENDIF;               
+																ENDIF;
+																
+                                                            ENDIF;
+                                                          IF ((MonthlySalaryDate>="OCF_Tp_date")  AND (MonthlySalaryDate&lt;="OCF_Tp_EndDate"))
+                                                               IF (("No Currency"->"OCF_Pay Term1"->"OCF_Percentage"==#MISSING) AND ("No Currency"->"OCF_Pay Term1"->"OCF_Due Period"==#MISSING))
+                                                                 IF ("OCF_Cash Drivers"!=#MISSING) 
+																   "OCF_Pay Term1"="OCF_Pay Term1"+"OCF_Cash Drivers";
+																 ELSE
+																	IF(("No Currency"->"OCF_Salary Incidence"->"Begbalance" == 3) OR ("No Currency"->"OCF_Salary Incidence"->"Begbalance" == 4) )
+																		"OCF_Pay Term1"="OCF_Pay Term1"+"OCF_Cash Drivers"->"Begbalance"/24;
+																	ELSE
+																		"OCF_Pay Term1"="OCF_Pay Term1"+"OCF_Cash Drivers"->"Begbalance"/12;
+																	ENDIF;	
+																 ENDIF;	
+                                                               ELSE  
+																  IF ("OCF_Cash Drivers"!=#MISSING) 
+																	"OCF_Annual Payment"="OCF_Cash Drivers"; 
+																  ELSE
+																	IF(("No Currency"->"OCF_Salary Incidence"->"Begbalance" == 3) OR ("No Currency"->"OCF_Salary Incidence"->"Begbalance" == 4) )
+																		"OCF_Annual Payment"="OCF_Cash Drivers"->"Begbalance"/24;
+																	ELSE
+																		"OCF_Annual Payment"="OCF_Cash Drivers"->"Begbalance"/12;
+																	ENDIF;
+																  ENDIF;
+                                                               ENDIF;
+															ELSE   
+															  	IF (("No Currency"->"OCF_Pay Term1"->"OCF_Percentage"==#MISSING) AND ("No Currency"->"OCF_Pay Term1"->"OCF_Due Period"==#MISSING)  )
+                                                                      "OCF_Pay Term1"= "OCF_Pay Term1"+"OCF_Cash Drivers";
+                                                               ELSE   
+                                                                      "OCF_Annual Payment"="OCF_Cash Drivers";
+                                                               ENDIF;   
+                                                           ENDIF;                                                          
+                                                      ENDIF;
+                                                      
+                                                       IF ( "No Currency"->"$mbrSalaryBasis"->"Begbalance" == 2)
+                                                           IF (("No Currency"->"OCF_Annual Payment"->"Due Date">="OCF_Tp_date") AND  ("No Currency"->"OCF_Annual Payment"->"Due Date"&lt;="OCF_Tp_EndDate"))
+                                                               IF (("No Currency"->"OCF_Pay Term1"->"OCF_Percentage"==#MISSING) AND ("No Currency"->"OCF_Pay Term1"->"OCF_Due Period"==#MISSING)  )
+																	IF ("OCF_Cash Drivers"!=#MISSING) 		
+																		"OCF_Pay Term1"="OCF_Pay Term1"+"OCF_Cash Drivers";
+																	ELSE
+																		"OCF_Pay Term1"="OCF_Pay Term1"+"OCF_Cash Drivers"->"Begbalance";	
+																	ENDIF;
+                                                               ELSE   
+																	IF ("OCF_Cash Drivers"!=#MISSING) 
+                                                                      "OCF_Annual Payment"="OCF_Cash Drivers";
+																	ELSE
+																	  "OCF_Annual Payment"="OCF_Cash Drivers"->"Begbalance";
+																	ENDIF;		
+                                                               ENDIF;
+                                                           ELSE 
+                                                            	IF (("No Currency"->"OCF_Pay Term1"->"OCF_Percentage"==#MISSING) AND ("No Currency"->"OCF_Pay Term1"->"OCF_Due Period"==#MISSING)  )
+                                                                      "OCF_Pay Term1"="OCF_Pay Term1"+"OCF_Cash Drivers";
+                                                               ELSE   
+                                                                      "OCF_Annual Payment"="OCF_Cash Drivers";
+                                                               ENDIF;
+                                                           ENDIF;       
+                                                        ENDIF;                                                      
+													
+						"""
+				if(chkEntityIsFixParallel == true)
+				{
+				variableDeclarationForFixPrarallel="""
+							ThreadVar FirstMonth;
+							ThreadVar LeapDayNumber;		
+							ThreadVar Month;
+							ThreadVar MonthlySalaryDate;
+							$varialStringForFixParallel
+				"""
+				}
+				else
+                {
+				 if (!operation.application.hasDimension(fixParallelDim, cashFlowCube) )
+					  {	
+						variableDeclaration="""
+									Var FirstMonth;
+									Var LeapDayNumber;
+									Var Month;
+									Var MonthlySalaryDate;
+									$variableString
+						"""
+					 }
+                }                
+				if(operation.application.hasDimension(fixParallelDim, cashFlowCube) &amp;&amp; chkEntityIsFixParallel==false )
+				  {
+					  if (chkCategoryFixParallel==true)
+					 {
+						catStartFix="""$fixParalleFixStmt
+										ThreadVar FirstMonth;
+										ThreadVar LeapDayNumber;		
+										ThreadVar Month;
+										ThreadVar MonthlySalaryDate;
+										$varialStringForFixParallel	
+								      """	
+						 catEndFix = "ENDFIXPARALLEL"
+					 }
+					 else
+					 {
+						 startFixParallel="""$fixParalleFixStmt
+										ThreadVar FirstMonth;
+										ThreadVar LeapDayNumber;		
+										ThreadVar Month;
+										ThreadVar MonthlySalaryDate;
+										$varialStringForFixParallel	
+								      """	
+										  
+						 endFixParallel=""" ENDFIXPARALLEL   """
+					}					  		  
+				  }
+				 
+					yearOneFinalCalc= """	
+									"OCF_Cash Drivers"(
+											@CALCMODE(BOTTOMUP);
+												IF (@ISMBR("OCF_Cash Drivers"))
+														MonthlySalaryDate=#MISSING;
+														$salaryScript
+														$payTermCalculationStrForYearOneandTwo
+												ENDIF;  
+											) 		
+								                   
+					   """
+					yearTwoFinalCalc= """
+								"OCF_Cash Drivers"(
+											@CALCMODE(BOTTOMUP);
+												IF (@ISMBR("OCF_Cash Drivers"))
+														MonthlySalaryDate=#MISSING;
+														$salaryScript
+														$payTermCalculationStrForYearTwoandThree	
+												ENDIF;  
+											) 
+					   """  
+				 
+				 
+				  if (numOfPeriods=="2")
+				  {
+				   calcString="""	
+							SET UPDATECALC OFF;
+							SET AGGMISSG ON;
+							$variableDeclaration				   
+						    $entityBeginStr
+                            $variableDeclarationForFixPrarallel
+							  FIX( $scenarioMember,$fixMembersJoin)             	
+								$startFixParallel
+								$catStartFix
+									FIX("$yearOne", @Relative("OCF_Total Cashflow",0),@Relative("OCF_Total Salary Payments",0),$startPeriod:$endPeriod)
+										 ClearData "$versionMember";
+									ENDFIX
+									FIX("$yearTwo", @Relative("OCF_Total Cashflow",0),@Relative("OCF_Total Salary Payments",0),$startPeriod:$endPeriod)
+										 ClearData "$versionMember";
+									ENDFIX 
+									FIX("$versionMember")
+										FIX("$yearOne",@Relative("OCF_Total Salary Payments",0),@Relative("$periodRollup",0))
+											 $yearOneFinalCalc
+										ENDFIX						
+										FIX("$yearTwo",@Relative("OCF_Total Salary Payments",0),@Relative("$periodRollup",0))
+											 $yearTwoFinalCalc
+										ENDFIX 
+										$calcCopyString
+										$calcOpenBal	
+									ENDFIX
+								$catEndFix
+								FIX("$versionMember","$yearOne","$yearTwo",@Relative("OCF_Total Salary Payments",0),@Relative("$periodRollup",0),"OCF_Opening Balance",@Relative("OCF_Cash Flow Metrics",0),@Relative("OCF_All Forecast Method",0),@Relative("OCF_Total Forecasted Cash",0))
+									$aggCategory
+								ENDFIX
+								$endFixParallel
+							  ENDFIX 
+							  
+						   $entityEndStr   
+					 """ 
+					 cscript.append(calcString)  
+					
+					
+				  }
+				  else
+				  {
+				  
+				  calcString="""	
+							SET UPDATECALC OFF;
+							SET AGGMISSG ON;							
+							$variableDeclaration				  
+							$entityBeginStr
+                           	$variableDeclarationForFixPrarallel
+							FIX($scenarioMember,$fixMembersJoin)
+								$startFixParallel
+								$catStartFix	
+									FIX("$yearOne", @Relative("OCF_Total Cashflow",0), @Relative("OCF_Total Salary Payments",0),$startPeriod:$endPeriod)
+										ClearData "$versionMember";
+									ENDFIX 
+									FIX("$versionMember")	
+										FIX("$yearOne",@Relative("OCF_Total Salary Payments",0),@Relative("$periodRollup",0))
+											  $yearOneFinalCalc
+										ENDFIX
+										$calcCopyString
+										$calcOpenBal
+									ENDFIX	
+								$catEndFix	
+								FIX("$versionMember","$yearOne",@Relative("OCF_Total Salary Payments",0),@Relative("$periodRollup",0),"OCF_Opening Balance",@Relative("OCF_Cash Flow Metrics",0),@Relative("OCF_All Forecast Method",0),@Relative("OCF_Total Forecasted Cash",0))
+									$aggCategory
+								ENDFIX
+								$endFixParallel
+							ENDFIX          
+							
+						   $entityEndStr   
+					 """ 
+						cscript.append(calcString)  
+						
+					
+				  }							
+				return cscript.toString()	
+	}
+
+</script><template_wizard/><template_prompts><restricted_prompt name="Application Type" type="Application Type" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Generic</property><property name="value">GENERAL</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PFP</property><property name="value">PROJECT</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PSB</property><property name="value">PSB</property></restricted_prompt_item></restricted_prompt><restricted_prompt name="Application" type="Application" isPrompt="no"><property name="is_system">true</property><value>Is Single Currency</value><restricted_prompt_item><property name="prompt">Is Multi Currency</property><property name="value">multi</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Single Currency</property><property name="value">single</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Simple Currency</property><property name="value">simple</property></restricted_prompt_item></restricted_prompt><template_slice_prompt name="UpperPOV" type="Member Range" isPrompt="false"><property name="is_system">true</property></template_slice_prompt><restricted_prompt name="Essbase Mode" type="Essbase Mode" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Hybrid</property><property name="value">Hybrid</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is NonHybrid</property><property name="value">NonHybrid</property></restricted_prompt_item></restricted_prompt></template_prompts></template></templates></HBRRepo>

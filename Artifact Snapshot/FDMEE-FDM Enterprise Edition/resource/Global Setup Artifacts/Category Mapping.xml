@@ -1,0 +1,21 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<CategoryForLcmVO>
+   <CategoryForLcmVORow>
+      <Catname>Current</Catname>
+      <Catdesc null="true"/>
+      <Cattarget>Current</Cattarget>
+      <Catfreq>M</Catfreq>
+   </CategoryForLcmVORow>
+   <CategoryForLcmVORow>
+      <Catname>OEP_Scenarios</Catname>
+      <Catdesc null="true"/>
+      <Cattarget>OEP_Scenarios</Cattarget>
+      <Catfreq>M</Catfreq>
+   </CategoryForLcmVORow>
+   <CategoryForLcmVORow>
+      <Catname>PCF_Category</Catname>
+      <Catdesc>PCF_Category</Catdesc>
+      <Cattarget>PCF_Category</Cattarget>
+      <Catfreq>M</Catfreq>
+   </CategoryForLcmVORow>
+</CategoryForLcmVO>

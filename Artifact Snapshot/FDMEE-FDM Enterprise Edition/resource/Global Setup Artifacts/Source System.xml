@@ -1,0 +1,38 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<SourceSystemForLcmVO>
+   <SourceSystemForLcmVORow>
+      <SourceSystemName>EPM</SourceSystemName>
+      <SourceSystemType>EPM</SourceSystemType>
+      <OdiContextCode>GLOBAL</OdiContextCode>
+   </SourceSystemForLcmVORow>
+   <SourceSystemForLcmVORow>
+      <SourceSystemName>Data Source</SourceSystemName>
+      <SourceSystemType>DATASOURCE</SourceSystemType>
+      <OdiContextCode>GLOBAL</OdiContextCode>
+   </SourceSystemForLcmVORow>
+   <SourceSystemForLcmVORow>
+      <SourceSystemName>File</SourceSystemName>
+      <SourceSystemType>FILE</SourceSystemType>
+      <OdiContextCode>GLOBAL</OdiContextCode>
+   </SourceSystemForLcmVORow>
+   <SourceSystemForLcmVORow>
+      <SourceSystemName>PCF_Conn</SourceSystemName>
+      <SourceSystemDescription>MCW Dev1 ERP</SourceSystemDescription>
+      <SourceSystemType>FUSION_GL_CLOUD</SourceSystemType>
+      <OdiContextCode>GLOBAL</OdiContextCode>
+      <SourceSystemOptionsForLcmVO>
+         <SourceSystemOptionsForLcmVORow>
+            <OptionName>FUSION_GL_WEB_SERVICE_PWD</OptionName>
+            <OptionValue>{AES2}LAxl2851UpXc5tfySXM/E6oNUwRSVTZCC/wMBci4BT8=</OptionValue>
+         </SourceSystemOptionsForLcmVORow>
+         <SourceSystemOptionsForLcmVORow>
+            <OptionName>FUSION_GL_WEB_SERVICE_USER</OptionName>
+            <OptionValue>shubham.shinde2@ibm.com</OptionValue>
+         </SourceSystemOptionsForLcmVORow>
+         <SourceSystemOptionsForLcmVORow>
+            <OptionName>FUSION_GL_WEB_SERVICE_WSDL</OptionName>
+            <OptionValue>https://icibqy-dev1.fa.ocs.oraclecloud.com</OptionValue>
+         </SourceSystemOptionsForLcmVORow>
+      </SourceSystemOptionsForLcmVO>
+   </SourceSystemForLcmVORow>
+</SourceSystemForLcmVO>

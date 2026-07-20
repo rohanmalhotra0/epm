@@ -11,6 +11,8 @@ from ..config import get_settings
 from ..context import build_context, import_context_package, search_members
 from ..context.engine import environment_fingerprint
 from ..context.report_docx import DOCX_MIME, build_context_docx
+from ..context.report_pdf import PDF_MIME, build_context_pdf
+from ..context.report_md import MD_MIME, build_context_md
 from ..schemas.api import ContextVersionOut
 from ..services import context_store, projects
 from .deps import get_db, resolve_turn
@@ -79,6 +81,28 @@ def export_context_word(context_version_id: str, session: Session = Depends(get_
     except KeyError as exc:
         raise HTTPException(404, "context not found") from exc
     return Response(content=data, media_type=DOCX_MIME,
+                    headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+
+
+@router.get("/api/contexts/{context_version_id}/export.pdf")
+def export_context_pdf(context_version_id: str, session: Session = Depends(get_db)) -> Response:
+    """A beautifully formatted PDF report with diagrams and visualizations."""
+    try:
+        filename, data = build_context_pdf(session, context_version_id)
+    except KeyError as exc:
+        raise HTTPException(404, "context not found") from exc
+    return Response(content=data, media_type=PDF_MIME,
+                    headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+
+
+@router.get("/api/contexts/{context_version_id}/export.md")
+def export_context_markdown(context_version_id: str, session: Session = Depends(get_db)) -> Response:
+    """A Markdown report with Mermaid diagrams (GitHub-compatible)."""
+    try:
+        filename, content = build_context_md(session, context_version_id)
+    except KeyError as exc:
+        raise HTTPException(404, "context not found") from exc
+    return Response(content=content, media_type=MD_MIME,
                     headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
 

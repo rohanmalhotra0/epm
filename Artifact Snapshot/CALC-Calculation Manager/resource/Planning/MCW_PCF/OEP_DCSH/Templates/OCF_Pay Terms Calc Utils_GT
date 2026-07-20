@@ -1,0 +1,456 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<HBRRepo><variables/><rulesets/><rules/><components/><deployobjects><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="1" obj_type="19" name="OCF_PAY TERMS CALC UTILS_GT"/></deployobjects><templates><template custom="yes" id="1" name="OCF_Pay Terms Calc Utils_GT" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><property name="standAlone">false</property><script type="groovy">					/***
+					 *  Calculates pay terms of Driver input by multiplying with pay term percentage then posts into corresponding pay term buckets. Calculates pay terms for current and next year
+					 * @param yearOne,yearTwo - First and second year.
+					 * @param  noFixmembers - it is cross dim any /no members of each dimension, This is intersection where percentages are stored.
+					 * @param nextPeriod ,beginPeriod,lastperiod -  nextperiod of current running period, first and last period of application.
+					 * @param srcForecastMethod  - forecast method where driver data is loaded
+					 * @param totalPeriods  - Total number of periods - Example: Daily model 366, weekly model -52 or 53, Monthly model -12.
+					 * @return  - returns calculation script that computes pay terms.
+					 * Additional Notes: For daily model, Feb 29 is excluded for non leap years.
+					 **/
+  	   				def payTermCalculation(String yearOne, String yearTwo,String noFixMembers, List&lt;String> payTermList,String nextPeriod,String beginPeriod, String lastPeriod,String srcForecastMethod,int totalPeriods)
+					  {
+					  
+						def variableList = new StringBuilder()	
+						payTermList.each{ it ->
+								def currPayterm = it.toString()
+								def payTermPeriod="""$noFixMembers->"OCF_Due Period"->"$currPayterm" """
+								def payTermPercentage="""$noFixMembers->"OCF_Percentage"->"$currPayterm" """							 
+								def payTerm=it.toString();					 
+								def calcString ="""
+												IF (($payTermPeriod!=#MISSING) AND ("$srcForecastMethod"!=#MISSING))   
+												  IF ((("OCF_Period Number" + $payTermPeriod) &lt;= $totalPeriods) AND (("OCF_Period Number" + $payTermPeriod) >= "OCF_Period Number"->$nextPeriod)  )
+													IF (@CalcMgrIsLeapYear("OCF_Tp_date"))
+														@MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod"),$payTermPeriod+1)->"$payTerm"->$yearOne = @MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod"),$payTermPeriod+1)->"$payTerm"->$yearOne+"$srcForecastMethod" * $payTermPercentage;	  
+													ELSE
+														IF (( @MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod"),$payTermPeriod+1)->"OCF_Tp_date">(@INT("OCF_Tp_date"/10000 )*10000 )+200+28 ) AND ( "OCF_Tp_date"&lt;=(@INT("OCF_Tp_date"/10000 )*10000 )+200+28 ) AND ( "OCF_Tp_date" == "OCF_Tp_EndDate") )
+															@MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod"),$payTermPeriod+2)->"$payTerm"->$yearOne = @MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod"),$payTermPeriod+2)->"$payTerm"->$yearOne+"$srcForecastMethod" * $payTermPercentage;	
+														ELSE
+															@MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod"),$payTermPeriod+1)->"$payTerm"->$yearOne = @MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod"),$payTermPeriod+1)->"$payTerm"->$yearOne+"$srcForecastMethod" * $payTermPercentage;	
+														ENDIF;
+													ENDIF;
+												  ELSEIF (("OCF_Period Number" + $payTermPeriod) > $totalPeriods)													  
+													IF (@CalcMgrIsLeapYear("OCF_Tp_date"->$yearTwo->$beginPeriod))		
+														@MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod","$beginPeriod":"$lastPeriod"),$payTermPeriod+1)->"$payTerm"->$yearTwo =@MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod","$beginPeriod":"$lastPeriod"),$payTermPeriod+1)->"$payTerm"->$yearTwo+"$srcForecastMethod" * $payTermPercentage;
+													ELSE
+														IF (( @MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod","$beginPeriod":"$lastPeriod"),$payTermPeriod+1)->$yearTwo->"OCF_Tp_date">(@INT("OCF_Tp_date"->$yearTwo->$beginPeriod/10000 )*10000 )+200+28 ) AND ( "OCF_Tp_date" == "OCF_Tp_EndDate") AND ( @CURRMBR("Period")->"OCF_Year Number" &lt; @MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod","$beginPeriod":"$lastPeriod"),$payTermPeriod+1)->"OCF_Year Number"))
+															 @MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod","$beginPeriod":"$lastPeriod"),$payTermPeriod+2)->"$payTerm"->$yearTwo =@MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod","$beginPeriod":"$lastPeriod"),$payTermPeriod+1)->"$payTerm"->$yearTwo+"$srcForecastMethod" * $payTermPercentage;
+														ELSE
+															 @MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod","$beginPeriod":"$lastPeriod"),$payTermPeriod+1)->"$payTerm"->$yearTwo =@MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod","$beginPeriod":"$lastPeriod"),$payTermPeriod+1)->"$payTerm"->$yearTwo+"$srcForecastMethod" * $payTermPercentage;
+														ENDIF;
+													ENDIF;
+												  ENDIF;
+												ENDIF;
+									 """
+									variableList.append(calcString)					
+
+					  } 
+					   return variableList;
+				}
+
+				/***
+				 *  Searches for given year in the list of years and returns next year.
+				 *	 @param current Year
+				 * 	 @param  List of Years					 
+				 * 	@return  - returns next year from the current year.
+				 *  Additonal Notes : For daily model , Feb 29 excluded for non leap years.
+				 **/
+
+				String nextYear(String currentYear, List&lt;String> yearsList)
+				 {
+				  boolean chkCurrentMbr=false;
+				  String mbrName
+					yearsList.each{ it->
+						if (chkCurrentMbr==true)
+						{
+						   
+						 mbrName=it.toString();
+						 chkCurrentMbr=false;
+						}
+						if(it.toString().equals(currentYear))
+							{
+							chkCurrentMbr=true
+							}
+					}
+					return  mbrName;
+				 }
+				 /***
+				 *  Removes the string prior to . in the member name 
+				 *	@param member Name				 * 					 
+				 * 	@return  - returns true member name.
+				 *  Additonal Notes : 
+				 **/
+				 
+				 String removeParentFromShared(String memName)
+				{
+					return memName.tokenize('.')[1].replaceAll("\\[","").replaceAll("\\]","");
+				}
+				/***
+				 *  CalcualtesDays oustanding for both DSO and DPO  methods. 
+				 *	@param member Name
+				 *  @param  List of Years					 
+				 * 	@return  - returns DSO or DPO calcualtion script
+				 *  Additonal Notes : 
+				 *				1.Checks for AverDSO and DPO numbeer in the periods, if its not avaible fetches from begbalance.
+				 *				2.if application is monthly, devides DSO number by 30 , if applicaiton is weekly ,divides DSO number by 7.
+				 *				3.If there is posting on the target number, adds to existing value.								
+				 **/	
+				String calculateDayOutstanding(String yearOne, String yearTwo,String method,String noFixMembers,String nextPeriod,String beginPeriod, String lastPeriod,int totalPeriods)
+				{
+				   def calcString
+				   def calcstr = new StringBuilder()
+					if (totalPeriods==12)
+					{
+					  calcString ="""
+								  doPayTerm = @ROUND($noFixMembers->"$method"/30);
+									  if (doPayTerm == #Missing)
+									  doPayTerm = @ROUND("BegBalance"->$yearOne->$noFixMembers->"$method"/30);
+									  endif
+									  IF ((doPayTerm!=#Missing) and ("OCF_Cash Drivers" != #Missing))
+										if(("OCF_Period Number"+ doPayTerm &lt;= $totalPeriods) and (("OCF_Period Number" + doPayTerm) >= "OCF_Period Number"->$nextPeriod) )
+											@MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod","$beginPeriod":"$lastPeriod"),doPayTerm+1)->"OCF_Calculated Cashflow"->$yearOne = @MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod","$beginPeriod":"$lastPeriod"),doPayTerm+1)->"OCF_Calculated Cashflow"->$yearOne + "OCF_Cash Drivers" ;
+										elseif (("OCF_Period Number" + doPayTerm) > $totalPeriods)
+											@MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod","$beginPeriod":"$lastPeriod"),doPayTerm+1)->"OCF_Calculated Cashflow"->$yearTwo = @MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod","$beginPeriod":"$lastPeriod"),doPayTerm+1)->"OCF_Calculated Cashflow"->$yearTwo + "OCF_Cash Drivers" ;
+										endif;
+									 ENDIF;   
+								 """     
+					}
+					else if ((totalPeriods==52) || (totalPeriods==53))
+					{
+					calcString ="""
+								  doPayTerm = @Round($noFixMembers->"$method"/7);
+									  if (doPayTerm == #Missing)
+									  doPayTerm = @ROUND("BegBalance"->$yearOne->$noFixMembers->"$method"/7);
+									  endif
+									  IF ((doPayTerm!=#Missing) and ("OCF_Cash Drivers" != #Missing))
+										if(("OCF_Period Number"+ doPayTerm &lt;= $totalPeriods) and (("OCF_Period Number" + doPayTerm) >= "OCF_Period Number"->$nextPeriod) )
+											@MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod","$beginPeriod":"$lastPeriod"),doPayTerm+1)->"OCF_Calculated Cashflow"->$yearOne = @MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod","$beginPeriod":"$lastPeriod"),doPayTerm+1)->"OCF_Calculated Cashflow"->$yearOne + "OCF_Cash Drivers" ;
+										elseif (("OCF_Period Number" + doPayTerm) > $totalPeriods)
+											@MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod","$beginPeriod":"$lastPeriod"),doPayTerm+1)->"OCF_Calculated Cashflow"->$yearTwo = @MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod","$beginPeriod":"$lastPeriod"),doPayTerm+1)->"OCF_Calculated Cashflow"->$yearTwo + "OCF_Cash Drivers" ;
+										endif;
+									 ENDIF;   
+								 """     
+					}
+					else
+					{
+					 calcString ="""
+								  doPayTerm = $noFixMembers->"$method";
+									  if (doPayTerm == #Missing)
+									  doPayTerm = "BegBalance"->$yearOne->$noFixMembers->"$method";
+									  endif
+									  IF ((doPayTerm!=#Missing) and ("OCF_Cash Drivers" != #Missing))
+										if(("OCF_Period Number"+ doPayTerm &lt;= $totalPeriods) and (("OCF_Period Number" + doPayTerm) >= "OCF_Period Number"->$nextPeriod) )
+											@MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod","$beginPeriod":"$lastPeriod"),doPayTerm+1)->"OCF_Calculated Cashflow"->$yearOne = @MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod","$beginPeriod":"$lastPeriod"),doPayTerm+1)->"OCF_Calculated Cashflow"->$yearOne + "OCF_Cash Drivers" ;
+										elseif (("OCF_Period Number" + doPayTerm) > $totalPeriods)
+											@MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod","$beginPeriod":"$lastPeriod"),doPayTerm+1)->"OCF_Calculated Cashflow"->$yearTwo = @MEMBERAT(@LIST(@CURRMBR("Period"):"$lastPeriod","$beginPeriod":"$lastPeriod"),doPayTerm+1)->"OCF_Calculated Cashflow"->$yearTwo + "OCF_Cash Drivers" ;
+										endif;
+									 ENDIF;   
+								 """     
+					}
+					
+					 calcstr.append(calcString)                   
+					return calcstr
+				}
+				 /***
+				 *  Calculate Tax installment based on the commulative  tax input. Rule calculates based on the installment percentage on the data of commulative tax then subtracts previously paid tax.
+				 * 	@param  List of Tax installments.					 
+				 * 	@return  - returns tax calulation script.
+				 *  Additonal Notes :
+				 *  	1) 1st Installment is computed on instalment due date , percentage of annual amount as of that date
+				 *		2) 2nd installment is computed on instalment due date , percentage of annual amount as of this date - tax computed from previous installment.
+				 *		3) 3rd installment is computed on instalment due date , percentage of annual amount as of this date - tax computed from previous installment.
+				 *		4) 4th installment is computed on instalment due date , percentage of annual amount as of this date - tax computed from previous installment.
+				 **/
+
+				def calculateTaxInstallements(List&lt;String> taxInstallementsList)
+							  {
+							  
+							  def taxCalcScript = new StringBuilder()	
+							  def calcString 
+							  int counter=0;
+							  taxInstallementsList.each{ it ->
+								
+								 def installment='"'+it.toString()+'"';
+								  if (counter==0)
+								  {
+							  calcString ="""
+															IF (("No Currency"->$installment->"OCF_Due Date">="OCF_Tp_date") and ("No Currency"->$installment->"OCF_Due Date"&lt;="OCF_Tp_EndDate"))
+																		CumulativeTaxPercentage=CumulativeTaxPercentage+"No Currency"->$installment->"OCF_Percentage";
+																		$installment="OCF_Cash Drivers" * CumulativeTaxPercentage;   
+																		CumulativeAlloctedTax=CumulativeAlloctedTax+$installment;
+															ENDIF;
+									 """
+								taxCalcScript.append(calcString)
+								counter=counter+1;
+								}
+								else
+								{
+								  calcString ="""
+															IF (("No Currency"->$installment->"OCF_Due Date">="OCF_Tp_date") AND ("No Currency"->$installment->"OCF_Due Date"&lt;="OCF_Tp_EndDate") )
+																		CumulativeTaxPercentage=CumulativeTaxPercentage+"No Currency"->$installment->"OCF_Percentage";
+																		$installment="OCF_Cash Drivers" * CumulativeTaxPercentage - CumulativeAlloctedTax;   
+																		CumulativeAlloctedTax=CumulativeAlloctedTax+$installment;
+															ENDIF;
+									 """
+								taxCalcScript.append(calcString)   
+								 counter=counter+1;
+								}
+								
+
+							  } 
+							   return taxCalcScript;
+						}
+						/***
+						*  Calculate Tax installment based on the commulative  tax input. Rule calculates based on the installment percentage on the data of commulative tax then subtracts previously paid tax.
+						* 	@param  List of Tax installments.					 
+						* 	@return  - returns tax calulation script for clearing previously computed tax.
+						*  Additonal Notes :
+						*		1. Installment amount is cleared. 
+						**/
+					def clearTaxInstallements(List&lt;String> taxInstallementsList)
+						{
+							  def taxCalcScript = new StringBuilder()	
+							  def calcString ;
+
+								 taxInstallementsList.each{ it ->
+									 def installment='"'+it.toString()+'"';
+									  calcString ="""              
+													CLEARDATA $installment;             
+									  """
+									 taxCalcScript.append(calcString) ;
+								 }
+								 return taxCalcScript;
+						}
+						/***
+						*  This method is to populate member combination based on source of request
+						*  1. Check if feature is enabled for given dimension. if not, fix the method to any member.						
+						*  2. if request is coming from grid, fix will be picked up the form context.	
+						*  3. if request is coming from rules card, fix will be formed for all members of the dimension.
+						*  4. if request comes with specific member, fix will be formed to that member.
+						***/			
+						 def  populateFixMembersPostDimCheckForFlexDim(Cube cashFlowCube,String dimensionName,String memberName,boolean featureEnabled,List&lt;String> fixMembers)
+						  {
+							List&lt;String> memberList=[];
+							if(operation.application.hasDimension(dimensionName, cashFlowCube)){
+
+										if (!featureEnabled) 
+										{
+										  if (operation.hasGrid())
+										  {
+										  
+												 if (operation.grid.pov.find { it.dimName == dimensionName } != null)	
+												 {												 
+												  fixMembers.add('@Relative("'+operation.grid.pov.find { it.dimName == dimensionName }.essbaseMbrName+'",0)')
+												 }
+												 else
+												 {
+												 	operation.grid.dataCellIterator({DataCell cell -> cell.edited}, MemberNameType.ESSBASE_NAME).each{DataCell cell ->
+															memberList.add('"'+cell.getMemberName(dimensionName)+'"')
+													}	
+													if (memberList.size()>0	)
+													{
+														fixMembers.add(memberList.unique().join(","))
+													}
+													else 
+													{
+														fixMembers.add('@Relative("Total '+ dimensionName +'",0)')
+													}
+												 }	
+										  }
+										  else
+										  {
+												if (memberName!="None")
+													{
+													   fixMembers.add(memberName)
+													}
+													else
+													{
+														fixMembers.add('@Relative("Total '+ dimensionName +'",0)')
+													}
+										  }
+										}
+									  else  
+										{
+											 fixMembers.add('"No '+ dimensionName +'"')
+										}
+								}						  
+						  }
+						  /***
+						*  This method is to populate member combination based on source of request
+						*  1. Check if feature is enabled for given dimension. if not, fix the method to any member.						
+						*  2. if request is coming from grid, fix will be picked up the form context.	
+						*  3. if request is coming from rules card, fix will be formed for all members of the dimension.
+						*  4. if request comes with specific member, fix will be formed to that member.
+						***/
+						   def  populateFixMembersPostDimCheckForStdDim(Cube cashFlowCube,String dimensionName,String memberName,boolean featureEnabled,List&lt;String> fixMembers)
+						  {
+							List&lt;String> memberList=[];
+							if(operation.application.hasDimension(dimensionName, cashFlowCube)){
+
+										if (!featureEnabled) 
+										{
+										  if (operation.hasGrid())
+										  {												
+												 if (operation.grid.pov.find { it.dimName == dimensionName } != null)	
+												 {												 
+												  fixMembers.add('@Relative("'+operation.grid.pov.find { it.dimName == dimensionName }.essbaseMbrName+'",0)')
+												 }
+												 else
+												 {
+												 	operation.grid.dataCellIterator({DataCell cell -> cell.edited}, MemberNameType.ESSBASE_NAME).each{DataCell cell ->
+															memberList.add('"'+cell.getMemberName(dimensionName)+'"')
+													}	
+													if (memberList.size()>0	)
+													{
+														fixMembers.add(memberList.unique().join(","))
+													}
+													else 
+													{
+														fixMembers.add('@Relative("OEP_Total '+ dimensionName +'",0)')
+													}
+													
+												 }
+										  }
+										  else
+										  {
+												if (memberName!="None")
+												{
+												   fixMembers.add(memberName)
+												}
+												else
+												{
+													fixMembers.add('@Relative("OEP_Total '+ dimensionName +'",0)')
+												}
+										  }
+										}
+									  else  
+										{
+											 fixMembers.add('"OEP_Any '+ dimensionName +'"')
+										}
+								}
+						  
+						  }
+						  
+						  /*This function returns aggregation logic for  driver methods*/
+						  
+						  def  getFixOfCategoryDimension(Cube cashFlowCube,String dimensionName,String memberName,boolean featureEnabled)
+						  {
+							String fixCategory
+							List&lt;String> memberList=[];
+							if(operation.application.hasDimension(dimensionName, cashFlowCube)){
+
+										if (!featureEnabled) 
+										{
+										  if (operation.hasGrid())
+										  {
+												 if (operation.grid.pov.find { it.dimName == dimensionName } != null)	
+												 {												 
+												  
+												    fixCategory='"'+operation.grid.pov.find { it.dimName == dimensionName }.essbaseMbrName+'"';
+												 }
+												 else
+												 {												 
+												 	operation.grid.dataCellIterator({DataCell cell -> cell.edited}, MemberNameType.ESSBASE_NAME).each{DataCell cell ->
+															memberList.add('"'+cell.getMemberName(dimensionName)+'"')
+													}	
+													if (memberList.size()>0	)
+													{
+														fixCategory=memberList.unique().join(",");	
+													}
+													else 
+													{
+														fixCategory='@Relative("OEP_Total '+ dimensionName +'",0)'	
+													}													
+												 }		
+										  }
+										  else
+										  {
+												if (memberName!="None")
+												{												   
+												   fixCategory=memberName												  
+												}
+												else
+												{
+													fixCategory=('@Relative("OEP_Total '+ dimensionName +'",0)')													
+												}
+										  }
+										}
+									  else  
+										{
+											 fixCategory='"OEP_Any '+ dimensionName +'"'
+										}
+								}
+							return fixCategory;
+						  }
+						  def  getAggOfCategoryDimension(Cube cashFlowCube,String dimensionName,String memberName,boolean featureEnabled)
+						  {
+							String aggCategory
+							if(operation.application.hasDimension(dimensionName, cashFlowCube)){
+
+										if (!featureEnabled) 
+										{
+										  if (operation.hasGrid())
+										  {
+												 if (operation.grid.pov.find { it.dimName == dimensionName } != null)	
+												 {						
+												  aggCategory = '@IANCESTOR("'+operation.grid.pov.find { it.dimName == dimensionName }.essbaseMbrName+'");'
+												  }
+												  else 
+												  {
+												   aggCategory ='@IDESCENDANTS("OEP_Total '+ dimensionName +'");'
+												  }
+										  }
+										  else
+										  {
+												if (memberName!="None")
+												{
+												   aggCategory ='@IDESCENDANTS("OEP_Total '+ dimensionName +'");'
+												}
+												else
+												{
+													aggCategory ='@IDESCENDANTS("OEP_Total '+ dimensionName +'");'
+												}
+										  }
+										}
+									  else  
+										{
+											 aggCategory='@IANCESTOR("OEP_Any '+ dimensionName +'");'
+										}
+								}
+							return aggCategory;
+						  }
+						  /**
+						  * 1. adds currency to fix memmber list basend on the request.						  
+						  **/
+						  def  addCurrency(List&lt;String> fixMembers,String memberName)
+						  {
+								String currencyDimName="Currency";
+								if(operation.application.getCurrencyMode().equals(CurrencyMode.SIMPLIFIED_MULTI_CURRENCY))
+									{
+									  if (operation.hasGrid())
+									  {
+											   fixMembers.add('"'+operation.grid.pov.find { it.dimName == currencyDimName }.essbaseMbrName+'"')
+									  }
+									  else
+									  {
+												if (memberName!="None")
+												{
+												   fixMembers.add(memberName)
+												}
+												else
+												{
+													fixMembers.add('@Relative("Input Currencies",0)')
+												}
+									  }		
+									}
+						  }
+						  def  addNoCurrency(List&lt;String> noFixMembers)
+						  {
+								if(operation.application.getCurrencyMode().equals(CurrencyMode.SIMPLIFIED_MULTI_CURRENCY))
+									{
+									  noFixMembers.add('"No Currency"') ;									 											 
+									}
+						  }
+		
+</script><template_wizard/><template_prompts><restricted_prompt name="Application Type" type="Application Type" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Generic</property><property name="value">GENERAL</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PFP</property><property name="value">PROJECT</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PSB</property><property name="value">PSB</property></restricted_prompt_item></restricted_prompt><restricted_prompt name="Application" type="Application" isPrompt="no"><property name="is_system">true</property><value>Is Single Currency</value><restricted_prompt_item><property name="prompt">Is Multi Currency</property><property name="value">multi</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Single Currency</property><property name="value">single</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Simple Currency</property><property name="value">simple</property></restricted_prompt_item></restricted_prompt><template_slice_prompt name="UpperPOV" type="Member Range" isPrompt="false"><property name="is_system">true</property></template_slice_prompt><restricted_prompt name="Essbase Mode" type="Essbase Mode" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Hybrid</property><property name="value">Hybrid</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is NonHybrid</property><property name="value">NonHybrid</property></restricted_prompt_item></restricted_prompt></template_prompts></template></templates></HBRRepo>

@@ -1,0 +1,94 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<HBRRepo><variables/><rulesets/><rules><rule id="1" name="OCF_Periodic Set Write Only Forecast" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_PCSH</property><property name="seeded">true</property><script type="groovy">					/*
+					Purpose: This rule is invoked from the Rolling forecast form to make upper level members editable
+							 1) Makes all members editable
+							 2) Makes specific upper level members read-only.
+					*/	
+					 Cube cashFlowCube = operation.application.getCube("OEP_PCSH");	 
+					 %Template(name:="OCF_Rolling Forecast Summary Page_GT",plantype:="OEP_DCSH",dtps:=())								
+			</script></rule></rules><components/><deployobjects><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="1" obj_type="19" name="OCF_ROLLING FORECAST SUMMARY PAGE_GT"/><deployobject product="2" application="mcw_pcf" plantype="oep_pcsh" obj_id="1" obj_type="1" name="OCF_PERIODIC SET WRITE ONLY FORECAST"/></deployobjects><templates><template custom="yes" id="1" name="OCF_Rolling Forecast Summary Page_GT" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><property name="standAlone">false</property><script type="groovy">	   /***
+			 * This script makes the line items read/write by fetching security access at level zero intesection			 			
+		**/			
+					boolean chkReadonly = false ;
+                	String currencyMember = "No Currency";
+					String flexDim1Name = "flexDimension1";
+					String flexDim2Name = "flexDimension2";
+					String flexDim3Name = "flexDimension3";
+					String partyDimName="Party";
+					String buDimName="Business Unit";
+					String prjDimName="Category"
+					String cashElementDimName = "Forecast Method";
+					String bankDimName="Bank";
+					String noBankMember="OEP_Any "+  bankDimName;
+					String entityDimName = "Entity";
+                    SubstitutionVariable subVariableFirstForecastPeriod=cashFlowCube.getSubstitutionVariable("OEP_CurrPeriod");
+					String firstForecastPeriod=subVariableFirstForecastPeriod.getValue();
+                    SubstitutionVariable subVariableYear = cashFlowCube.getSubstitutionVariable("OEP_CurrYr");
+					String currYear = subVariableYear.getValue()     
+                    UserVariable uvVariableScenario=operation.application.getUserVariable("OEP_Scenario");
+                    String scenarioMember=uvVariableScenario.getValue();
+					UserVariable uvVariableVersion=operation.application.getUserVariable("OEP_Version");
+                    String versionMember=uvVariableVersion.getValue();	
+                    def assumptionGridDefBuilderPovDims = ["Scenario",  bankDimName]
+					def assumptionGridDefBuilderPovSelection = [ [scenarioMember], [noBankMember] ]		
+                    /*Utlility Functions*/
+                    def addPovSelectionForAssumptionGrid = { String dimName -> 
+						  if(operation.application.hasDimension(dimName, cashFlowCube)) {
+							assumptionGridDefBuilderPovDims.add(dimName)
+							assumptionGridDefBuilderPovSelection &lt;&lt; ["No $dimName".toString()]
+						  }
+						} 
+                    def addPovSelectionForAssumptionGridwithPrefix = { String dimName -> 
+						if(operation.application.hasDimension(dimName, cashFlowCube)) {
+							assumptionGridDefBuilderPovDims.add(dimName)
+							assumptionGridDefBuilderPovSelection &lt;&lt; ["OEP_Any $dimName".toString()]
+						  }
+						}                  	
+                    addPovSelectionForAssumptionGrid.call(flexDim1Name)
+                    addPovSelectionForAssumptionGrid.call(flexDim2Name)
+                    addPovSelectionForAssumptionGrid.call(flexDim3Name)						
+                    addPovSelectionForAssumptionGridwithPrefix.call(partyDimName)
+                    addPovSelectionForAssumptionGridwithPrefix.call(buDimName)
+                    addPovSelectionForAssumptionGridwithPrefix.call(prjDimName) 
+                    assumptionGridDefBuilderPovDims.add("Currency")
+                    assumptionGridDefBuilderPovSelection &lt;&lt; [currencyMember]
+                    assumptionGridDefBuilderPovDims.add("Period");  
+					assumptionGridDefBuilderPovSelection.add([firstForecastPeriod]);
+                    assumptionGridDefBuilderPovDims.add("Years");  
+					assumptionGridDefBuilderPovSelection.add([currYear]); 
+					assumptionGridDefBuilderPovDims.add("Version");  
+					assumptionGridDefBuilderPovSelection.add([versionMember]);
+					List&lt;String> lstCurrencies=operation.application.getDimension("Currency",cashFlowCube).getEvaluatedMembers('ILvl0Descendants("Input Currencies")',cashFlowCube).collect{it.toString()};
+					UserVariable uvVariable=operation.application.getUserVariable("OEP_Currency")	;
+					String selectedCurrency=uvVariable.value.name;
+					if (lstCurrencies.contains(selectedCurrency))
+					{                    
+					/* Make all Columns with  OCF_Total Forecasted Cash Member as write Only*/
+					operation.grid.dataCellIterator('OCF_Total Forecasted Cash').each { 
+						if (firstForecastPeriod== it.getPeriodName())
+						{
+							  String lineItemMemberName=it.getAccountName();					 
+							  String entityMember= it.getEntityName();                     
+							  assumptionGridDefBuilderPovDims.add(entityDimName)
+							  assumptionGridDefBuilderPovSelection.add([entityMember])							  
+							  DataGridDefinitionBuilder assumptionRevenueGridDefBuilder = cashFlowCube.dataGridDefinitionBuilder();
+							  assumptionRevenueGridDefBuilder.addPov(assumptionGridDefBuilderPovDims, assumptionGridDefBuilderPovSelection);					 			
+							  assumptionGridDefBuilderPovDims.remove(entityDimName) ;
+							  assumptionGridDefBuilderPovSelection.remove([entityMember]);
+							  assumptionRevenueGridDefBuilder.addColumn(['Forecast Method'], [ ['"OCF_Forecasted"'] ]);
+							  assumptionRevenueGridDefBuilder.addRow(['Line Item'], [ [lineItemMemberName] ]);                    
+							  cashFlowCube.loadGrid(assumptionRevenueGridDefBuilder.build(), true).withCloseable {itAccess ->                                              
+							   itAccess.dataCellIterator.each { it2->                    
+								 chkReadonly = it2.isReadOnly()                         
+								}
+							   }
+					    }				   
+					   if (chkReadonly == false)	it.setForceEditable(true);
+					}   
+					/*Make Rollup Members, and Selected seeded members as read only*/    
+					operation.grid.dataCellIterator('OCF_Display Scenario','OCF_Cash from Operating Activities','OCF_Operating Cash Inflow','OCF_Operating Cash Outflow','OCF_Opening Balance','OCF_Closing Balance'
+					,'OCF_Cash from Financing Activities','OCF_Financing Cash Inflows','OCF_Financing Cash Outflows','OCF_Cash from Investing Activities','OCF_Investing Cash Inflows','OCF_Investing Cash Outflows','OCF_Cash Outflows for Fixed Assets').each {
+					  	it.setForceReadOnly(true);
+						} 
+					}	
+	</script><template_wizard/><template_prompts><restricted_prompt name="Application Type" type="Application Type" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Generic</property><property name="value">GENERAL</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PFP</property><property name="value">PROJECT</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PSB</property><property name="value">PSB</property></restricted_prompt_item></restricted_prompt><restricted_prompt name="Application" type="Application" isPrompt="no"><property name="is_system">true</property><value>Is Single Currency</value><restricted_prompt_item><property name="prompt">Is Multi Currency</property><property name="value">multi</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Single Currency</property><property name="value">single</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Simple Currency</property><property name="value">simple</property></restricted_prompt_item></restricted_prompt><template_slice_prompt name="UpperPOV" type="Member Range" isPrompt="false"><property name="is_system">true</property></template_slice_prompt><restricted_prompt name="Essbase Mode" type="Essbase Mode" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Hybrid</property><property name="value">Hybrid</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is NonHybrid</property><property name="value">NonHybrid</property></restricted_prompt_item></restricted_prompt></template_prompts></template></templates></HBRRepo>

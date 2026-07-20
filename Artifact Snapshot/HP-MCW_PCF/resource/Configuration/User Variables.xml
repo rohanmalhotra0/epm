@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <UserVariables xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" >
+ <UserVariable Name="OCF_Customer" ContextSensitive="false" Dimension="Party" >
+ <mbrSelection>IDescendants(OEP_All Customers)</mbrSelection>
+</UserVariable>
+ <UserVariable Name="OCF_Supplier" ContextSensitive="false" Dimension="Party" >
+ <mbrSelection>IDescendants(OEP_All Suppliers)</mbrSelection>
+</UserVariable>
+ <UserVariable Name="OEP_Controller_Entity" ContextSensitive="false" Dimension="Entity" >
+ <mbrSelection>IDescendants(OEP_Total Entity)</mbrSelection>
+</UserVariable>
+ <UserVariable Name="OEP_Currency" ContextSensitive="false" Dimension="Currency" >
+ <mbrSelection>IDescendants(Input Currencies),IDescendants(Reporting Currencies)</mbrSelection>
+</UserVariable>
+ <UserVariable Name="OEP_Entity" ContextSensitive="false" Dimension="Entity" >
+ <mbrSelection>IDescendants(OEP_Total Entity)</mbrSelection>
+</UserVariable>
+ <UserVariable Name="OEP_Scenario" ContextSensitive="false" Dimension="Scenario" >
+ <mbrSelection>OEP_Forecast</mbrSelection>
+</UserVariable>
+ <UserVariable Name="OEP_Version" ContextSensitive="false" Dimension="Version" >
+</UserVariable>
+</UserVariables>

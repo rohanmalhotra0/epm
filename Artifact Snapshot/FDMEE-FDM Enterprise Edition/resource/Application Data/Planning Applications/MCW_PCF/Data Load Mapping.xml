@@ -1,0 +1,17 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<MappingForLcmVO>
+   <MappingForLcmVORow>
+      <Partname>MCW_PCF</Partname>
+      <Dimname>UD1</Dimname>
+      <Srckey>Default</Srckey>
+      <Srcdesc null="true"/>
+      <Targkey>OEP_Versions</Targkey>
+      <Whereclausetype>LIKE</Whereclausetype>
+      <Whereclausevalue>*</Whereclausevalue>
+      <Changesign>0</Changesign>
+      <Sequence>0</Sequence>
+      <Tdatamaptype>ERP</Tdatamaptype>
+      <SystemGeneratedFlag>N</SystemGeneratedFlag>
+      <Datarulename null="true"/>
+   </MappingForLcmVORow>
+</MappingForLcmVO>

@@ -1,0 +1,66 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<DataRuleForLcmVO>
+   <DataRuleForLcmVORow>
+      <AmountType null="true"/>
+      <BalSegValueOptionCode null="true"/>
+      <BalanceAmountBs null="true"/>
+      <BalanceAmountIs null="true"/>
+      <BalanceMethodCode null="true"/>
+      <BalanceSelection null="true"/>
+      <BalanceType null="true"/>
+      <ExchangeAverageRateType null="true"/>
+      <ExchangeBeginRateType null="true"/>
+      <ExchangeEndRateType null="true"/>
+      <ExchangeRateOptionCode null="true"/>
+      <InclZeroBalanceFlag null="true"/>
+      <IncludeAdjPeriodsFlag null="true"/>
+      <LedgerGroup null="true"/>
+      <PlanType null="true"/>
+      <RuleDescription null="true"/>
+      <RuleName>PCF_STAGE_DAILY</RuleName>
+      <CalendarId null="true"/>
+      <BrMemberName null="true"/>
+      <BrMemberDispName null="true"/>
+      <CurrencyCode null="true"/>
+      <FileNameDateFormat null="true"/>
+      <FileNameStatic null="true"/>
+      <FileNameSuffixType null="true"/>
+      <FilePath null="true"/>
+      <PeriodMappingType>DEFAULT</PeriodMappingType>
+      <Version null="true"/>
+      <DpMemberName null="true"/>
+      <BlankPeriodkey null="true"/>
+      <AsOfDate null="true"/>
+      <Partname>PCF_STAGE</Partname>
+      <Catname>PCF_Category</Catname>
+      <MultiCurrencyFlag null="true"/>
+      <ApplicationName>Staging Area</ApplicationName>
+      <SourceLedgerName null="true"/>
+      <LedgerGroupName null="true"/>
+      <SignageMethod null="true"/>
+      <DirectFileLoadFlag>Y</DirectFileLoadFlag>
+      <LoadOptions null="true"/>
+      <Impgroupkey>PCF_STAGE</Impgroupkey>
+      <MultiPeriodFileFlag null="true"/>
+      <IcpLoad null="true"/>
+      <RuleAttr1 null="true"/>
+      <RuleAttr2 null="true"/>
+      <RuleAttr3 null="true"/>
+      <RuleAttr4 null="true"/>
+      <RuleParamsForLcmVO>
+         <RuleParamsForLcmVORow>
+            <ParameterId>1066</ParameterId>
+            <ParameterName>TARGET_DATASET_NAME</ParameterName>
+            <ParameterValue>PCF_DATA_DAILY</ParameterValue>
+            <ParameterType>TARGET_OPTIONS</ParameterType>
+         </RuleParamsForLcmVORow>
+         <RuleParamsForLcmVORow>
+            <ParameterId>1067</ParameterId>
+            <ParameterName>AGGREGATION_LEVEL</ParameterName>
+            <ParameterValue>Period</ParameterValue>
+            <ParameterType>SOURCE_FILTERS</ParameterType>
+            <Condition>EQ</Condition>
+         </RuleParamsForLcmVORow>
+      </RuleParamsForLcmVO>
+   </DataRuleForLcmVORow>
+</DataRuleForLcmVO>

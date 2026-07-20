@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <substitutionVariable>
+ <name>OEP_NextYr</name>
+ <value>FY27</value>
+ <planType>OEP_RCSH</planType>
+</substitutionVariable>

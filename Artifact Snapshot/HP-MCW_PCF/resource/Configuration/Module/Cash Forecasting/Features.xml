@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <features module_id="CASH FORECASTING" >
+ <feature name="q_alias_tables" >
+ <value>Default</value>
+</feature>
+ <feature name="q_basedim_Account" >
+ <value>Line Item</value>
+</feature>
+ <feature name="q_dim_Bank" >
+ <value>Bank</value>
+</feature>
+ <feature name="q_dim_Business_Unit" >
+ <value>Business Unit</value>
+</feature>
+ <feature name="q_dim_Category" >
+ <value>Category</value>
+</feature>
+ <feature name="q_dim_Party" >
+ <value>Party</value>
+</feature>
+ <feature name="q_driverMethod" >
+ <value>true</value>
+</feature>
+ <feature name="q_granularity" >
+ <value>true</value>
+</feature>
+ <feature name="q_granularity_2" >
+ <value>Daily</value>
+</feature>
+ <feature name="q_granularity_3" >
+ <value>Monthly</value>
+</feature>
+ <feature name="q_header_1" >
+ <value>Periodic</value>
+</feature>
+ <feature name="q_Include_Months_In_Hierarchy" >
+ <value>Months</value>
+</feature>
+ <feature name="q_Include_Quarters_In_Hierarchy" >
+ <value>Quarters</value>
+</feature>
+ <feature name="q_InflowDrivers_payterm" >
+ <value>Revenue Pay Terms</value>
+</feature>
+ <feature name="q_Integration_header_cat_1" >
+ <value>true</value>
+</feature>
+ <feature name="q_IntegrationActions1" >
+ <value>Fusion ERP Accounts Recievables, Fusion ERP Accounts Payables</value>
+</feature>
+ <feature name="q_IntegrationActions2" >
+ <value>Fusion ERP Bank Transactions</value>
+</feature>
+ <feature name="q_OtherFeature_header_cat_1" >
+ <value>true</value>
+</feature>
+ <feature name="q_OutflowDrivers_payterm" >
+ <value>Expense Pay Terms</value>
+</feature>
+ <feature name="q_predictive_header_cat_1" >
+ <value>true</value>
+</feature>
+ <feature name="q_PredictiveMethods1" >
+ <value>Statistical Time Series</value>
+</feature>
+ <feature name="q_PredictiveMethods2" >
+ <value>Machine Learning Summary</value>
+</feature>
+ <feature name="q_tagging_new_app" >
+ <value>true</value>
+</feature>
+ <feature name="q_trend_header_cat_1" >
+ <value>true</value>
+</feature>
+ <feature name="RM_PROPERTIES" >
+ <value>{Account=Line Item, Entity=Entity, NoDirectTaxdimCategory=No Category, Bank=Bank, Category=Category, NoDSOdimParty=No Party, NoFixedAssetsdimCategory=No Category, NoIndirectTaxdimBusinessUnit=No Business Unit, NoProjectPaymentsdimBusinessUnit=No Business Unit, NoSalarydimParty=No Party, NoSalarydimBusinessUnit=No Business Unit, No Category=No Category, NoProjectReceiptsdimCategory=No Category, NoRecurringdimParty=No Party, NoProjectPaymentsdimParty=No Party, NoDPOdimCategory=No Category, NoDirectTaxdimBusinessUnit=No Business Unit, Version=Version, Currency=Currency, NoSalarydimCategory=No Category, NoProjectReceiptsdimBusinessUnit=No Business Unit, OCF_CUBE_FOR_TEMPLATE=OEP_DCSH, NoIndirectTaxdimParty=No Party, NoProjectReceiptsdimParty=No Party, NoProjectPaymentsdimCategory=No Category, NoRecurringdimCategory=No Category, NoDSOdimBusinessUnit=No Business Unit, Years=Years, NoExpensePaydimBusinessUnit=No Business Unit, NoRevenuePaydimBusinessUnit=No Business Unit, NoTrenddimParty=No Party, OCF_PERIODICITY=Monthly, NoRecurringdimBusinessUnit=No Business Unit, NoDSOdimCategory=No Category, Period=Period, NoTrenddimBusinessUnit=No Business Unit, NoExpensePaydimCategory=No Category, NoIndirectTaxdimCategory=No Category, Scenario=Scenario, NoExpensePaydimParty=No Party, NoFixedAssetsdimBusinessUnit=No Business Unit, NoFixedAssetsdimParty=No Party, NoRevenuePaydimParty=No Party, NoDirectTaxdimParty=No Party, NoDPOdimBusinessUnit=No Business Unit, NoTrenddimCategory=No Category, NoRevenuePaydimCategory=No Category, NoDPOdimParty=No Party}</value>
+</feature>
+</features>

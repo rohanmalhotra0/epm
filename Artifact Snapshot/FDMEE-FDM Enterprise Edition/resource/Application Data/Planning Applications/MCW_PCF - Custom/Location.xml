@@ -1,0 +1,57 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<LocationForLcmVO>
+   <LocationForLcmVORow>
+      <Partname>PCF_DIM_BANK</Partname>
+      <SourceSystemName>Data Source</SourceSystemName>
+      <TargetApplicationName>MCW_PCF</TargetApplicationName>
+      <ApplicationName>MCW_PCF - Custom</ApplicationName>
+      <Partcurrencykey>[NONE]</Partcurrencykey>
+      <Partimpgroup>PCF_DIM_BANK</Partimpgroup>
+      <Partdatavalue null="true"/>
+      <Partvalgroup>[NONE]</Partvalgroup>
+      <Parentlocationname null="true"/>
+      <Partvalentgroup>[NONE]</Partvalentgroup>
+      <Partlogicgroup>[NONE]</Partlogicgroup>
+      <Partintgconfig1 null="true"/>
+      <Partintgconfig2 null="true"/>
+      <Partintgconfig3 null="true"/>
+      <Partintgconfig4 null="true"/>
+      <Sourceappname>PCF Dimensions</Sourceappname>
+   </LocationForLcmVORow>
+   <LocationForLcmVORow>
+      <Partname>PCF_DIM_BU</Partname>
+      <SourceSystemName>Data Source</SourceSystemName>
+      <TargetApplicationName>MCW_PCF</TargetApplicationName>
+      <ApplicationName>MCW_PCF - Custom</ApplicationName>
+      <Partcurrencykey>[NONE]</Partcurrencykey>
+      <Partimpgroup>PCF_DIM_BU</Partimpgroup>
+      <Partdatavalue null="true"/>
+      <Partvalgroup>[NONE]</Partvalgroup>
+      <Parentlocationname null="true"/>
+      <Partvalentgroup>[NONE]</Partvalentgroup>
+      <Partlogicgroup>[NONE]</Partlogicgroup>
+      <Partintgconfig1 null="true"/>
+      <Partintgconfig2 null="true"/>
+      <Partintgconfig3 null="true"/>
+      <Partintgconfig4 null="true"/>
+      <Sourceappname>PCF Dimensions</Sourceappname>
+   </LocationForLcmVORow>
+   <LocationForLcmVORow>
+      <Partname>PCF_DIM_PARTY</Partname>
+      <SourceSystemName>Data Source</SourceSystemName>
+      <TargetApplicationName>MCW_PCF</TargetApplicationName>
+      <ApplicationName>MCW_PCF - Custom</ApplicationName>
+      <Partcurrencykey>[NONE]</Partcurrencykey>
+      <Partimpgroup>PCF_DIM_PARTY</Partimpgroup>
+      <Partdatavalue null="true"/>
+      <Partvalgroup>[NONE]</Partvalgroup>
+      <Parentlocationname null="true"/>
+      <Partvalentgroup>[NONE]</Partvalentgroup>
+      <Partlogicgroup>[NONE]</Partlogicgroup>
+      <Partintgconfig1 null="true"/>
+      <Partintgconfig2 null="true"/>
+      <Partintgconfig3 null="true"/>
+      <Partintgconfig4 null="true"/>
+      <Sourceappname>PCF Dimensions</Sourceappname>
+   </LocationForLcmVORow>
+</LocationForLcmVO>

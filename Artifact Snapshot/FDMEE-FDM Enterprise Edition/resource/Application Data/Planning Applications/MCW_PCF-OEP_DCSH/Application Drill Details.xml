@@ -1,0 +1,47 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<ApplicationDrillUrlLcmVO>
+   <ApplicationDrillUrlLcmVORow>
+      <DrillUrlName>OEP_DCSH_ML_PREDICTIONS</DrillUrlName>
+      <ApplicationName>MCW_PCF-OEP_DCSH</ApplicationName>
+      <HttpUrl>datasource=PCF Data</HttpUrl>
+      <HttpUrlType>ADHOC</HttpUrlType>
+      <Level0flag>N</Level0flag>
+      <PlanType>OEP_DCSH</PlanType>
+      <ApplicationDrillFiltersLcmVO>
+         <ApplicationDrillFiltersLcmVORow>
+            <Dimension>Currency</Dimension>
+            <Filter>@DESCENDANTS("Input Currencies")</Filter>
+         </ApplicationDrillFiltersLcmVORow>
+         <ApplicationDrillFiltersLcmVORow>
+            <Dimension>Forecast Method</Dimension>
+            <Filter>"OCF_Machine Learning Prediction"</Filter>
+         </ApplicationDrillFiltersLcmVORow>
+         <ApplicationDrillFiltersLcmVORow>
+            <Dimension>Line Item</Dimension>
+            <Filter>"OCF_Receivables Invoices","OCF_Receivables Overdue Invoices"</Filter>
+         </ApplicationDrillFiltersLcmVORow>
+      </ApplicationDrillFiltersLcmVO>
+   </ApplicationDrillUrlLcmVORow>
+   <ApplicationDrillUrlLcmVORow>
+      <DrillUrlName>OEP_DCSH_SMART_DRIVER</DrillUrlName>
+      <ApplicationName>MCW_PCF-OEP_DCSH</ApplicationName>
+      <HttpUrl>datasource=PCF Data</HttpUrl>
+      <HttpUrlType>ADHOC</HttpUrlType>
+      <Level0flag>N</Level0flag>
+      <PlanType>OEP_DCSH</PlanType>
+      <ApplicationDrillFiltersLcmVO>
+         <ApplicationDrillFiltersLcmVORow>
+            <Dimension>Currency</Dimension>
+            <Filter>@DESCENDANTS("Input Currencies")</Filter>
+         </ApplicationDrillFiltersLcmVORow>
+         <ApplicationDrillFiltersLcmVORow>
+            <Dimension>Forecast Method</Dimension>
+            <Filter>"OCF_Smart Drivers"</Filter>
+         </ApplicationDrillFiltersLcmVORow>
+         <ApplicationDrillFiltersLcmVORow>
+            <Dimension>Line Item</Dimension>
+            <Filter>"OCF_Receivables Invoices","OCF_Receivables Overdue Invoices","OCF_Payables Overdue Invoices","OCF_Payables Invoices","OCF_Unapplied Prepayments Offset","OCF_Supplier Payments","OCF_Customer Receipts","OCF_Unapplied Receipts Offset","OCF_Cash Transactions Inflows","OCF_Cash Transactions Outflows","OCF_Bank Balance"</Filter>
+         </ApplicationDrillFiltersLcmVORow>
+      </ApplicationDrillFiltersLcmVO>
+   </ApplicationDrillUrlLcmVORow>
+</ApplicationDrillUrlLcmVO>

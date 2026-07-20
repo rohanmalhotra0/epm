@@ -1,0 +1,67 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<HBRRepo><variables/><rulesets/><rules/><components/><deployobjects><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="1" obj_type="19" name="OCF_MANUAL INPUT_GT"/></deployobjects><templates><template custom="yes" id="1" name="OCF_Manual Input_GT" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><property name="standAlone">false</property><script type="groovy">	    /***
+		 * Rules populates forecast scenario with manual adjustment based on set forecast method.
+		 * @param cube, scenario, version, entity will be passed from form context.
+		 * @return  - returns calculation script, populates manual input in final rolling forecast based on the forecast settings.
+		  Additional Notes
+		 *		1. Groovy script generates calc script based on the request type, if request comes onsave rule, script generated on specific intersection, if request is coming from rules, card script runs 
+		 *		for all intersection 
+		 *	 	2.Copies the manual input numbers into forecast member based on the set forecast method
+		 *		3.Computes opening balance.
+		 **/
+		String manualInput(String cube,String scenarioMember,String versionMember,String entityMember,String periodRollup)		
+		{
+				String calcCopyString,calcOpenBal ;					
+				StringBuilder cscript = new StringBuilder();			
+				List&lt;String> fixMembers = new ArrayList&lt;String>();				
+				String calcString;	
+				String fixCategory,aggCategory;
+				String flexDim1Name = "flexDimension1";
+				String flexDim2Name = "flexDimension2";
+				String flexDim3Name = "flexDimension3";
+				String currencyDimName="Currency";
+				String partyDimName="Party";
+				String buDimName="Business Unit";
+				String prjDimName="Category";
+				String bankDimName="Bank";
+				Application application = operation.application;
+				Cube cashFlowCube = application.getCube("$cube");
+				String numOfPeriods = getNumberOfYears(cashFlowCube);
+				List&lt;String> lstPeriods=application.getDimension("Period",cashFlowCube).getEvaluatedMembers('ILvl0Descendants("'+periodRollup+'")',cashFlowCube).collect{it.toString()};
+				String startPeriod=lstPeriods.first();	
+				String endPeriod=lstPeriods.last();
+				calcCopyString= populateFinalForecastMethod(cashFlowCube,scenarioMember,versionMember,entityMember,"OCF_Total Cash",fixMembers)
+				calcOpenBal=calculateOpeningBalanceForOnsave(numOfPeriods,startPeriod,endPeriod,"OCF_Forecasted");				
+				populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim1Name,"None",false,fixMembers);
+				populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim2Name,"None",false,fixMembers);
+				populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim3Name,"None",false,fixMembers);
+				populateFixMembersPostDimCheckForStdDim(cashFlowCube,partyDimName,"None",false,fixMembers);
+				populateFixMembersPostDimCheckForStdDim(cashFlowCube,buDimName,"None",false,fixMembers);				
+				fixCategory=getFixOfCategoryDimension(cashFlowCube,prjDimName,"None",false)
+				aggCategory=getAggOfCategoryDimension(cashFlowCube,prjDimName,"None",false)
+				addCurrency(fixMembers,"None");
+				if(operation.application.hasDimension(bankDimName, cashFlowCube))
+				{
+				    fixMembers.add('"OEP_Any '+bankDimName+'"');
+				}
+				String fixMembersJoinStr = fixMembers.join(",");
+				calcString   = """  
+								SET UPDATECALC OFF;
+								SET AGGMISSG ON;
+								Var PrefRang1;
+								Var PrefRang2;
+								Var PrefRang3;	
+								FIX( "$scenarioMember","$versionMember","$entityMember",$fixMembersJoinStr)
+									FIX($fixCategory)
+										$calcCopyString
+										$calcOpenBal
+									ENDFIX;
+									$aggCategory
+								ENDFIX;	
+					"""
+				cscript.append(calcString);					
+				return cscript.toString()				
+	}
+
+	
+</script><template_wizard/><template_prompts><restricted_prompt name="Application Type" type="Application Type" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Generic</property><property name="value">GENERAL</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PFP</property><property name="value">PROJECT</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PSB</property><property name="value">PSB</property></restricted_prompt_item></restricted_prompt><restricted_prompt name="Application" type="Application" isPrompt="no"><property name="is_system">true</property><value>Is Single Currency</value><restricted_prompt_item><property name="prompt">Is Multi Currency</property><property name="value">multi</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Single Currency</property><property name="value">single</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Simple Currency</property><property name="value">simple</property></restricted_prompt_item></restricted_prompt><template_slice_prompt name="UpperPOV" type="Member Range" isPrompt="false"><property name="is_system">true</property></template_slice_prompt><restricted_prompt name="Essbase Mode" type="Essbase Mode" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Hybrid</property><property name="value">Hybrid</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is NonHybrid</property><property name="value">NonHybrid</property></restricted_prompt_item></restricted_prompt></template_prompts></template></templates></HBRRepo>

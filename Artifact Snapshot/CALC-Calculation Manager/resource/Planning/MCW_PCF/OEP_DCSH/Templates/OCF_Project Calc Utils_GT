@@ -1,0 +1,126 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<HBRRepo><variables/><rulesets/><rules/><components/><deployobjects><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="1" obj_type="19" name="OCF_PROJECT CALC UTILS_GT"/></deployobjects><templates><template custom="yes" id="1" name="OCF_Project Calc Utils_GT" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><property name="standAlone">false</property><script type="groovy">	  /***
+		 *  Invokes pay terms methods to generate pay terms code for each milestone.
+		 * 	@param  first two years, cross dim of the assumptions, list of pay terms, Miles stones string, first and end period, current period and next period, total number of periods.					 
+		 * 	@return  - returns pay terms calculation script for each mile stones.
+		 *  Additional Notes :
+		 *	1. generate pay terms calculation script for each milestone. 		
+		 **/
+	  	def milestonesPayTerms(String yearOne, String yearTwo,String crossDim, List&lt;String> payTermList,List&lt;String> mileStoneList,String nextPeriod,String startPeriod, String endPeriod,int totalPeriods)
+
+			{
+				
+				String payTermsCalcScript;				
+				 def mileStoneCalcScript = new StringBuilder()	      
+				  mileStoneList.each{ it ->
+					 def mileStone='"'+it.toString()+'"';
+					 payTermsCalcScript= payTermCalculation( yearOne,  yearTwo,crossDim,  payTermList,nextPeriod,startPeriod,endPeriod,it.toString(),totalPeriods)	
+					  def calcString ="""
+									$mileStone(
+												@CALCMODE(BOTTOMUP);
+											 $payTermsCalcScript
+									)
+								
+								"""
+					 
+				   mileStoneCalcScript.append(calcString)
+
+				  } 
+				   return mileStoneCalcScript;  
+			}
+			
+		/***
+		 *  generate scripts to calculate milestones for second year.
+		 * 	@param  year,cross dim of the assumptions,list of pay terms , Miles stones string , first and end period, current period next perios, total number of perios.					 
+		 * 	@return  - returns pay terms calcualtion script for 2nd year.
+		 *  Additonal Notes :
+		 *		1. Applies the Milestone percentage and stores in the corresponding Milestone member.	
+		 **/
+			def milestoneCalcForSecondYear(String yearOne,String crossDim,List&lt;String> mileStoneList)
+
+			{
+				
+				 def mileStoneCalcScript = new StringBuilder()	      
+				  mileStoneList.each{ it ->
+					 def mileStone='"'+it.toString()+'"';
+					  def calcString ="""
+									$mileStone(
+												@CALCMODE(BOTTOMUP);
+											  IF (($crossDim->$mileStone->"OCF_Percentage"!=#MISSING) AND ($crossDim>$mileStone->"OCF_Due Date"!=#MISSING))
+													  IF (($crossDim->$mileStone->"OCF_Due Date">="OCF_Tp_date") AND ($crossDim->$mileStone->"OCF_Due Date"&lt;="OCF_Tp_EndDate"))													
+														$mileStone="$yearOne"->"OCF_Cash Drivers"->"Begbalance" *$crossDim->$mileStone->"OCF_Percentage";
+													 ENDIF;
+											   ENDIF;
+									)
+								
+								"""
+					 
+				   mileStoneCalcScript.append(calcString)
+
+				  } 
+				   return mileStoneCalcScript;  
+			}
+		/***
+		 *  generate scripts to calculate milestones for first year.
+		 * 	@param  year,cross dim of the assumptions,list of pay terms , Miles stones string.					 
+		 * 	@return  - returns pay terms calcualtion script for first year.
+		 *  Additonal Notes :
+		 *		1. Applies the Milestone percentage and stores in the corresponding Milestone member.		 
+		 **/
+			def mileStoneCalcForOneYear(String yearOne,String crossDim,List&lt;String> mileStoneList)
+				  {
+				  
+				  def mileStoneCalcScript = new StringBuilder()	
+				  
+				  mileStoneList.each{ it ->
+					 def mileStone='"'+it.toString()+'"';
+					  
+				 def calcString ="""
+												IF (( $crossDim->$mileStone->"OCF_Percentage"!=#MISSING) AND ($crossDim->$mileStone->"OCF_Due Date"!=#MISSING))                              
+												   IF (($crossDim->$mileStone->"OCF_Due Date">="OCF_Tp_date") AND ($crossDim->$mileStone->"OCF_Due Date"&lt;="OCF_Tp_EndDate"))
+														$mileStone="$yearOne"->"OCF_Cash Drivers"->"Begbalance" * $crossDim->$mileStone->"OCF_Percentage";                                   		                                        
+												   ENDIF;
+												ENDIF;
+						 """
+					mileStoneCalcScript.append(calcString)
+
+				  } 
+				   return mileStoneCalcScript;
+			}
+		/***
+		 *  script that creates block for 2nd year if project starts in first year and has mile stones in subsequent year.
+		 * 	@param  year,cross dim of the assumptions,list of pay terms , Miles stones string 					 
+		 * 	@return  - returns pay terms calcualtion script for 2nd year.
+		 *  Additonal Notes :
+		 *    This script creates blocks for 2nd Year,in case milestone date falls in subsequent Year. 
+		 **/
+
+			def mileStoneCalcToCreateBlockForSecondYear(String yearOne,String yearTwo,String crossDim,List&lt;String> mileStoneList)
+				  {
+				  
+				  def mileStoneCalcScript = new StringBuilder()	
+				  
+				  mileStoneList.each{ it ->
+					 def mileStone='"'+it.toString()+'"';
+					  
+				 def calcString ="""
+												CurrentYearDate=@INT($crossDim->"OCF_Tp_date"->&amp;OEP_ActPeriod/10000);
+												IF (( $crossDim->$mileStone->"OCF_Percentage"!=#MISSING) AND ($crossDim->$mileStone->"OCF_Due Date"!=#MISSING))
+													NextYearDate=@INT($crossDim->$mileStone->"OCF_Due Date"/10000);
+													 IF (NextYearDate   > CurrentYearDate )                                        	
+														@CREATEBLOCK("$yearTwo"->$mileStone);
+													ENDIF;    
+													IF  (($crossDim->$mileStone->"OCF_Due Date">="OCF_Tp_date") AND ($crossDim->$mileStone->"OCF_Due Date"&lt;="OCF_Tp_EndDate") )
+														$mileStone="$yearOne"->"OCF_Cash Drivers"->"Begbalance" * $crossDim->$mileStone->"OCF_Percentage";                                   		                                        
+													ENDIF;
+												ENDIF;
+						 """
+					mileStoneCalcScript.append(calcString)
+
+				  } 
+				   return mileStoneCalcScript;
+			}
+   
+
+		
+</script><template_wizard/><template_prompts><restricted_prompt name="Application Type" type="Application Type" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Generic</property><property name="value">GENERAL</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PFP</property><property name="value">PROJECT</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PSB</property><property name="value">PSB</property></restricted_prompt_item></restricted_prompt><restricted_prompt name="Application" type="Application" isPrompt="no"><property name="is_system">true</property><value>Is Single Currency</value><restricted_prompt_item><property name="prompt">Is Multi Currency</property><property name="value">multi</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Single Currency</property><property name="value">single</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Simple Currency</property><property name="value">simple</property></restricted_prompt_item></restricted_prompt><template_slice_prompt name="UpperPOV" type="Member Range" isPrompt="false"><property name="is_system">true</property></template_slice_prompt><restricted_prompt name="Essbase Mode" type="Essbase Mode" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Hybrid</property><property name="value">Hybrid</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is NonHybrid</property><property name="value">NonHybrid</property></restricted_prompt_item></restricted_prompt></template_prompts></template></templates></HBRRepo>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<FRFolder isInternal="true" isBrowsable="true">
+    <identifier>cf93d827-29c7-4d52-8fc0-53efb475ad5d</identifier>
+    <Author>epm_default_cloud_admin</Author>
+    <CreationDate>Sat Jun 13 12:56:53 UTC 2026</CreationDate>
+    <Description/>
+    <LastModifiedBy/>
+    <LastModifiedDate/>
+    <ParentUUID>af54913b-0a87-41bd-862f-072e7915789c</ParentUUID>
+    <Path>/HRInternalFolder</Path>
+    <Name>HRScheduler</Name>
+    <Type>FOLDER</Type>
+    <Properties/>
+    <Properties size="4">
+        <Property Name="NAME" Value="HRScheduler"/>
+        <BINARY NAME="Value"><![CDATA[TmFtZT1IUlNjaGVkdWxlcnR5cGU9Rk9MREVSQXV0aG9yPWVwbV9kZWZhdWx0X2Nsb3VkX2FkbWlu]]></BINARY>
+        <Property Name="jcr:data"/>
+        <Property Name="fileSize" Value="57"/>
+        <BINARY NAME="Value"><![CDATA[AAABnsEOgHE=]]></BINARY>
+        <Property Name="jcr:lastModifiedby"/>
+    </Properties>
+</FRFolder>

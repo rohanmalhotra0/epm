@@ -1,0 +1,207 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<HBRRepo><variables/><rulesets/><rules/><components/><deployobjects><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="1" obj_type="19" name="OCF_DIRECT TAXES_GT"/></deployobjects><templates><template custom="yes" id="1" name="OCF_Direct Taxes_GT" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><property name="standAlone">false</property><script type="groovy">	    /***
+		 * Calculate Annual Direct Taxes based on the  Tax Installments, Annual tax liability deducted based on the installment percentage.
+		 * @param cube, scenario, version, entity will be passed from form context.
+		 * @param  startperiod and end periods, Daily, weekly and Monthly first and last period of corresponding period dimension.
+		 * @param fixParallelDim  - name of the dimension on which fix parallel to be applied.
+		 * @return  - returns calculation script to compute Direct Tax payments, populate results into rolling forecast screen based on forecast method settings, and calculation logic to compute opening balance.
+		 * Additional Notes
+		 *		1. Groovy script generates calc script based on the request type, if request comes onsave rule, script generated on specific intersection, if request is coming from rules, card script runs 
+		 *		for all intersections, if request is coming from DM, request gets executed for specific date.
+		 *	 	2. Based on fix parallel dimension, logic gets aligned accordingly.
+		 *		3. Tax installments are computed based on installement date. In case of Periodic model, installment will be posted in corresponding week or month.
+		 *		4. While calculating 2nd Installment, previous installment amount will be subtracted to arrive next installement amount.
+		 *		5. Computed tax amount will be copied to forecast based on the configuration.
+		 *		6. Recalculate Opening balance  
+		 **/
+		String calculateDirectTaxes(Cube cashFlowCube,String scenarioMember,String versionMember,String entityMember,String startPeriod,String endPeriod,String fixParallelDim,String flexDim1Member,String flexDim2Member,String flexDim3Member,String partyMember,String buMember,String prjMember,String currencyMember)
+		{
+				String calcCopyString,calcOpenBal,fixParalleFixStmt,catStartFix,catEndFix  ;
+				boolean chkEntityIsFixParallel=false,chkCategoryFixParallel=false;
+				String yearOne,yearTwo,yearThree,noFixMembersJoinStr,entityBeginStr,entityEndStr,finalCalc,clrInstallements;
+				String  lineItemsMemberGroup='ILvl0Descendants("OCF_Total Direct Tax Payment")';
+				StringBuilder cscript = new StringBuilder();			
+				List&lt;String> fixMembers = new ArrayList&lt;String>();
+				List&lt;String> noFixMembers = new ArrayList&lt;String>();
+				String fixMembersJoin;
+				String calcString;
+				String fixCategory,aggCategory;
+				String flexDim1Name = "flexDimension1";
+				String flexDim2Name = "flexDimension2";
+				String flexDim3Name = "flexDimension3";
+				String currencyDimName="Currency";
+				String partyDimName="Party";
+				String buDimName="Business Unit";
+				String prjDimName="Category";
+				String bankDimName="Bank";
+				String forecastMethodDimName = "Forecast Method";
+				String yearDimName="Years"
+				String lineItemDimName="Line Item"
+				String entityDimName = "Entity";
+                String variableDeclarationForFixPrarallel ="";
+                String variableDeclaration ="";
+				String startFixParallel =""
+				String endFixParallel ="";
+				def isflexDim1Enabled = "NoDirectTaxflexdim1" == "No flexDimension1"			
+				def isflexDim2Enabled = "NoDirectTaxflexdim2" == "No flexDimension2"				
+				def isflexDim3Enabled = "NoDirectTaxflexdim3" == "No flexDimension3"
+				def isPartyEnabled = "No Party" == "No Party"
+				def isBuEnabled = "No Business Unit" == "No Business Unit"
+				def isPrjEnabled = "No Category" == "No Category"							
+				Application application = operation.application;				
+				List&lt;String> taxInstallements=application.getDimension(forecastMethodDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("OCF_Total Direct Taxes")',cashFlowCube).collect{it.toString()};			
+				List&lt;String> lstYears=application.getDimension(yearDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("All Years")',cashFlowCube).collect{it.toString()};
+				String numOfPeriods = getNumberOfYears(cashFlowCube);
+				String currYear=getCurrentYear(cashFlowCube);	
+				String nextPeriod=getFirstForecastPeriod(cashFlowCube);
+				yearOne=currYear;
+				yearTwo=nextYear(yearOne,lstYears);
+				yearThree=nextYear(yearTwo,lstYears);
+				calcCopyString= populateFinalForecastMethod(cashFlowCube,scenarioMember,versionMember,entityMember,"OCF_Total Direct Tax Payment",fixMembers);
+				calcOpenBal=calculateOpeningBalanceForOnsave(numOfPeriods,startPeriod,endPeriod,"OCF_Forecasted");	
+				String variableString=getPreferedRangeVarialbeDeclaration();
+				String varialStringForFixParallel=getPreferedRangeFixParllelVarialbeDeclaration();
+				fixParalleFixStmt='FIXPARALLEL (4,@RELATIVE("'+fixParallelDim+'",0))';	
+				if ( operation.hasGrid() ) fixParallelDim ="none";
+				if (fixParallelDim==entityDimName) chkEntityIsFixParallel=true;
+				if (fixParallelDim==prjDimName) chkCategoryFixParallel=true;
+				if (fixParallelDim==partyDimName)  partyDimName="NoDimension";
+				if (fixParallelDim==flexDim1Name)  flexDim1Name="NoDimension";
+				if (fixParallelDim==flexDim2Name) flexDim2Name="NoDimension";				
+				if (fixParallelDim==flexDim3Name) flexDim3Name="NoDimension";
+				populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim1Name,flexDim1Member,isflexDim1Enabled,fixMembers);
+				populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim2Name,flexDim2Member,isflexDim2Enabled,fixMembers);
+				populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim3Name,flexDim3Member,isflexDim3Enabled,fixMembers);
+				populateFixMembersPostDimCheckForStdDim(cashFlowCube,partyDimName,partyMember,isPartyEnabled,fixMembers);
+				populateFixMembersPostDimCheckForStdDim(cashFlowCube,buDimName,buMember,isBuEnabled,fixMembers);
+				fixCategory=getFixOfCategoryDimension(cashFlowCube,prjDimName,prjMember,isPrjEnabled)
+				aggCategory=getAggOfCategoryDimension(cashFlowCube,prjDimName,prjMember,isPrjEnabled)
+				catStartFix= """ FIX($fixCategory) """
+				catEndFix =""" ENDFIX """
+				addCurrency(fixMembers,currencyMember);
+				addNoCurrency(noFixMembers);
+				if(operation.application.hasDimension(bankDimName, cashFlowCube))
+				{
+				   noFixMembers.add('"OEP_Any '+bankDimName+'"'); 
+				   fixMembers.add('"OEP_Any '+bankDimName+'"');
+				}
+				noFixMembersJoinStr=noFixMembers.join("->");
+				fixMembersJoin=fixMembers.join(",");
+				entityBeginStr =(chkEntityIsFixParallel==true) ? fixParalleFixStmt : "FIX($entityMember)"
+				entityEndStr =(chkEntityIsFixParallel==true) ? "ENDFIXPARALLEL" : "ENDFIX"               
+				String calcInstallments= calculateTaxInstallements(taxInstallements);
+				String clrInstallments=clearTaxInstallements(taxInstallements);
+				if(chkEntityIsFixParallel == true)
+				{
+				variableDeclarationForFixPrarallel="""
+							ThreadVar CumulativeTaxPercentage;
+							ThreadVar CumulativeAlloctedTax;
+							$varialStringForFixParallel
+				"""
+				}
+				else
+                {
+				if (!operation.application.hasDimension(fixParallelDim, cashFlowCube) )
+					  {		
+						variableDeclaration="""
+									Var CumulativeTaxPercentage;
+									Var CumulativeAlloctedTax;
+									$variableString	
+						"""
+					 }
+                }
+				if(operation.application.hasDimension(fixParallelDim, cashFlowCube) &amp;&amp; chkEntityIsFixParallel==false )
+				  {
+					 if (chkCategoryFixParallel==true)
+					 {
+						catStartFix="""$fixParalleFixStmt					 
+										ThreadVar CumulativeTaxPercentage;
+										ThreadVar CumulativeAlloctedTax;
+										$varialStringForFixParallel	
+								      """	
+						 catEndFix = """ ENDFIXPARALLEL """
+					 }
+					 else
+					 {
+						 startFixParallel="""$fixParalleFixStmt
+										ThreadVar CumulativeTaxPercentage;
+										ThreadVar CumulativeAlloctedTax;
+										$varialStringForFixParallel	
+								      """	
+						 endFixParallel=""" ENDFIXPARALLEL;   """
+					}
+				  }	  
+				   finalCalc="""																		
+								  "OCF_Cash Drivers" (
+										@CALCMODE(BOTTOMUP);
+											 IF(@ISMBR("Begbalance"))
+												   CumulativeTaxPercentage=0;
+												   CumulativeAlloctedTax=0;
+											 ENDIF;
+											$calcInstallments
+									   )
+											  """
+					  
+				 if (numOfPeriods=="2")
+				  {
+				  calcString="""
+                  		   SET UPDATECALC OFF;
+						   SET AGGMISSG ON;
+						   $variableDeclaration		
+						   $entityBeginStr
+                           $variableDeclarationForFixPrarallel
+						   FIX($scenarioMember,$fixMembersJoin,$versionMember)
+								$startFixParallel
+								$catStartFix
+									FIX(@relative("OCF_Total Direct Tax Payment",0),$yearOne,$yearTwo,"Begbalance",$startPeriod:$endPeriod)
+											 $clrInstallments;
+									ENDFIX;
+									FIX("$yearOne","$yearTwo",@Relative("OCF_Total Direct Tax Payment",0),"Begbalance",$startPeriod:$endPeriod)
+										 $finalCalc										
+									ENDFIX 
+										$calcCopyString
+										$calcOpenBal	
+								$catEndFix
+								FIX("$versionMember","$yearOne","$yearTwo",@Relative("OCF_Total Direct Tax Payment",0),"Begbalance",$startPeriod:$endPeriod,"OCF_Opening Balance",@Relative("OCF_Cash Flow Metrics",0),@Relative("OCF_All Forecast Method",0),@Relative("OCF_Total Forecasted Cash",0))
+									$aggCategory
+								ENDFIX	
+								$endFixParallel
+						   ENDFIX
+						   $entityEndStr
+					 """
+					 cscript.append(calcString)
+				 }
+				else
+				  {
+				   calcString="""
+						   SET UPDATECALC OFF;
+						   SET AGGMISSG ON;
+						   $variableDeclaration			
+						   $entityBeginStr	
+                           $variableDeclarationForFixPrarallel
+							 FIX($scenarioMember,$fixMembersJoin,$versionMember)
+								$startFixParallel
+								$catStartFix
+									FIX(@relative("OCF_Total Direct Tax Payment",0),$yearOne,"Begbalance",$startPeriod:$endPeriod)
+										$clrInstallments;
+									ENDFIX; 								  
+									FIX("$yearOne",@Relative("OCF_Total Direct Tax Payment",0),$startPeriod:$endPeriod)
+										  $finalCalc										  
+									ENDFIX
+									$calcCopyString
+									$calcOpenBal									  
+								$catEndFix
+								FIX("$versionMember","$yearOne",@Relative("OCF_Total Direct Tax Payment",0),"Begbalance",$startPeriod:$endPeriod,"OCF_Opening Balance",@Relative("OCF_Cash Flow Metrics",0),@Relative("OCF_All Forecast Method",0),@Relative("OCF_Total Forecasted Cash",0))
+									$aggCategory
+								ENDFIX
+								$endFixParallel	
+							ENDFIX;	
+							  
+						   $entityEndStr
+					 """
+						cscript.append(calcString)
+				  }					
+				return cscript.toString()
+				
+	}	
+</script><template_wizard/><template_prompts><restricted_prompt name="Application Type" type="Application Type" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Generic</property><property name="value">GENERAL</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PFP</property><property name="value">PROJECT</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PSB</property><property name="value">PSB</property></restricted_prompt_item></restricted_prompt><restricted_prompt name="Application" type="Application" isPrompt="no"><property name="is_system">true</property><value>Is Single Currency</value><restricted_prompt_item><property name="prompt">Is Multi Currency</property><property name="value">multi</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Single Currency</property><property name="value">single</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Simple Currency</property><property name="value">simple</property></restricted_prompt_item></restricted_prompt><template_slice_prompt name="UpperPOV" type="Member Range" isPrompt="false"><property name="is_system">true</property></template_slice_prompt><restricted_prompt name="Essbase Mode" type="Essbase Mode" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Hybrid</property><property name="value">Hybrid</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is NonHybrid</property><property name="value">NonHybrid</property></restricted_prompt_item></restricted_prompt></template_prompts></template></templates></HBRRepo>

@@ -1,0 +1,157 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<SystemSettingsForLcmVO>
+   <SystemSettingsForLcmVORow>
+      <LevelId>1000</LevelId>
+      <LevelValue>0</LevelValue>
+      <ProfileOptionName>ARCHIVE_MODE</ProfileOptionName>
+      <ProfileOptionValue>None</ProfileOptionValue>
+      <ValidationType>SQL</ValidationType>
+      <SqlValidation>SELECT LOOKUP_DISPLAY_CODE FROM AIF_LOOKUP_VALUES WHERE LOOKUP_TYPE_ID = 60</SqlValidation>
+      <EncryptValue>N</EncryptValue>
+   </SystemSettingsForLcmVORow>
+   <SystemSettingsForLcmVORow>
+      <LevelId>1000</LevelId>
+      <LevelValue>0</LevelValue>
+      <ProfileOptionName>BATCH_SIZE</ProfileOptionName>
+      <ProfileOptionValue>1000</ProfileOptionValue>
+      <ValidationType>NONE</ValidationType>
+      <EncryptValue>N</EncryptValue>
+   </SystemSettingsForLcmVORow>
+   <SystemSettingsForLcmVORow>
+      <LevelId>1000</LevelId>
+      <LevelValue>0</LevelValue>
+      <ProfileOptionName>FILE_CHARSET_ENCODING</ProfileOptionName>
+      <ProfileOptionValue>UTF-8</ProfileOptionValue>
+      <ValidationType>SQL</ValidationType>
+      <SqlValidation>SELECT LOOKUP_DISPLAY_CODE FROM AIF_LOOKUP_VALUES WHERE LOOKUP_TYPE_ID = 21</SqlValidation>
+      <EncryptValue>N</EncryptValue>
+   </SystemSettingsForLcmVORow>
+   <SystemSettingsForLcmVORow>
+      <LevelId>1000</LevelId>
+      <LevelValue>0</LevelValue>
+      <ProfileOptionName>PROFILE_DEFAULT_CHECK_REPORT</ProfileOptionName>
+      <ProfileOptionValue>Check Report</ProfileOptionValue>
+      <ValidationType>SQL</ValidationType>
+      <SqlValidation>SELECT  REPORTID,DISPLAYNAME  FROM TREPORT_TL WHERE REPORTID IN (SELECT TREPORT.REPORTID FROM TREPORT WHERE TREPORT.GROUPID = 2) AND LANGUAGE='en' ORDER BY DISPLAYNAME</SqlValidation>
+      <EncryptValue>N</EncryptValue>
+   </SystemSettingsForLcmVORow>
+   <SystemSettingsForLcmVORow>
+      <LevelId>1000</LevelId>
+      <LevelValue>0</LevelValue>
+      <ProfileOptionName>CHECK_RPT_PRECISION</ProfileOptionName>
+      <ProfileOptionValue>2</ProfileOptionValue>
+      <ValidationType>NONE</ValidationType>
+      <EncryptValue>N</EncryptValue>
+   </SystemSettingsForLcmVORow>
+   <SystemSettingsForLcmVORow>
+      <LevelId>1000</LevelId>
+      <LevelValue>0</LevelValue>
+      <ProfileOptionName>LOG_LEVEL</ProfileOptionName>
+      <ProfileOptionValue>5</ProfileOptionValue>
+      <ValidationType>NONE</ValidationType>
+      <EncryptValue>N</EncryptValue>
+   </SystemSettingsForLcmVORow>
+   <SystemSettingsForLcmVORow>
+      <LevelId>1000</LevelId>
+      <LevelValue>0</LevelValue>
+      <ProfileOptionName>ENABLE_OVERRIDE_ALL_DATA</ProfileOptionName>
+      <ProfileOptionValue>NO</ProfileOptionValue>
+      <ValidationType>YES_NO</ValidationType>
+      <EncryptValue>N</EncryptValue>
+   </SystemSettingsForLcmVORow>
+   <SystemSettingsForLcmVORow>
+      <LevelId>1000</LevelId>
+      <LevelValue>0</LevelValue>
+      <ProfileOptionName>ENABLE_MAP_AUDIT</ProfileOptionName>
+      <ProfileOptionValue>NO</ProfileOptionValue>
+      <ValidationType>YES_NO</ValidationType>
+      <EncryptValue>N</EncryptValue>
+   </SystemSettingsForLcmVORow>
+   <SystemSettingsForLcmVORow>
+      <LevelId>1000</LevelId>
+      <LevelValue>0</LevelValue>
+      <ProfileOptionName>ALLOW_DRILL_TO_SOURCE_DOCUMENT</ProfileOptionName>
+      <ProfileOptionValue>All Users</ProfileOptionValue>
+      <ValidationType>SQL</ValidationType>
+      <SqlValidation>SELECT LOOKUP_CODE, LOOKUP_DISPLAY_CODE FROM AIF_LOOKUP_VALUES WHERE LOOKUP_TYPE_ID = 95</SqlValidation>
+      <EncryptValue>N</EncryptValue>
+   </SystemSettingsForLcmVORow>
+   <SystemSettingsForLcmVORow>
+      <LevelId>1000</LevelId>
+      <LevelValue>0</LevelValue>
+      <ProfileOptionName>MAP_EXPORT_DELIMITER</ProfileOptionName>
+      <ProfileOptionValue>,</ProfileOptionValue>
+      <ValidationType>SQL</ValidationType>
+      <SqlValidation>SELECT LOOKUP_CODE FROM AIF_LOOKUP_VALUES WHERE LOOKUP_TYPE_ID = 29 AND LOOKUP_CODE IN (',', '|', ';', '!')</SqlValidation>
+      <EncryptValue>N</EncryptValue>
+   </SystemSettingsForLcmVORow>
+   <SystemSettingsForLcmVORow>
+      <LevelId>1000</LevelId>
+      <LevelValue>0</LevelValue>
+      <ProfileOptionName>MAP_EXPORT_EXCEL_FORMAT</ProfileOptionName>
+      <ProfileOptionValue>Excel 97-2003 Workbook (*.xls)</ProfileOptionValue>
+      <ValidationType>SQL</ValidationType>
+      <SqlValidation>SELECT LOOKUP_CODE, LOOKUP_DISPLAY_CODE FROM AIF_LOOKUP_VALUES WHERE LOOKUP_TYPE_ID = 119</SqlValidation>
+      <EncryptValue>N</EncryptValue>
+   </SystemSettingsForLcmVORow>
+   <SystemSettingsForLcmVORow>
+      <LevelId>1000</LevelId>
+      <LevelValue>0</LevelValue>
+      <ProfileOptionName>DRILL_EXPORT_FILE_FORMAT</ProfileOptionName>
+      <ProfileOptionValue>Excel Workbook (*.xlsx)</ProfileOptionValue>
+      <ValidationType>SQL</ValidationType>
+      <SqlValidation>SELECT LOOKUP_CODE, LOOKUP_DISPLAY_CODE FROM AIF_LOOKUP_VALUES WHERE LOOKUP_TYPE_ID = 192</SqlValidation>
+      <EncryptValue>N</EncryptValue>
+   </SystemSettingsForLcmVORow>
+   <SystemSettingsForLcmVORow>
+      <LevelId>1000</LevelId>
+      <LevelValue>0</LevelValue>
+      <ProfileOptionName>MAP_LCM_FORMAT</ProfileOptionName>
+      <ProfileOptionValue>Combined Data Load Mapping for all Locations</ProfileOptionValue>
+      <ValidationType>SQL</ValidationType>
+      <SqlValidation>SELECT LOOKUP_CODE, LOOKUP_DISPLAY_CODE FROM AIF_LOOKUP_VALUES WHERE LOOKUP_TYPE_ID = 161</SqlValidation>
+      <EncryptValue>N</EncryptValue>
+   </SystemSettingsForLcmVORow>
+   <SystemSettingsForLcmVORow>
+      <LevelId>1000</LevelId>
+      <LevelValue>0</LevelValue>
+      <ProfileOptionName>LCM_MODE</ProfileOptionName>
+      <ProfileOptionValue>Individual Artifact - Setup Only</ProfileOptionValue>
+      <ValidationType>SQL</ValidationType>
+      <SqlValidation>SELECT LOOKUP_CODE, LOOKUP_DISPLAY_CODE FROM AIF_LOOKUP_VALUES WHERE LOOKUP_TYPE_ID = 180</SqlValidation>
+      <EncryptValue>N</EncryptValue>
+   </SystemSettingsForLcmVORow>
+   <SystemSettingsForLcmVORow>
+      <LevelId>1000</LevelId>
+      <LevelValue>0</LevelValue>
+      <ProfileOptionName>ENABLE_NON_ADMIN_PIPELINE_EXEC</ProfileOptionName>
+      <ProfileOptionValue>NO</ProfileOptionValue>
+      <ValidationType>YES_NO</ValidationType>
+      <EncryptValue>N</EncryptValue>
+   </SystemSettingsForLcmVORow>
+   <SystemSettingsForLcmVORow>
+      <LevelId>1000</LevelId>
+      <LevelValue>0</LevelValue>
+      <ProfileOptionName>RECORD_LIMIT_DB_BATCH_MODE</ProfileOptionName>
+      <ProfileOptionValue>3000000</ProfileOptionValue>
+      <ValidationType>NONE</ValidationType>
+      <EncryptValue>N</EncryptValue>
+   </SystemSettingsForLcmVORow>
+   <SystemSettingsForLcmVORow>
+      <LevelId>1000</LevelId>
+      <LevelValue>0</LevelValue>
+      <ProfileOptionName>EPM_SHARED_CONNECTION_POOL</ProfileOptionName>
+      <ProfileOptionValue>YES</ProfileOptionValue>
+      <ValidationType>YES_NO</ValidationType>
+      <EncryptValue>N</EncryptValue>
+   </SystemSettingsForLcmVORow>
+   <SystemSettingsForLcmVORow>
+      <LevelId>1010</LevelId>
+      <LevelValue>Shubham.Shinde2@ibm.com</LevelValue>
+      <ProfileOptionName>PROFILE_POV_PERIOD</ProfileOptionName>
+      <ProfileOptionValue>Jun-26</ProfileOptionValue>
+      <ValidationType>SQL</ValidationType>
+      <SqlValidation>SELECT PERIODKEY, PERIODDESC  FROM TPOVPERIOD ORDER BY PERIODKEY DESC</SqlValidation>
+      <EncryptValue>N</EncryptValue>
+   </SystemSettingsForLcmVORow>
+</SystemSettingsForLcmVO>

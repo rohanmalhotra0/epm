@@ -1,0 +1,32 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<HBRRepo><variables/><rulesets/><rules/><components/><deployobjects><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="1" obj_type="19" name="OCF_VALIDATIONS_GT"/></deployobjects><templates><template custom="yes" id="1" name="OCF_Validations_GT" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><property name="standAlone">false</property><script type="groovy">			 /***
+			 * Forecast by Bank is calculated based on defined drivers.
+			 * @param cube,validationCateogry will be passed from rules
+			 * returns Validation results or Veto Exception.	
+			 * 1. DSO  and DPO number should be between 0 and 366			 
+			**/
+			boolean	cashForecastValidations(String cube,String validationCateogry)
+			{
+			  boolean  valResult=false;
+				if (validationCateogry=="DSO")
+				{
+				  operation.grid.dataCellIterator("OCF_Average DSO").each {
+						  if ((it.data &lt; 0) || (it.data > 366)) {
+							valResult=true;
+						}
+					}
+				}	
+				else if (validationCateogry=="DPO")
+				{
+				 operation.grid.dataCellIterator("OCF_Average DPO").each {
+						  if ((it.data &lt; 0) || (it.data > 366)) {
+							valResult=true;
+						}
+					}
+				}
+
+			return valResult;
+			}
+			
+			
+</script><template_wizard/><template_prompts><restricted_prompt name="Application Type" type="Application Type" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Generic</property><property name="value">GENERAL</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PFP</property><property name="value">PROJECT</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PSB</property><property name="value">PSB</property></restricted_prompt_item></restricted_prompt><restricted_prompt name="Application" type="Application" isPrompt="no"><property name="is_system">true</property><value>Is Single Currency</value><restricted_prompt_item><property name="prompt">Is Multi Currency</property><property name="value">multi</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Single Currency</property><property name="value">single</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Simple Currency</property><property name="value">simple</property></restricted_prompt_item></restricted_prompt><template_slice_prompt name="UpperPOV" type="Member Range" isPrompt="false"><property name="is_system">true</property></template_slice_prompt><restricted_prompt name="Essbase Mode" type="Essbase Mode" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Hybrid</property><property name="value">Hybrid</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is NonHybrid</property><property name="value">NonHybrid</property></restricted_prompt_item></restricted_prompt></template_prompts></template></templates></HBRRepo>

@@ -1,0 +1,22 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<LocationForLcmVO>
+   <LocationForLcmVORow>
+      <Partname>PCF_STAGE</Partname>
+      <SourceSystemName>Data Source</SourceSystemName>
+      <TargetApplicationName>Staging Area</TargetApplicationName>
+      <ApplicationName>Staging Area</ApplicationName>
+      <Partcurrencykey>[NONE]</Partcurrencykey>
+      <Partimpgroup>PCF_STAGE</Partimpgroup>
+      <Partdatavalue null="true"/>
+      <Partvalgroup>[NONE]</Partvalgroup>
+      <Parentlocationname null="true"/>
+      <Partvalentgroup>[NONE]</Partvalentgroup>
+      <Partlogicgroup>[NONE]</Partlogicgroup>
+      <Partintgconfig1 null="true"/>
+      <Partintgconfig2 null="true"/>
+      <Partintgconfig3 null="true"/>
+      <Partintgconfig4 null="true"/>
+      <Sourceappname>PCF Data</Sourceappname>
+      <Targetsourcesystemname>Data Source</Targetsourcesystemname>
+   </LocationForLcmVORow>
+</LocationForLcmVO>

@@ -1,0 +1,214 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<ImportFormats>
+   <ImportGroupsLcmVO/>
+   <ImportGroupsAdapterVO/>
+   <ImportGroupsFileLcmVO>
+      <ImportGroupsFileLcmVORow>
+         <Impgroupkey>PCF_DIM_BANK</Impgroupkey>
+         <Impgroupdesc null="true"/>
+         <SourceSystemName>Data Source</SourceSystemName>
+         <Impgroupfiletype>DELIMDATA</Impgroupfiletype>
+         <Impgroupdelimiter>,</Impgroupdelimiter>
+         <Impdrillrequestmethod null="true"/>
+         <Impdrillurl null="true"/>
+         <EpmSourceSystemName>PCF Dimensions</EpmSourceSystemName>
+         <Impodiscenario>DATASOURCE</Impodiscenario>
+         <TargetApplicationName>MCW_PCF</TargetApplicationName>
+         <ApplicationName>MCW_PCF - Custom</ApplicationName>
+         <ImportItemDetailsForFileLcmVO>
+            <ImportItemDetailsForFileLcmVORow>
+               <Impfldfieldname>ACCOUNT</Impfldfieldname>
+               <Impfldfixedtext null="true"/>
+               <Impfldsourcecolname>Member Name</Impfldsourcecolname>
+               <Impfldstartpos>1</Impfldstartpos>
+               <Impfldlength>1</Impfldlength>
+               <Impfldtargetexp>condition=if (ENTITY == "Bank Account") return ACCOUNT
+else return "BA_" + ACCOUNT</Impfldtargetexp>
+            </ImportItemDetailsForFileLcmVORow>
+            <ImportItemDetailsForFileLcmVORow>
+               <Impfldfieldname>ENTITY</Impfldfieldname>
+               <Impfldfixedtext null="true"/>
+               <Impfldsourcecolname>Parent Name</Impfldsourcecolname>
+               <Impfldstartpos>1</Impfldstartpos>
+               <Impfldlength>1</Impfldlength>
+               <Impfldtargetexp>condition=if (ENTITY == "Bank Account") return "OEP_All Bank"
+else return ENTITY</Impfldtargetexp>
+            </ImportItemDetailsForFileLcmVORow>
+            <ImportItemDetailsForFileLcmVORow>
+               <Impfldfieldname>ICP</Impfldfieldname>
+               <Impfldfixedtext null="true"/>
+               <Impfldsourcecolname>Description</Impfldsourcecolname>
+               <Impfldstartpos>1</Impfldstartpos>
+               <Impfldlength>1</Impfldlength>
+               <Impfldtargetexp>substr(ICP, 1, 80)</Impfldtargetexp>
+            </ImportItemDetailsForFileLcmVORow>
+            <ImportItemDetailsForFileLcmVORow>
+               <Impfldfieldname>UD1</Impfldfieldname>
+               <Impfldfixedtext>constant("No Input")</Impfldfixedtext>
+               <Impfldstartpos>1</Impfldstartpos>
+               <Impfldlength>1</Impfldlength>
+               <Impfldtargetexp>condition=if (ENTITY == "Bank Account") return "Dynamic Calc"
+else return "Never Share"</Impfldtargetexp>
+            </ImportItemDetailsForFileLcmVORow>
+            <ImportItemDetailsForFileLcmVORow>
+               <Impfldfieldname>UD2</Impfldfieldname>
+               <Impfldfixedtext null="true"/>
+               <Impfldsourcecolname>Description</Impfldsourcecolname>
+               <Impfldstartpos>1</Impfldstartpos>
+               <Impfldlength>1</Impfldlength>
+               <Impfldtargetexp>substr(UD2, 1, 80)</Impfldtargetexp>
+            </ImportItemDetailsForFileLcmVORow>
+            <ImportItemDetailsForFileLcmVORow>
+               <Impfldfieldname>UD3</Impfldfieldname>
+               <Impfldfixedtext null="true"/>
+               <Impfldsourcecolname>UDA2</Impfldsourcecolname>
+               <Impfldstartpos>1</Impfldstartpos>
+               <Impfldlength>1</Impfldlength>
+               <Impfldtargetexp null="true"/>
+            </ImportItemDetailsForFileLcmVORow>
+            <ImportItemDetailsForFileLcmVORow>
+               <Impfldfieldname>UD3</Impfldfieldname>
+               <Impfldfixedtext>constant(":")</Impfldfixedtext>
+               <Impfldstartpos>1</Impfldstartpos>
+               <Impfldlength>1</Impfldlength>
+               <Impfldtargetexp null="true"/>
+            </ImportItemDetailsForFileLcmVORow>
+            <ImportItemDetailsForFileLcmVORow>
+               <Impfldfieldname>UD3</Impfldfieldname>
+               <Impfldfixedtext null="true"/>
+               <Impfldsourcecolname>UDA3</Impfldsourcecolname>
+               <Impfldstartpos>1</Impfldstartpos>
+               <Impfldlength>1</Impfldlength>
+               <Impfldtargetexp>sql("chr(34)||replace($UD3$,':',chr(9))||chr(34)")</Impfldtargetexp>
+            </ImportItemDetailsForFileLcmVORow>
+         </ImportItemDetailsForFileLcmVO>
+      </ImportGroupsFileLcmVORow>
+      <ImportGroupsFileLcmVORow>
+         <Impgroupkey>PCF_DIM_BU</Impgroupkey>
+         <Impgroupdesc null="true"/>
+         <SourceSystemName>Data Source</SourceSystemName>
+         <Impgroupfiletype>DELIMDATA</Impgroupfiletype>
+         <Impgroupdelimiter>,</Impgroupdelimiter>
+         <Impdrillrequestmethod null="true"/>
+         <Impdrillurl null="true"/>
+         <EpmSourceSystemName>PCF Dimensions</EpmSourceSystemName>
+         <Impodiscenario>DATASOURCE</Impodiscenario>
+         <TargetApplicationName>MCW_PCF</TargetApplicationName>
+         <ApplicationName>MCW_PCF - Custom</ApplicationName>
+         <ImportItemDetailsForFileLcmVO>
+            <ImportItemDetailsForFileLcmVORow>
+               <Impfldfieldname>ACCOUNT</Impfldfieldname>
+               <Impfldfixedtext null="true"/>
+               <Impfldsourcecolname>Member Name</Impfldsourcecolname>
+               <Impfldstartpos>1</Impfldstartpos>
+               <Impfldlength>1</Impfldlength>
+               <Impfldtargetexp>prefix("BU_")</Impfldtargetexp>
+            </ImportItemDetailsForFileLcmVORow>
+            <ImportItemDetailsForFileLcmVORow>
+               <Impfldfieldname>ENTITY</Impfldfieldname>
+               <Impfldfixedtext null="true"/>
+               <Impfldsourcecolname>Parent Name</Impfldsourcecolname>
+               <Impfldstartpos>1</Impfldstartpos>
+               <Impfldlength>1</Impfldlength>
+               <Impfldtargetexp>constant("OEP_All Business Unit")</Impfldtargetexp>
+            </ImportItemDetailsForFileLcmVORow>
+            <ImportItemDetailsForFileLcmVORow>
+               <Impfldfieldname>ICP</Impfldfieldname>
+               <Impfldfixedtext null="true"/>
+               <Impfldsourcecolname>Description</Impfldsourcecolname>
+               <Impfldstartpos>1</Impfldstartpos>
+               <Impfldlength>1</Impfldlength>
+               <Impfldtargetexp>substr(ICP, 1, 80)</Impfldtargetexp>
+            </ImportItemDetailsForFileLcmVORow>
+            <ImportItemDetailsForFileLcmVORow>
+               <Impfldfieldname>UD1</Impfldfieldname>
+               <Impfldfixedtext>constant("No Input")</Impfldfixedtext>
+               <Impfldstartpos>1</Impfldstartpos>
+               <Impfldlength>1</Impfldlength>
+               <Impfldtargetexp>constant("Never Share")</Impfldtargetexp>
+            </ImportItemDetailsForFileLcmVORow>
+            <ImportItemDetailsForFileLcmVORow>
+               <Impfldfieldname>UD2</Impfldfieldname>
+               <Impfldfixedtext null="true"/>
+               <Impfldsourcecolname>Description</Impfldsourcecolname>
+               <Impfldstartpos>1</Impfldstartpos>
+               <Impfldlength>1</Impfldlength>
+               <Impfldtargetexp>substr(UD2, 1, 80)</Impfldtargetexp>
+            </ImportItemDetailsForFileLcmVORow>
+            <ImportItemDetailsForFileLcmVORow>
+               <Impfldfieldname>UD3</Impfldfieldname>
+               <Impfldfixedtext>constant("No Input")</Impfldfixedtext>
+               <Impfldstartpos>1</Impfldstartpos>
+               <Impfldlength>1</Impfldlength>
+               <Impfldtargetexp>constant("&lt;none>")</Impfldtargetexp>
+            </ImportItemDetailsForFileLcmVORow>
+         </ImportItemDetailsForFileLcmVO>
+      </ImportGroupsFileLcmVORow>
+      <ImportGroupsFileLcmVORow>
+         <Impgroupkey>PCF_DIM_PARTY</Impgroupkey>
+         <Impgroupdesc null="true"/>
+         <SourceSystemName>Data Source</SourceSystemName>
+         <Impgroupfiletype>DELIMDATA</Impgroupfiletype>
+         <Impgroupdelimiter>,</Impgroupdelimiter>
+         <Impdrillrequestmethod null="true"/>
+         <Impdrillurl null="true"/>
+         <EpmSourceSystemName>PCF Dimensions</EpmSourceSystemName>
+         <Impodiscenario>DATASOURCE</Impodiscenario>
+         <TargetApplicationName>MCW_PCF</TargetApplicationName>
+         <ApplicationName>MCW_PCF - Custom</ApplicationName>
+         <ImportItemDetailsForFileLcmVO>
+            <ImportItemDetailsForFileLcmVORow>
+               <Impfldfieldname>ACCOUNT</Impfldfieldname>
+               <Impfldfixedtext null="true"/>
+               <Impfldsourcecolname>Member Name</Impfldsourcecolname>
+               <Impfldstartpos>1</Impfldstartpos>
+               <Impfldlength>1</Impfldlength>
+               <Impfldtargetexp>copysource()</Impfldtargetexp>
+            </ImportItemDetailsForFileLcmVORow>
+            <ImportItemDetailsForFileLcmVORow>
+               <Impfldfieldname>ENTITY</Impfldfieldname>
+               <Impfldfixedtext null="true"/>
+               <Impfldsourcecolname>Parent Name</Impfldsourcecolname>
+               <Impfldstartpos>1</Impfldstartpos>
+               <Impfldlength>1</Impfldlength>
+               <Impfldtargetexp>condition=if (ENTITY == "PARTY_TOP_SUPPLIERS") return "OEP_Top Suppliers"
+else if (ENTITY == "PARTY_TOP_CUSTOMERS") return "OEP_Top Customers"
+else if (ACCOUNT == "CUST_OTHERS") return "OEP_Total Other Customers"
+else if (ACCOUNT == "SUPP_OTHERS") return "OEP_Total Other Suppliers"</Impfldtargetexp>
+            </ImportItemDetailsForFileLcmVORow>
+            <ImportItemDetailsForFileLcmVORow>
+               <Impfldfieldname>ICP</Impfldfieldname>
+               <Impfldfixedtext null="true"/>
+               <Impfldsourcecolname>Description</Impfldsourcecolname>
+               <Impfldstartpos>1</Impfldstartpos>
+               <Impfldlength>1</Impfldlength>
+               <Impfldtargetexp>substr(ICP, 1, 80)</Impfldtargetexp>
+            </ImportItemDetailsForFileLcmVORow>
+            <ImportItemDetailsForFileLcmVORow>
+               <Impfldfieldname>UD1</Impfldfieldname>
+               <Impfldfixedtext>constant("No Input")</Impfldfixedtext>
+               <Impfldstartpos>1</Impfldstartpos>
+               <Impfldlength>1</Impfldlength>
+               <Impfldtargetexp>condition=if (ENTITY== "Party") return "Dynamic Calc" 
+else return "Never Share"</Impfldtargetexp>
+            </ImportItemDetailsForFileLcmVORow>
+            <ImportItemDetailsForFileLcmVORow>
+               <Impfldfieldname>UD2</Impfldfieldname>
+               <Impfldfixedtext null="true"/>
+               <Impfldsourcecolname>Description</Impfldsourcecolname>
+               <Impfldstartpos>1</Impfldstartpos>
+               <Impfldlength>1</Impfldlength>
+               <Impfldtargetexp>substr(UD2, 1, 80)</Impfldtargetexp>
+            </ImportItemDetailsForFileLcmVORow>
+            <ImportItemDetailsForFileLcmVORow>
+               <Impfldfieldname>UD3</Impfldfieldname>
+               <Impfldfixedtext null="true"/>
+               <Impfldsourcecolname>UDA1</Impfldsourcecolname>
+               <Impfldstartpos>1</Impfldstartpos>
+               <Impfldlength>1</Impfldlength>
+               <Impfldtargetexp>constant("&lt;none>")</Impfldtargetexp>
+            </ImportItemDetailsForFileLcmVORow>
+         </ImportItemDetailsForFileLcmVO>
+      </ImportGroupsFileLcmVORow>
+   </ImportGroupsFileLcmVO>
+</ImportFormats>

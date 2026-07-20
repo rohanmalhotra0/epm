@@ -1,0 +1,21 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<LocationForLcmVO>
+   <LocationForLcmVORow>
+      <Partname>PCF_DATA_DAILY</Partname>
+      <SourceSystemName>Data Source</SourceSystemName>
+      <TargetApplicationName>MCW_PCF</TargetApplicationName>
+      <ApplicationName>MCW_PCF-OEP_DCSH</ApplicationName>
+      <Partcurrencykey>[NONE]</Partcurrencykey>
+      <Partimpgroup>PCF_DATA_DAILY</Partimpgroup>
+      <Partdatavalue null="true"/>
+      <Partvalgroup>[NONE]</Partvalgroup>
+      <Parentlocationname null="true"/>
+      <Partvalentgroup>[NONE]</Partvalentgroup>
+      <Partlogicgroup>[NONE]</Partlogicgroup>
+      <Partintgconfig1 null="true"/>
+      <Partintgconfig2 null="true"/>
+      <Partintgconfig3 null="true"/>
+      <Partintgconfig4 null="true"/>
+      <Sourceappname>PCF Data Staging Area - DAILY</Sourceappname>
+   </LocationForLcmVORow>
+</LocationForLcmVO>

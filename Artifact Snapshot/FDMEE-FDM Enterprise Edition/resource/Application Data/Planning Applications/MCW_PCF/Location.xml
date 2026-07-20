@@ -1,0 +1,20 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<LocationForLcmVO>
+   <LocationForLcmVORow>
+      <Partname>MCW_PCF</Partname>
+      <SourceSystemName>File</SourceSystemName>
+      <TargetApplicationName>MCW_PCF</TargetApplicationName>
+      <ApplicationName>MCW_PCF</ApplicationName>
+      <Partcurrencykey>[NONE]</Partcurrencykey>
+      <Partimpgroup>MCW_PCF</Partimpgroup>
+      <Partdatavalue null="true"/>
+      <Partvalgroup>[NONE]</Partvalgroup>
+      <Parentlocationname null="true"/>
+      <Partvalentgroup>[NONE]</Partvalentgroup>
+      <Partlogicgroup>[NONE]</Partlogicgroup>
+      <Partintgconfig1 null="true"/>
+      <Partintgconfig2 null="true"/>
+      <Partintgconfig3 null="true"/>
+      <Partintgconfig4 null="true"/>
+   </LocationForLcmVORow>
+</LocationForLcmVO>

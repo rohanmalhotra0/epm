@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<cellNotes>
+<dimMappings>
+ <dimMapping dimName="Scenario" mappedAs="DIM1" />
+ <dimMapping dimName="Line Item" mappedAs="DIM2" />
+ <dimMapping dimName="Entity" mappedAs="DIM3" />
+ <dimMapping dimName="Period" mappedAs="DIM4" />
+ <dimMapping dimName="Version" mappedAs="DIM5" />
+ <dimMapping dimName="Currency" mappedAs="DIM6" />
+ <dimMapping dimName="Years" mappedAs="DIM7" />
+ <dimMapping dimName="Forecast Method" mappedAs="DIM8" />
+ <dimMapping dimName="Bank" mappedAs="DIM9" />
+ <dimMapping dimName="Party" mappedAs="DIM10" />
+ <dimMapping dimName="Business Unit" mappedAs="DIM11" />
+ <dimMapping dimName="Category" mappedAs="DIM12" />
+</dimMappings>
+</cellNotes>

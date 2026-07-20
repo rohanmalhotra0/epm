@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<spreadPatterns>
+<spreadPattern>
+ <name>Fill</name>
+ <label>LABEL_FILL</label>
+ <pattern>P</pattern>
+</spreadPattern>
+</spreadPatterns>

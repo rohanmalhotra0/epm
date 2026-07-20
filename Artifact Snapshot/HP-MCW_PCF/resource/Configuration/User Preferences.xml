@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <UserPreferences xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" >
+ <UserPreference UserName="Shubham.Shinde2@ibm.com" >
+ <EmailOptions>
+ <EnableEmail>No</EnableEmail>
+ <PMNotification>No</PMNotification>
+ <EmailId></EmailId>
+ <CopyAppOwner>No</CopyAppOwner>
+ <NotifyJobStatusChange>No</NotifyJobStatusChange>
+</EmailOptions>
+ <DisplayAlias AliasTable="Default" />
+ <MemberNameAliasDisplay>Default</MemberNameAliasDisplay>
+ <MemberSelectionOptions ShowMemberDesc="No" ShowMemberAlias="No" />
+ <PUOptions DisplayPUNotStarted="No" DisplayPUAliasInEmail="No" DisplayPUAlias="No" />
+ <OutOfOfficeOptions>
+ <EnableOutOfOffice>No</EnableOutOfOffice>
+</OutOfOfficeOptions>
+ <PipUserPrefs><![CDATA[{"_sP":{"_sVer":1.2},"_pipUserPrefs":{"predictionBasePast":false,"predictionBaseFuture":true,"predictionWorstFuture":true,"predictionBestFuture":true,"historicalPast":true,"historicalFuture":false,"trendPast":false,"trendFuture":false,"growthFuture":false,"growthPercent":2.0,"growthCompounding":false,"viewScenarios":[],"highlightSeasonality":true,"highlightScreenedData":true,"highlightPredictionInterval":true,"showSeparator":true,"showCurrentViewName":true,"showSimulations":false,"threeDChart":false,"transparency":false,"transparencyPercent":50,"gridlinesIndex":0,"gridlines":1,"legendIndex":1,"legend":1,"chartAnimation":true,"historicalColor":"#a02591","historicalLineType":0,"historicalLineSize":2,"forecastColor":"#195f74","forecastLineType":0,"forecastLineSize":2,"confidenceColor":"#e08010","confidenceLineType":2,"confidenceLineSize":2,"simulationColor":null,"simulationLineType":2,"simulationLineSize":2,"showEvents":true,"settingsDialogLastTab":0,"horizontalSplitterLocation":0,"dockPanel":0,"keepPanelOpenWhenSwitchingForms":true,"showPastePreview":true,"defaultDateRangesIndex":null},"_paUserPrefs":{"_firstUserSession":true,"_accessibilityMode":true,"_varSort":0,"_runPrefs":{"_trials":500,"_seed":999,"_sameSequence":false,"_samplingMethod":0,"_bestCasePercentile":0.95,"_worstCasePercentile":0.05,"_bestCaseLabel":"","_worstCaseLabel":""},"_asmPrefs":{"_showAsmTrialOverlay":true}},"ipmSettings":{"scalingEnabled":true,"precision":{"percentage":{"min":0,"max":2},"currency":{"min":0,"max":2},"noncurrency":{"min":0,"max":2}}},"_sVer":1.2}]]></PipUserPrefs>
+ <OptionsJson><![CDATA[{"enableConsolidationLogging":false,"smartViewSuppression":1,"smartViewAdhocBehavior":2,"artifactDisplays":[],"currencyScenarioTPOption":false,"smPrefs":{"suppressFundsFlow":false,"warnDepFuncs":true,"autoCalcNewScenario":false,"suppressZeros":false,"inputDecimals":0,"outputDecimals":0},"mrPrefs":{"mrUnitOfMeasureOptions":"[{value=INCH, label=Inch}, {value=CM, label=Centimeter}]","mr.report.design.unitOfMeasure":"INCH","mr.report.preview.reportingPreviewPOV":"false"},"enableDataLoadForAdhocReadOnlyRole":false,"maxRuleUIBlockTime":180000,"showAutocorrectErrorsOption":false,"webAdhocGrid":2,"uiLogLevel":3,"clientSideFormulaCreationEnabled":false,"gridTooltipEnabled":true,"fccsDateViewCalcsDisabled":false,"filterOutExcludedMembersInSegDropdown":true,"legacyListPageDropdown":false,"dynamicTabInNavFlow":false,"dashboardSeriesColor":"N","formsMode":1,"renderGridForInvalidInterSection":true,"oglAppId":"","oglServerUrl":"https://guidedlearning.oracle.com","svGoogleSheetSupport":false,"svKeepInvMbrsSupport":false,"pcmcsPrefs":{},"aiFeatures":[],"upperLevelWriteBack":false,"13PeriodModelEndMonth":0,"13PeriodModelEndWeekDay":0,"13PeriodModelLeapWeekPeriod":0,"13PeriodModelExtraPeriodInQtr":0,"13PeriodModelWeekDayClosestToEndMonth":false}]]></OptionsJson>
+ <NumberFormat>
+ <ThousandSeparator>none</ThousandSeparator>
+ <DecimalSeparator>dot</DecimalSeparator>
+ <NegativeSeparator>CurrencyString</NegativeSeparator>
+ <NegativeColor>CurrencyString</NegativeColor>
+</NumberFormat>
+ <PageOptions PageDisplay="Indent level-zero members only" EnableMRU="Yes" AllowPageSerach="100" />
+ <OtherOptions>
+ <EnableMRUScreen>Yes</EnableMRUScreen>
+ <MRUScreenProps></MRUScreenProps>
+ <UserImageFileName></UserImageFileName>
+ <FormWarning>5000</FormWarning>
+ <PartialGridFetchSize>UseAppDefault</PartialGridFetchSize>
+ <PageSize>25</PageSize>
+ <AccessControlPageSize>UseAppDefault</AccessControlPageSize>
+ <showConsolidationOperators>Data Form Setting</showConsolidationOperators>
+ <DateFormat>UseAppDefault</DateFormat>
+</OtherOptions>
+ <PrintingOptions>
+ <FormatData>true</FormatData>
+ <ApplyPrecision>false</ApplyPrecision>
+ <SupportingDetail Display="false" />
+ <ShowAccountAnnotation>true</ShowAccountAnnotation>
+ <ShowCellText>false</ShowCellText>
+ <ShowAttribute>true</ShowAttribute>
+ <ShowCurrency>true</ShowCurrency>
+ <PaperSize>A4</PaperSize>
+ <PrintLayout>0</PrintLayout>
+ <PrintOptions1>3278</PrintOptions1>
+</PrintingOptions>
+ <UserVariables>
+ <Variable Name="OCF_Customer" Value="OEP_All Customers" />
+ <Variable Name="OCF_Supplier" Value="OEP_All Suppliers" />
+ <Variable Name="OEP_Controller_Entity" Value="LE_300000003028057" />
+ <Variable Name="OEP_Currency" Value="USD" />
+ <Variable Name="OEP_Entity" Value="LE_300000003028057" />
+ <Variable Name="OEP_Scenario" Value="OEP_Forecast" />
+ <Variable Name="OEP_Version" Value="OEP_Working" />
+</UserVariables>
+ <ReportingCurrency></ReportingCurrency>
+ <TimeZone>null</TimeZone>
+ <Language>en</Language>
+ <AccesibilityPrefs>0</AccesibilityPrefs>
+ <StructureID>4</StructureID>
+ <StructureName>Cash Manager Admin</StructureName>
+ <AdhocPreferences>
+ <ZoomInLevel>0</ZoomInLevel>
+ <AncestorPosition>1</AncestorPosition>
+ <AdhocMemberDisplay>2</AdhocMemberDisplay>
+ <AdhocAliasTable>Default</AdhocAliasTable>
+ <NavigateWithData>Yes</NavigateWithData>
+ <SuppressZeroRows>No</SuppressZeroRows>
+ <SuppressZeroCols>No</SuppressZeroCols>
+ <SuppressMissingBlocks>No</SuppressMissingBlocks>
+ <SuppressMissingRows>No</SuppressMissingRows>
+ <SuppressMissingCols>No</SuppressMissingCols>
+ <PrecisionCurrencyMaximum>-1</PrecisionCurrencyMaximum>
+ <PrecisionCurrencyMinimum>0</PrecisionCurrencyMinimum>
+ <PrecisionNonCurrencyMaximum>-1</PrecisionNonCurrencyMaximum>
+ <PrecisionNonCurrencyMinimum>0</PrecisionNonCurrencyMinimum>
+ <PrecisionPercentageCurrencyMaximum>-1</PrecisionPercentageCurrencyMaximum>
+ <PrecisionPercentageCurrencyMinimum>0</PrecisionPercentageCurrencyMinimum>
+ <MissingLabelText>#missing</MissingLabelText>
+ <NoAccessText>#noaccess</NoAccessText>
+ <Indentation>1</Indentation>
+ <SubmitZeros>No</SubmitZeros>
+ <MemberReturnOptions>1</MemberReturnOptions>
+ <AdhocOptions>0</AdhocOptions>
+</AdhocPreferences>
+ <MRUMembers>
+ <MRUMember QueryType="" Dimension="Scenario" Member="OEP_Forecast" />
+ <MRUMember QueryType="" Dimension="Line Item" Member="OCF_Receivables Invoices" />
+ <MRUMember QueryType="" Dimension="Entity" Member="LE_300000003028057" />
+ <MRUMember QueryType="" Dimension="Period" Member="OEP_Day189" />
+ <MRUMember QueryType="" Dimension="Version" Member="OEP_Working" />
+ <MRUMember QueryType="" Dimension="Currency" Member="USD" />
+ <MRUMember QueryType="" Dimension="Years" Member="FY26" />
+ <MRUMember QueryType="" Dimension="Forecast Method" Member="OCF_Smart Drivers" />
+ <MRUMember QueryType="" Dimension="Bank" Member="OEP_Total Bank" />
+ <MRUMember QueryType="" Dimension="Party" Member="OEP_Total Party" />
+ <MRUMember QueryType="" Dimension="Business Unit" Member="OEP_Total Business Unit" />
+ <MRUMember QueryType="" Dimension="Category" Member="OEP_Total Category" />
+</MRUMembers>
+</UserPreference>
+ <UserPreference UserName="Calvin.Jarrett@ibm.com" >
+ <EmailOptions>
+ <EnableEmail>No</EnableEmail>
+ <PMNotification>No</PMNotification>
+ <EmailId></EmailId>
+ <CopyAppOwner>No</CopyAppOwner>
+ <NotifyJobStatusChange>No</NotifyJobStatusChange>
+</EmailOptions>
+ <DisplayAlias AliasTable="Default" />
+ <MemberNameAliasDisplay>Default</MemberNameAliasDisplay>
+ <MemberSelectionOptions ShowMemberDesc="No" ShowMemberAlias="No" />
+ <PUOptions DisplayPUNotStarted="No" DisplayPUAliasInEmail="No" DisplayPUAlias="No" />
+ <OutOfOfficeOptions>
+ <EnableOutOfOffice>No</EnableOutOfOffice>
+</OutOfOfficeOptions>
+ <OptionsJson><![CDATA[{"enableConsolidationLogging":false,"smartViewSuppression":1,"smartViewAdhocBehavior":2,"artifactDisplays":[],"currencyScenarioTPOption":false,"smPrefs":null,"mrPrefs":{},"enableDataLoadForAdhocReadOnlyRole":false,"maxRuleUIBlockTime":180000,"showAutocorrectErrorsOption":false,"webAdhocGrid":2,"uiLogLevel":3,"clientSideFormulaCreationEnabled":false,"gridTooltipEnabled":true,"fccsDateViewCalcsDisabled":false,"filterOutExcludedMembersInSegDropdown":true,"legacyListPageDropdown":false,"dynamicTabInNavFlow":false,"dashboardSeriesColor":"N","formsMode":1,"renderGridForInvalidInterSection":true,"oglAppId":"","oglServerUrl":"https://guidedlearning.oracle.com","svGoogleSheetSupport":false,"svKeepInvMbrsSupport":false,"pcmcsPrefs":{},"aiFeatures":[],"upperLevelWriteBack":false,"13PeriodModelEndMonth":0,"13PeriodModelEndWeekDay":0,"13PeriodModelLeapWeekPeriod":0,"13PeriodModelExtraPeriodInQtr":0,"13PeriodModelWeekDayClosestToEndMonth":false}]]></OptionsJson>
+ <NumberFormat>
+ <ThousandSeparator>none</ThousandSeparator>
+ <DecimalSeparator>dot</DecimalSeparator>
+ <NegativeSeparator>CurrencyString</NegativeSeparator>
+ <NegativeColor>CurrencyString</NegativeColor>
+</NumberFormat>
+ <PageOptions PageDisplay="Indent level-zero members only" EnableMRU="Yes" AllowPageSerach="100" />
+ <OtherOptions>
+ <EnableMRUScreen>Yes</EnableMRUScreen>
+ <MRUScreenProps></MRUScreenProps>
+ <UserImageFileName></UserImageFileName>
+ <FormWarning>5000</FormWarning>
+ <PartialGridFetchSize>25,17</PartialGridFetchSize>
+ <PageSize>25</PageSize>
+ <AccessControlPageSize>25</AccessControlPageSize>
+ <showConsolidationOperators>Data Form Setting</showConsolidationOperators>
+ <DateFormat>UseAppDefault</DateFormat>
+</OtherOptions>
+ <PrintingOptions>
+</PrintingOptions>
+ <UserVariables>
+ <Variable Name="OCF_Customer" Value="" />
+ <Variable Name="OCF_Supplier" Value="" />
+ <Variable Name="OEP_Controller_Entity" Value="" />
+ <Variable Name="OEP_Currency" Value="" />
+ <Variable Name="OEP_Entity" Value="" />
+ <Variable Name="OEP_Scenario" Value="" />
+ <Variable Name="OEP_Version" Value="" />
+</UserVariables>
+ <ReportingCurrency></ReportingCurrency>
+ <TimeZone>null</TimeZone>
+ <Language>en</Language>
+ <AccesibilityPrefs>0</AccesibilityPrefs>
+ <StructureID>0</StructureID>
+ <StructureName></StructureName>
+ <AdhocPreferences>
+</AdhocPreferences>
+</UserPreference>
+</UserPreferences>

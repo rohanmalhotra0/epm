@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package>
+   <LOCALE>en_US</LOCALE>
+   <User name="" password=""/>
+   <ExportedVersion>26.07.95</ExportedVersion>
+   <ExportedDateUTC>20260720</ExportedDateUTC>
+   <ExportedTimeUTC>12:56</ExportedTimeUTC>
+   <ExportedBy>epm_default_cloud_admin</ExportedBy>
+   <IDMDomain>mcw2027</IDMDomain>
+   <ServiceInstance>epmpcf-test</ServiceInstance>
+   <Task>
+      <Source type="FileSystem" filePath="/"/>
+      <Target type="Application" product="HP" project="Default Application Group" application="MCW_PCF"/>
+      <Artifact recursive="true" parentPath="/" pattern="*"/>
+   </Task>
+</Package>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <substitutionVariable>
+ <name>OEP_PeriodicActualStartPeriod</name>
+ <value>Sep</value>
+ <planType>OEP_RCSH</planType>
+</substitutionVariable>

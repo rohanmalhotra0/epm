@@ -1,0 +1,20 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<ImportFormats>
+   <ImportGroupsLcmVO/>
+   <ImportGroupsAdapterVO/>
+   <ImportGroupsFileLcmVO>
+      <ImportGroupsFileLcmVORow>
+         <Impgroupkey>PCF_STAGE</Impgroupkey>
+         <Impgroupdesc null="true"/>
+         <SourceSystemName>Data Source</SourceSystemName>
+         <Impgroupfiletype>DELIMITED</Impgroupfiletype>
+         <Impgroupdelimiter>,</Impgroupdelimiter>
+         <Impdrillrequestmethod null="true"/>
+         <Impdrillurl null="true"/>
+         <EpmSourceSystemName>PCF Data</EpmSourceSystemName>
+         <Impodiscenario>DATASOURCE</Impodiscenario>
+         <TargetApplicationName>Staging Area</TargetApplicationName>
+         <ApplicationName>Staging Area</ApplicationName>
+      </ImportGroupsFileLcmVORow>
+   </ImportGroupsFileLcmVO>
+</ImportFormats>

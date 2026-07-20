@@ -1,0 +1,199 @@
+﻿#!-- HEADERBLOCK DIMENSION XML
+<?xml version="1.0" encoding="UTF-8" ?>
+<DIMENSIONS>
+ <Dimension name="Line Item" EnabledForCellLevelSecurity="true" origname="Line Item" EnabledForApprovalGroups="true" DataId="77786788939267" EnabledForValidIntersections="true" comment="" dimensionType="Accounts" csversion="2.5" OldName="Line Item" density="Dense" DimensionAlias="Line Item" dimensionName="Account" UUID="7859c787-ee2f-46df-a64a-b600df619a72" OldUniqueName="" >
+ <Plan1Density>Dense</Plan1Density>
+ <OEP_RCSHDensity>Dense</OEP_RCSHDensity>
+ <OEP_DCSHDensity>Dense</OEP_DCSHDensity>
+ <OEP_PCSHDensity>Dense</OEP_PCSHDensity>
+ <Plan5Density>Dense</Plan5Density>
+ <Plan6Density>Dense</Plan6Density>
+ <Plan7Density>Dense</Plan7Density>
+ <Plan8Density>Dense</Plan8Density>
+ <Plan9Density>Dense</Plan9Density>
+ <Plan10Density>Dense</Plan10Density>
+ <Plan11Density>Dense</Plan11Density>
+ <Plan12Density>Dense</Plan12Density>
+ <Plan13Density>Dense</Plan13Density>
+ <Plan14Density>Dense</Plan14Density>
+ <Plan15Density>Dense</Plan15Density>
+ <EnumOrder1>0</EnumOrder1>
+ <EnumOrderOEP_RCSH>3</EnumOrderOEP_RCSH>
+ <EnumOrderOEP_DCSH>3</EnumOrderOEP_DCSH>
+ <EnumOrderOEP_PCSH>3</EnumOrderOEP_PCSH>
+ <EnumOrder5>0</EnumOrder5>
+ <EnumOrder6>0</EnumOrder6>
+ <EnumOrder7>0</EnumOrder7>
+ <EnumOrder8>0</EnumOrder8>
+ <EnumOrder9>0</EnumOrder9>
+ <EnumOrder10>0</EnumOrder10>
+ <EnumOrder11>0</EnumOrder11>
+ <EnumOrder12>0</EnumOrder12>
+ <EnumOrder13>0</EnumOrder13>
+ <EnumOrder14>0</EnumOrder14>
+ <EnumOrder15>0</EnumOrder15>
+ <Plan1PerfOrder>0</Plan1PerfOrder>
+ <OEP_RCSHPerfOrder>0</OEP_RCSHPerfOrder>
+ <OEP_DCSHPerfOrder>0</OEP_DCSHPerfOrder>
+ <OEP_PCSHPerfOrder>0</OEP_PCSHPerfOrder>
+ <Plan5PerfOrder>1</Plan5PerfOrder>
+ <Plan6PerfOrder>1</Plan6PerfOrder>
+ <Plan7PerfOrder>1</Plan7PerfOrder>
+ <Plan8PerfOrder>1</Plan8PerfOrder>
+ <Plan9PerfOrder>1</Plan9PerfOrder>
+ <Plan10PerfOrder>1</Plan10PerfOrder>
+ <Plan11PerfOrder>1</Plan11PerfOrder>
+ <Plan12PerfOrder>1</Plan12PerfOrder>
+ <Plan13PerfOrder>1</Plan13PerfOrder>
+ <Plan14PerfOrder>1</Plan14PerfOrder>
+ <Plan15PerfOrder>1</Plan15PerfOrder>
+ <ApplySecurity>Y</ApplySecurity>
+ <PartialShare>N</PartialShare>
+ <UDA number="1" >CalcRound</UDA>
+ <UDA number="2" >Hsp_Currency</UDA>
+ <UDA number="3" >HSP_NOLINK</UDA>
+ <DisplayOption>MEMBER_NAME</DisplayOption>
+ <Consolidation>~</Consolidation>
+ <ConsolidationOEP_RCSH>~</ConsolidationOEP_RCSH>
+ <ConsolidationOEP_DCSH>~</ConsolidationOEP_DCSH>
+ <ConsolidationOEP_PCSH>~</ConsolidationOEP_PCSH>
+ <ConsolidationWF>NotUsed</ConsolidationWF>
+ <ConsolidationCX>NotUsed</ConsolidationCX>
+ <Consolidation64>NotUsed</Consolidation64>
+ <Consolidation128>NotUsed</Consolidation128>
+ <Consolidation256>NotUsed</Consolidation256>
+ <Consolidation512>NotUsed</Consolidation512>
+ <Consolidation1024>NotUsed</Consolidation1024>
+ <Consolidation2048>NotUsed</Consolidation2048>
+ <Consolidation4096>NotUsed</Consolidation4096>
+ <Consolidation8192>NotUsed</Consolidation8192>
+ <Consolidation16384>NotUsed</Consolidation16384>
+ <ValidForPlan1>Y</ValidForPlan1>
+ <ValidForOEP_RCSH>Y</ValidForOEP_RCSH>
+ <ValidForOEP_DCSH>Y</ValidForOEP_DCSH>
+ <ValidForOEP_PCSH>Y</ValidForOEP_PCSH>
+ <ValidForPlan5>N</ValidForPlan5>
+ <ValidForPlan6>N</ValidForPlan6>
+ <ValidForPlan7>N</ValidForPlan7>
+ <ValidForPlan8>N</ValidForPlan8>
+ <ValidForPlan9>N</ValidForPlan9>
+ <ValidForPlan10>N</ValidForPlan10>
+ <ValidForPlan11>N</ValidForPlan11>
+ <ValidForPlan12>N</ValidForPlan12>
+ <ValidForPlan13>N</ValidForPlan13>
+ <ValidForPlan14>N</ValidForPlan14>
+ <ValidForPlan15>N</ValidForPlan15>
+ <Alias table="Default" ></Alias>
+ <DataStorage>NeverShare</DataStorage>
+ <DataStorageOEP_RCSH>NeverShare</DataStorageOEP_RCSH>
+ <DataStorageOEP_DCSH>NeverShare</DataStorageOEP_DCSH>
+ <DataStorageOEP_PCSH>NeverShare</DataStorageOEP_PCSH>
+ <DataStorage16>NeverShare</DataStorage16>
+ <DataStorage32>NeverShare</DataStorage32>
+ <DataStorage64>NeverShare</DataStorage64>
+ <DataStorage128>NeverShare</DataStorage128>
+ <DataStorage256>NeverShare</DataStorage256>
+ <DataStorage512>NeverShare</DataStorage512>
+ <DataStorage1024>NeverShare</DataStorage1024>
+ <DataStorage2048>NeverShare</DataStorage2048>
+ <DataStorage4096>NeverShare</DataStorage4096>
+ <DataStorage8192>NeverShare</DataStorage8192>
+ <DataStorage16384>NeverShare</DataStorage16384>
+ <HierarchyType>None</HierarchyType>
+ <DataType>Currency</DataType>
+</Dimension>
+</DIMENSIONS>
+#--!
+Line Item, Parent, Alias: Default, Valid For Consolidations, Data Storage, Two Pass Calculation, Description, Formula, Formula Description, UDA, Smart List, Data Type, Hierarchy Type, Enable for Dynamic Children, Number of Possible Dynamic Children, Access Granted to Member Creator, Allow Upper Level Entity Input, Process Management Enabled, UUID, Data Id, Old Name, Old Unique Name, Account Type, Time Balance, Skip Value, Exchange Rate Type, Variance Reporting, Source Plan Type, Plan Type (CFREP), Aggregation (CFREP), Data Storage (CFREP), Formula (CFREP), Solve Order (CFREP), Formula Description (CFREP), Plan Type (OEP_RCSH), Aggregation (OEP_RCSH), Data Storage (OEP_RCSH), Formula (OEP_RCSH), Solve Order (OEP_RCSH), Formula Description (OEP_RCSH), Plan Type (OEP_DCSH), Aggregation (OEP_DCSH), Data Storage (OEP_DCSH), Formula (OEP_DCSH), Solve Order (OEP_DCSH), Formula Description (OEP_DCSH), Plan Type (OEP_PCSH), Aggregation (OEP_PCSH), Data Storage (OEP_PCSH), Formula (OEP_PCSH), Solve Order (OEP_PCSH), Formula Description (OEP_PCSH), Operation
+OCF_System Members,Line Item,,,label only,,,,,,,,,,,,,,54a84d33-2692-4517-9395-aab7035d3d83,1200094542842268,OCF_System Members,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Year Number,OCF_System Members,,,dynamic calc,,,,,,,,,,,,,,4f4651ca-f21d-499d-a963-3333aba9bdfb,3385566975444950,OCF_Year Number,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Month Day,OCF_System Members,,,dynamic calc,,,,,,,,,,,,,,019809fb-826e-4022-bb2f-5823ca43bf07,3007916229872640,OCF_Month Day,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_TP_Date,OCF_System Members,,,dynamic calc,,,,,,,,,,,,,,8dafbf7c-8f71-4506-ae22-22388cbeb685,2156338162191653,OCF_TP_Date,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_TP_EndDate,OCF_System Members,,,dynamic calc,,,,,,,,,,,,,,ce643311-bf57-4b1e-bde9-cab09d020141,4116417073467278,OCF_TP_EndDate,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Period Number,OCF_System Members,,,dynamic calc,,,,,,,,,,,,,,f4703719-a422-492b-8655-d02b2148fe05,1420587058480380,OCF_Period Number,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Display Scenario,OCF_System Members,,,never share,,,,,,,,,,,,,,46d55c4a-4aed-4093-8389-ecfce249bc02,3256040918565476,OCF_Display Scenario,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Bank Alloc Method,OCF_System Members,,,store,,,,,,,,,,,,,,c0b46270-cc41-41d9-988b-1c93e4a0724a,1730313095103177,OCF_Bank Alloc Method,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_All Line Item,Line Item,,,label only,,,,,,,,,,,,,,4b5d2525-2dbe-4d39-812a-a63eb774d24f,2022966880586998,OCF_All Line Item,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Total Cash,OCF_All Line Item,,,dynamic calc,,,,,,,,,,,,,,0ad66626-e960-48d8-91aa-281790c87586,2496541150957255,OCF_Total Cash,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Cash from Operating Activities,OCF_Total Cash,,,dynamic calc,,,,,,,,,,,,,,de7d858d-0126-4472-97bc-71cc62844da4,2775509650132972,OCF_Cash from Operating Activities,[OCF_Total Cash].[OCF_Cash from Operating Activities],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Operating Cash Inflow,OCF_Cash from Operating Activities,,,dynamic calc,,,,,,,,,,,,,,047dcfe3-4321-44e1-a1da-fd9a6b531c70,889719531653520,OCF_Operating Cash Inflow,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Customer Receipts,OCF_Operating Cash Inflow,,,never share,,,,,,,,,,,,,,eebee27c-68c4-40f4-86b5-e79bd840614b,1072202467200881,OCF_Customer Receipts,[OCF_Operating Cash Inflow].[OCF_Customer Receipts],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Receivables Invoices,OCF_Operating Cash Inflow,,,never share,,,,,,,,,,,,,,55144125-22b6-420f-92f4-761066268c27,784970722133945,OCF_Receivables Invoices,[OCF_Operating Cash Inflow].[OCF_Receivables Invoices],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Receivables Overdue Invoices,OCF_Operating Cash Inflow,,,never share,,,,,,,,,,,,,,b1470f8e-e9cf-41f4-994c-dcf29eb603b5,4219873108381274,OCF_Receivables Overdue Invoices,[OCF_Operating Cash Inflow].[OCF_Receivables Overdue Invoices],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Unapplied Receipts Offset,OCF_Operating Cash Inflow,,,never share,,,,,,,,,,,,,,36367d56-431c-4fb7-9810-2c477dd72221,2943508463176855,OCF_Unapplied Receipts Offset,[OCF_Operating Cash Inflow].[OCF_Unapplied Receipts Offset],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Revenue Receipts,OCF_Operating Cash Inflow,,,never share,,,,,,,,,,,,,,3268f403-b27a-47d9-a28e-873a24881a73,2410675073339195,OCF_Revenue Receipts,[OCF_Operating Cash Inflow].[OCF_Revenue Receipts],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Operating Cash Outflow,OCF_Cash from Operating Activities,,,dynamic calc,,,,,,,,,,,,,,eb607190-3dfb-4ffa-baa4-c737ff072132,4083733133213739,OCF_Operating Cash Outflow,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Supplier Payments,OCF_Operating Cash Outflow,,,never share,,,,,,,,,,,,,,9e143548-6e72-439c-83a9-1e916b3a221d,2301696728059407,OCF_Supplier Payments,[OCF_Operating Cash Outflow].[OCF_Supplier Payments],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Payables Invoices,OCF_Operating Cash Outflow,,,never share,,,,,,,,,,,,,,bcdb2d3a-8f2d-44df-a8ec-5208b1ad3447,1881917174465221,OCF_Payables Invoices,[OCF_Operating Cash Outflow].[OCF_Payables Invoices],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Payables Overdue Invoices,OCF_Operating Cash Outflow,,,never share,,,,,,,,,,,,,,784b23d0-6fee-49aa-b38d-af3b90366579,995548023397,OCF_Payables Overdue Invoices,[OCF_Operating Cash Outflow].[OCF_Payables Overdue Invoices],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Unapplied Prepayments Offset,OCF_Operating Cash Outflow,,,store,,,,,,,,,,,,,,c60e1ff7-88b4-44ee-aa8d-b4307ffdb5af,25003638999262,OCF_Unapplied Prepayments Offset,[OCF_Operating Cash Outflow].[OCF_Unapplied Prepayments Offset],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Utilities Payments,OCF_Operating Cash Outflow,,,never share,,,,,,,,,,,,,,25741b45-1902-4f2f-a3dd-96ca4c295b19,2636209445752255,OCF_Utilities Payments,[OCF_Operating Cash Outflow].[OCF_Utilities Payments],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Cash from Investing Activities,OCF_Total Cash,,,dynamic calc,,,,,,,,,,,,,,ece220d4-0af3-4afa-a865-f4f8301ded4a,488879918762995,OCF_Cash from Investing Activities,[OCF_Total Cash].[OCF_Cash from Investing Activities],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Investing Cash Inflows,OCF_Cash from Investing Activities,,,dynamic calc,,,,,,,,,,,,,,f8d5815b-a7ba-47de-bc15-b51976aadc92,1713782379464906,OCF_Investing Cash Inflows,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Sale of  Marketable Securities,OCF_Investing Cash Inflows,,,never share,,,,,,,,,,,,,,448ffb64-9639-4878-b9f3-72309cd318fd,2993782218705122,OCF_Sale of  Marketable Securities,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Investing Cash Outflows,OCF_Cash from Investing Activities,,,dynamic calc,,,,,,,,,,,,,,0cfcbff3-98c7-43a3-82bc-32f68335312b,1125744834987388,OCF_Investing Cash Outflows,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Investment in Marketable Securities,OCF_Investing Cash Outflows,,,never share,,,,,,,,,,,,,,88a9bc52-55c1-4208-a605-c818232184c0,3088831056006312,OCF_Investment in Marketable Securities,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Cash Outflows for Fixed Assets,OCF_Cash from Investing Activities,,,dynamic calc,,,,,,,,,,,,,,1727faef-7da0-4db6-b062-2631fe2d5baa,2382641841718845,OCF_Cash Outflows for Fixed Assets,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Cash from Financing Activities,OCF_Total Cash,,,dynamic calc,,,,,,,,,,,,,,23a2ce18-637d-4c17-aa04-69995e1f3db2,4252841064615437,OCF_Cash from Financing Activities,[OCF_Total Cash].[OCF_Cash from Financing Activities],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Financing Cash Inflows,OCF_Cash from Financing Activities,,,dynamic calc,,,,,,,,,,,,,,d33d9a3d-20c8-4858-a9af-156d31e80017,3044807602294649,OCF_Financing Cash Inflows,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Working Capital Credit,OCF_Financing Cash Inflows,,,never share,,,,,,,,,,,,,,f5b2b120-d54b-47fa-9a5a-ae780b2f897e,2866890384100498,OCF_Working Capital Credit,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Long Term Debt Inflows,OCF_Financing Cash Inflows,,,never share,,,,,,,,,,,,,,e9ccb2f9-8567-465c-8b7b-de76461a0319,4217668260416107,OCF_Long Term Debt Inflows,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Inflows from Other Entities,OCF_Financing Cash Inflows,,,never share,,,,,,,,,,,,,,cf2677f4-09b9-4aae-8a9a-3cac9a00fba5,3623117090802117,OCF_Inflows from Other Entities,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Cash Transactions Inflows,OCF_Financing Cash Inflows,,,never share,,,,,,,,,,,,,,e2b4129c-4a58-4033-9487-c95e099d58f1,97278154524614,OCF_Cash Transactions Inflows,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Financing Cash Outflows,OCF_Cash from Financing Activities,,,dynamic calc,,,,,,,,,,,,,,6f1aedda-f0b0-418f-81fa-1d45861caf4c,1477623013721556,OCF_Financing Cash Outflows,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Repayment of Long Term Loans,OCF_Financing Cash Outflows,,,never share,,,,,,,,,,,,,,3ee022c2-7aa3-4892-be5b-d593ae0691c1,427035497614483,OCF_Repayment of Long Term Loans,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Outflows to Other Entities,OCF_Financing Cash Outflows,,,never share,,,,,,,,,,,,,,d253cb54-7410-45b0-afba-e76b204bb1c4,2959456928223111,OCF_Outflows to Other Entities,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Cash Transactions Outflows,OCF_Financing Cash Outflows,,,never share,,,,,,,,,,,,,,4f068701-40fb-4f8a-83e7-00f2311e6137,3564050133698305,OCF_Cash Transactions Outflows,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Cash Balances,OCF_All Line Item,,,label only,,,,,,,,,,,,,,43fd2327-5619-4c3e-bf17-9a9115288a74,1096410412240370,OCF_Cash Balances,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Opening Balance,OCF_Cash Balances,,,dynamic calc,,,,,,,,,,,,,,cda9b0e8-6e09-42b0-9a55-cd0eed144255,568592904505245,OCF_Opening Balance,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Closing Balance,OCF_Cash Balances,,,dynamic calc,,,,,,,,,,,,,,bc9879c8-5571-46aa-8973-df2d5920d99d,1868509386592135,OCF_Closing Balance,[OCF_Cash Balances].[OCF_Closing Balance],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Bank Balance,OCF_Cash Balances,,,never share,,,,,,,,,,,,,,7ce4f7ff-01c8-4ea1-bc96-9dc027156f92,2142690875558248,OCF_Bank Balance,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Historical Opening Bank Balance,OCF_Cash Balances,,,never share,,,,,,,,,,,,,,77db9543-72f0-4c5d-81e8-409e6f5adf04,5318290132974,OCF_Historical Opening Bank Balance,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Cash Buffer,OCF_Cash Balances,,,store,,,,,,,,,,,,,,825f6e9c-fa5f-45a0-95a8-a60c0ae418f8,899937991216511,OCF_Cash Buffer,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Cash Over Buffer,OCF_Cash Balances,,,dynamic calc,,,,,,,,,,,,,,b6e084ee-3d0a-4d32-a664-91f934822729,4480556233671310,OCF_Cash Over Buffer,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Driver Groups,Line Item,,,label only,,,,,,,,,,,,,,49d63674-ef99-4e10-b209-bd9da2a99d2f,3968182812363876,OCF_Driver Groups,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Total Revenue Receipts,OCF_Driver Groups,,,dynamic calc,,,,,,,,,,,,,,f769dfb4-2d0b-41ac-9d76-e92e9ae00950,3132938379084545,OCF_Total Revenue Receipts,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Revenue Receipts,OCF_Total Revenue Receipts,,,shared,,,,,,,,,,,,,,a80fa4f3-d53a-4b77-ab21-fd034ff1f2b8,1606442120530799,OCF_Revenue Receipts,[OCF_Total Revenue Receipts].[OCF_Revenue Receipts],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Total Expense Payments,OCF_Driver Groups,,,dynamic calc,,,,,,,,,,,,,,387c7279-c405-47e5-970f-3f2e263b19f4,1716964655778650,OCF_Total Expense Payments,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Utilities Payments,OCF_Total Expense Payments,,,shared,,,,,,,,,,,,,,b7c4b7ef-c4b2-47d1-8e1e-43ecc15cc579,3996547155708956,OCF_Utilities Payments,[OCF_Total Expense Payments].[OCF_Utilities Payments],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Cash Metrics,Line Item,,,label only,,,,,,,,,,,,,,7f9921a2-0899-4a0f-b035-b9f2d81c58ad,3151051432936051,OCF_Cash Metrics,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Cash Flow Metrics,OCF_Cash Metrics,,,label only,,,,,,,,,,,,,,69aa19b2-4b3f-4270-a011-90ed1224c490,2448690502780221,OCF_Cash Flow Metrics,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Net Cash Flow Current Period,OCF_Cash Flow Metrics,,,dynamic calc,,,,,,,,,,,,,,76e16d61-7aab-4fd6-b678-4a48c314bb01,3024616124468043,OCF_Net Cash Flow Current Period,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Forecasted Net Cash Flow,OCF_Cash Flow Metrics,,,store,,,,,,,,,,,,,,0ab4c874-777d-452d-bd1f-0508471da2d1,4298129107994062,OCF_Forecasted Net Cash Flow,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Forecasted Operating Cash Flow,OCF_Cash Flow Metrics,,,store,,,,,,,,,,,,,,3ed62a37-ad70-48cb-9a6a-6b1ccb26b8fa,2943307660676901,OCF_Forecasted Operating Cash Flow,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Forecasted Non Operating Cash Flow,OCF_Cash Flow Metrics,,,store,,,,,,,,,,,,,,8e9b3956-96aa-4bd1-950f-d6cd6c09e0b2,199181995033421,OCF_Forecasted Non Operating Cash Flow,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Forecasted Cash Inflow,OCF_Cash Flow Metrics,,,store,,,,,,,,,,,,,,8f4f5628-7aff-4ba0-b200-cde37feb3870,2766151244990461,OCF_Forecasted Cash Inflow,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Forecasted Cash Outflow,OCF_Cash Flow Metrics,,,store,,,,,,,,,,,,,,a5b1723a-186d-429f-9a4f-a8374eb40a43,3634537688286224,OCF_Forecasted Cash Outflow,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Quick Ratio,OCF_Cash Flow Metrics,,,dynamic calc,,,,,,,,,,,,,,a602c6c4-fa14-4360-98a4-227b282acc39,2384180393167507,OCF_Quick Ratio,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Dashboard  Line Items,OCF_Cash Metrics,,,label only,,,,,,,,,,,,,,508051c6-49c6-40c8-aed0-679796184bcd,4346775806888139,OCF_Dashboard  Line Items,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Inflow,OCF_Dashboard  Line Items,,,dynamic calc,,,,,,,,,,,,,,19294a1e-462a-47de-8e27-180d6071e8c9,2477957411982898,OCF_Inflow,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Outflow,OCF_Dashboard  Line Items,,,dynamic calc,,,,,,,,,,,,,,026ed050-1aee-49f7-9584-6f0f5492ff9f,3867115118415670,OCF_Outflow,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Balance Age,OCF_Cash Metrics,,,never share,,,,,,,,,,,,,,3b7039ae-6b5c-4dad-b0fb-1564fd5e977f,3425960609337322,OCF_Balance Age,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Reporting Total Line Items,OCF_Cash Metrics,,,label only,,,,,,,,,,,,,,001d594c-6012-42a2-bdb1-b3cd1f29924b,1439386130467893,OCF_Reporting Total Line Items,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Total Customer Receipts,OCF_Reporting Total Line Items,,,dynamic calc,,,,,,,,,,,,,,a20c3210-4d1b-454e-a1f3-54ab85f41e1a,905570227144732,OCF_Total Customer Receipts,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Customer Receipts,OCF_Total Customer Receipts,,,shared,,,,,,,,,,,,,,bce8bbef-4024-4c23-b7bc-6bfb5b0ac09c,4143255347088587,OCF_Customer Receipts,[OCF_Total Customer Receipts].[OCF_Customer Receipts],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Receivables Invoices,OCF_Total Customer Receipts,,,shared,,,,,,,,,,,,,,da838c6b-8931-444a-9fdb-6690abc61a28,119932582183779,OCF_Receivables Invoices,[OCF_Total Customer Receipts].[OCF_Receivables Invoices],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Receivables Overdue Invoices,OCF_Total Customer Receipts,,,shared,,,,,,,,,,,,,,d37f8c8a-e241-46fe-9d1d-e8561437212a,664421550149449,OCF_Receivables Overdue Invoices,[OCF_Total Customer Receipts].[OCF_Receivables Overdue Invoices],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Unapplied Receipts Offset,OCF_Total Customer Receipts,,,shared,,,,,,,,,,,,,,24b1713d-c109-47e5-a129-eb0570583a57,1087387623834332,OCF_Unapplied Receipts Offset,[OCF_Total Customer Receipts].[OCF_Unapplied Receipts Offset],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Total Supplier Payments,OCF_Reporting Total Line Items,,,dynamic calc,,,,,,,,,,,,,,1764d726-f70f-41aa-9903-92e242d92b03,2428123345014551,OCF_Total Supplier Payments,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Supplier Payments,OCF_Total Supplier Payments,,,shared,,,,,,,,,,,,,,203d5d55-f550-4270-874a-48491d69ba62,2715289018976224,OCF_Supplier Payments,[OCF_Total Supplier Payments].[OCF_Supplier Payments],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Payables Invoices,OCF_Total Supplier Payments,,,shared,,,,,,,,,,,,,,98ed948a-f36d-438b-b6d4-886da3fcb73b,2292261647369881,OCF_Payables Invoices,[OCF_Total Supplier Payments].[OCF_Payables Invoices],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Payables Overdue Invoices,OCF_Total Supplier Payments,,,shared,,,,,,,,,,,,,,b20c66d6-3747-44f7-aba2-3ca9068d0cf2,3623217430480819,OCF_Payables Overdue Invoices,[OCF_Total Supplier Payments].[OCF_Payables Overdue Invoices],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Unapplied Prepayments Offset,OCF_Total Supplier Payments,,,shared,,,,,,,,,,,,,,b1ad6e1f-0d32-431b-b9fa-554791110160,4305514528262365,OCF_Unapplied Prepayments Offset,[OCF_Total Supplier Payments].[OCF_Unapplied Prepayments Offset],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Reporting Overview Line Items,OCF_Cash Metrics,,,label only,,,,,,,,,,,,,,7cf3b28b-4537-43c7-bf5b-89893ea2e635,3166022714608882,OCF_Reporting Overview Line Items,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Cash Burn Days,OCF_Reporting Overview Line Items,,,dynamic calc,,,,,,,,,,,,,,b47fc0a3-9c3c-42ef-a915-6389d4d8f956,1602315155227513,OCF_Cash Burn Days,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Total Operating Cash,OCF_Reporting Overview Line Items,,,dynamic calc,,,,,,,,,,,,,,0f9a97f8-c48c-4356-9aa6-d6613645749e,1090380812668460,OCF_Total Operating Cash,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Total Investing Cash,OCF_Reporting Overview Line Items,,,dynamic calc,,,,,,,,,,,,,,79c27cf8-1d8d-44e6-9ddc-98b50e1e55b2,1403706842763064,OCF_Total Investing Cash,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Total Financing Cash,OCF_Reporting Overview Line Items,,,dynamic calc,,,,,,,,,,,,,,8e54524c-829a-462f-a6c6-ecba29ac63a7,761645525978154,OCF_Total Financing Cash,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Total Receivables Invoices,OCF_Reporting Overview Line Items,,,dynamic calc,,,,,,,,,,,,,,c11236fe-d560-426f-8da6-32fd4871c6d0,2785620998113016,OCF_Total Receivables Invoices,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Total Payables Invoices,OCF_Reporting Overview Line Items,,,dynamic calc,,,,,,,,,,,,,,0a57737c-1f3f-41f4-8661-11f7b634b655,2275991243476131,OCF_Total Payables Invoices,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Reporting Variance Line Items,OCF_Cash Metrics,,,label only,,,,,,,,,,,,,,60f68496-ce80-4413-bd7b-94f46040138f,1323587377119577,OCF_Reporting Variance Line Items,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Closing Balance,OCF_Reporting Variance Line Items,,,shared,,,,,,,,,,,,,,0e62a477-9e7d-476a-b02e-23881f64c308,3674138423347013,OCF_Closing Balance,[OCF_Reporting Variance Line Items].[OCF_Closing Balance],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Cash from Operating Activities,OCF_Reporting Variance Line Items,,,shared,,,,,,,,,,,,,,627f5285-75c7-4bac-bd9c-ec91585d8881,3075943013042419,OCF_Cash from Operating Activities,[OCF_Reporting Variance Line Items].[OCF_Cash from Operating Activities],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Cash from Investing Activities,OCF_Reporting Variance Line Items,,,shared,,,,,,,,,,,,,,529fdf9d-a3f6-4f89-88c7-6359af1c9d71,346667106714116,OCF_Cash from Investing Activities,[OCF_Reporting Variance Line Items].[OCF_Cash from Investing Activities],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Cash from Financing Activities,OCF_Reporting Variance Line Items,,,shared,,,,,,,,,,,,,,673d532b-7c20-41d1-b765-94332cb48f53,2534595953901647,OCF_Cash from Financing Activities,[OCF_Reporting Variance Line Items].[OCF_Cash from Financing Activities],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Customer Receipts,OCF_Reporting Variance Line Items,,,shared,,,,,,,,,,,,,,7d851d14-50a6-4f8f-bffd-24ab0aa7cf55,1239620739223017,OCF_Customer Receipts,[OCF_Reporting Variance Line Items].[OCF_Customer Receipts],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+OCF_Supplier Payments,OCF_Reporting Variance Line Items,,,shared,,,,,,,,,,,,,,c53ff296-8407-42b5-a11d-01e3164365bc,489389645058003,OCF_Supplier Payments,[OCF_Reporting Variance Line Items].[OCF_Supplier Payments],,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+Exchange Rates,Line Item,,,label only,,,,,,,,,,,,,,a8953efe-5fb1-4c59-aa59-3841404baf87,3953919627839801,Exchange Rates,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+FX Rates - Average,Exchange Rates,,,never share,,,,,,,,,,,,,,8362d9fc-0cff-4caa-b89d-a12474801482,294289985851089,FX Rates - Average,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only
+FX Rates - Ending,Exchange Rates,,,never share,,,,,,,,,,,,,,44cca54b-f79d-4950-8406-8f83b930e498,1139664330116026,FX Rates - Ending,<none>,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reposition only

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <ModuleCustomizations>
+ <ModuleArtifactCustomization>
+ <ObjectName>OCF_Quick Ratio</ObjectName>
+ <ObjectType>32</ObjectType>
+ <ActionType>1</ActionType>
+ <ModifiedBy>Shubham.Shinde2@ibm.com</ModifiedBy>
+ <Modified>2026-06-16 13:09:28.0</Modified>
+ <ArtifactCustomizationDetail>
+ <Property name="Exchange Rate Type" >
+ <value>No Rate</value>
+</Property>
+</ArtifactCustomizationDetail>
+</ModuleArtifactCustomization>
+ <ModuleArtifactCustomization>
+ <ObjectName>OCF_Balance Age</ObjectName>
+ <ObjectType>32</ObjectType>
+ <ActionType>1</ActionType>
+ <ModifiedBy>Shubham.Shinde2@ibm.com</ModifiedBy>
+ <Modified>2026-06-16 13:09:28.0</Modified>
+ <ArtifactCustomizationDetail>
+ <Property name="Exchange Rate Type" >
+ <value>No Rate</value>
+</Property>
+</ArtifactCustomizationDetail>
+</ModuleArtifactCustomization>
+ <ModuleArtifactCustomization>
+ <ObjectName>OCF_Cash Burn Days</ObjectName>
+ <ObjectType>32</ObjectType>
+ <ActionType>1</ActionType>
+ <ModifiedBy>Shubham.Shinde2@ibm.com</ModifiedBy>
+ <Modified>2026-06-16 13:09:28.0</Modified>
+ <ArtifactCustomizationDetail>
+ <Property name="Exchange Rate Type" >
+ <value>No Rate</value>
+</Property>
+</ArtifactCustomizationDetail>
+</ModuleArtifactCustomization>
+</ModuleCustomizations>

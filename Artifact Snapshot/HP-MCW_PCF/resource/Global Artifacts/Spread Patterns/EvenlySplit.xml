@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<spreadPatterns>
+<spreadPattern>
+ <name>EvenlySplit</name>
+ <label>LABEL_EVEN_SPLIT</label>
+ <pattern>1</pattern>
+</spreadPattern>
+</spreadPatterns>

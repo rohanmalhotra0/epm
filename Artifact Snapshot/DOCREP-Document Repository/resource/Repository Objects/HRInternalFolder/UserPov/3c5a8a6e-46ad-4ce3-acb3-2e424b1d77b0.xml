@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<FRFolder isInternal="true" isBrowsable="true">
+    <identifier>3c5a8a6e-46ad-4ce3-acb3-2e424b1d77b0</identifier>
+    <Author>epm_default_cloud_admin</Author>
+    <CreationDate>Sat Jun 13 12:56:53 UTC 2026</CreationDate>
+    <Description/>
+    <LastModifiedBy/>
+    <LastModifiedDate/>
+    <ParentUUID>af54913b-0a87-41bd-862f-072e7915789c</ParentUUID>
+    <Path>/HRInternalFolder</Path>
+    <Name>UserPov</Name>
+    <Type>FOLDER</Type>
+    <Properties/>
+    <Properties size="4">
+        <Property Name="NAME" Value="UserPov"/>
+        <BINARY NAME="Value"><![CDATA[TmFtZT1Vc2VyUG92dHlwZT1GT0xERVJBdXRob3I9ZXBtX2RlZmF1bHRfY2xvdWRfYWRtaW4=]]></BINARY>
+        <Property Name="jcr:data"/>
+        <Property Name="fileSize" Value="53"/>
+        <BINARY NAME="Value"><![CDATA[AAABnsEOf/A=]]></BINARY>
+        <Property Name="jcr:lastModifiedby"/>
+    </Properties>
+</FRFolder>

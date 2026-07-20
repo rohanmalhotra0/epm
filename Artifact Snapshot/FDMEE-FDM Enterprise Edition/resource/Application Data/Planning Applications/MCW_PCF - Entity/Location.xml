@@ -1,0 +1,21 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<LocationForLcmVO>
+   <LocationForLcmVORow>
+      <Partname>PCF_DIM_ENTITY</Partname>
+      <SourceSystemName>Data Source</SourceSystemName>
+      <TargetApplicationName>MCW_PCF</TargetApplicationName>
+      <ApplicationName>MCW_PCF - Entity</ApplicationName>
+      <Partcurrencykey>[NONE]</Partcurrencykey>
+      <Partimpgroup>PCF_DIM_ENTITY</Partimpgroup>
+      <Partdatavalue null="true"/>
+      <Partvalgroup>[NONE]</Partvalgroup>
+      <Parentlocationname null="true"/>
+      <Partvalentgroup>[NONE]</Partvalentgroup>
+      <Partlogicgroup>[NONE]</Partlogicgroup>
+      <Partintgconfig1 null="true"/>
+      <Partintgconfig2 null="true"/>
+      <Partintgconfig3 null="true"/>
+      <Partintgconfig4 null="true"/>
+      <Sourceappname>PCF Dimensions</Sourceappname>
+   </LocationForLcmVORow>
+</LocationForLcmVO>

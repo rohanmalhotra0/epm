@@ -1,0 +1,66 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<HBRRepo><variables/><rulesets/><rules><rule id="1" name="OCF_Daily Input Tax Spread" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><script type="groovy">				/**
+				*	 Purpose: This is an onsave rule for Direct Tax payments tab. This rule copies edited number form given period to all subsequent periods.				 .
+				**/
+				%Template(name:="OCF_SpreadInputTaxDriver_GT",plantype:="OEP_DCSH",dtps:=()) 
+				StringBuilder cscript = new StringBuilder();
+                String strSpreadTaxDriver;
+				String cubeName="OEP_DCSH"
+				strSpreadTaxDriver=SpreadTaxInputValues(cubeName)
+				cscript.append(strSpreadTaxDriver)					
+				return cscript;		</script></rule></rules><components/><deployobjects><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="1" obj_type="19" name="OCF_SPREADINPUTTAXDRIVER_GT"/><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="1" obj_type="1" name="OCF_DAILY INPUT TAX SPREAD"/></deployobjects><templates><template custom="yes" id="1" name="OCF_SpreadInputTaxDriver_GT" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><property name="standAlone">false</property><script type="groovy">			/**
+			 *	purpose: This rule copies the edited number from a given period to subsequent period.
+			 *		1. Annual Tax amount is populated from edited period to all subsequent period as user enters annual number.
+			 *		2. Same number will be used to compute all subsequent tax installments.
+			**/
+			String	SpreadTaxInputValues(cubeName)
+			{	
+						Application application = operation.application;
+						Cube cashFlowCube = application.getCube("$cubeName");
+						StringBuilder cscript = new StringBuilder();
+						String sPeriods
+						String sYear
+						String finalCalc
+						String periods
+						String sScenario
+						String sLineItems
+						String sForecastMember;	
+						String periodRollup; 
+						def isWeeklyEnabled = "Monthly" == "Weekly"
+						def isMonthlyEnabled = "Monthly" == "Monthly"
+						if (cashFlowCube.toString()=="OEP_DCSH")
+						{
+							periodRollup = "OEP_Daily YearTotal";
+						}
+						else
+						{
+							if (isMonthlyEnabled)  { periodRollup="YearTotal";}
+							if (isWeeklyEnabled)  { periodRollup="OEP_Weekly YearTotal"; }
+						}	
+						if (periodRollup=="") throwVetoException("Correct Periodic Model is not enabled");
+						List&lt;String> lstPeriods=application.getDimension("Period",cashFlowCube).getEvaluatedMembers('ILvl0Descendants("'+periodRollup+'")',cashFlowCube).collect{it.toString()};
+						String endPeriod=lstPeriods.last();						
+						List &lt; String > povMemberNames = operation.grid.pov*.essbaseMbrName
+						finalCalc = """ Fix("${povMemberNames.join('", "')}") """
+						cscript.append(finalCalc)
+						operation.grid.dataCellIterator({DataCell cell -> cell.edited}, MemberNameType.ESSBASE_NAME).each{DataCell cell ->
+							periods = cell.periodName
+						  sLineItems = cell.getMemberName("Line Item")
+						  sScenario = cell.getMemberName("Scenario")
+						  sYear = cell.getMemberName("Years")
+						  sForecastMember=cell.getMemberName("Forecast Method")
+						  double chgValue = cell.getData()
+						  
+						  finalCalc = """
+						  
+						  Fix("$sYear","$periods": "$endPeriod","$sForecastMember")
+						  "$sLineItems" = $chgValue;
+						  Endfix
+							"""	
+						  cscript.append(finalCalc)
+						}
+						cscript.append("EndFix")						
+						return cscript.toString()
+
+			}
+</script><template_wizard/><template_prompts><restricted_prompt name="Application Type" type="Application Type" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Generic</property><property name="value">GENERAL</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PFP</property><property name="value">PROJECT</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PSB</property><property name="value">PSB</property></restricted_prompt_item></restricted_prompt><restricted_prompt name="Application" type="Application" isPrompt="no"><property name="is_system">true</property><value>Is Single Currency</value><restricted_prompt_item><property name="prompt">Is Multi Currency</property><property name="value">multi</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Single Currency</property><property name="value">single</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Simple Currency</property><property name="value">simple</property></restricted_prompt_item></restricted_prompt><template_slice_prompt name="UpperPOV" type="Member Range" isPrompt="false"><property name="is_system">true</property></template_slice_prompt><restricted_prompt name="Essbase Mode" type="Essbase Mode" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Hybrid</property><property name="value">Hybrid</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is NonHybrid</property><property name="value">NonHybrid</property></restricted_prompt_item></restricted_prompt></template_prompts></template></templates></HBRRepo>

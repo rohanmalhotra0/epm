@@ -1,0 +1,170 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<HBRRepo><variables/><rulesets/><rules><rule id="1" name="OCF_Periodic Pay Terms Assumptions Validation" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_PCSH</property><property name="seeded">true</property><script type="groovy">			/*
+			Purpose: This rule performs validation on the user input in the assumptions forms.				
+					1. Ensures the Sum of percentage entered in the pay terms/Milestones/installements is 100%.
+					2. Pay terms are entered in ascending order
+					3. Payterms and Percentages are positive numbers
+					4. checks pay period in case of tax installments.  							 
+			*/
+            Cube cube = operation.application.getCube("OEP_PCSH")			
+			%Template(name:="OCF_Generic Validations_GT",plantype:="OEP_DCSH",dtps:=()) 
+						
+</script></rule></rules><components/><deployobjects><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="1" obj_type="19" name="OCF_GENERIC VALIDATIONS_GT"/><deployobject product="2" application="mcw_pcf" plantype="oep_pcsh" obj_id="1" obj_type="1" name="OCF_PERIODIC PAY TERMS ASSUMPTIONS VALIDATION"/></deployobjects><templates><template custom="yes" id="1" name="OCF_Generic Validations_GT" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><property name="standAlone">false</property><script type="groovy">					Dimension forecastMethodDim = operation.application.getDimension("Forecast Method", cube)
+					def lstAccounts = []
+					def paytermsLst = []
+					def milestonesLst = []
+					def taxInstallmentLst= []
+					def percentTotal
+					def mileStonePercentTotal
+					def taxInstallmentPercentTotal	
+					String sForecastMember
+					String sPayBasisMissing
+					paytermsLst = forecastMethodDim.getEvaluatedMembers("ILvl0Descendants(OCF_Total Cashflow)", cube)
+					if (forecastMethodDim.hasMember("OCF_Total Project Milestones",cube)==true) milestonesLst = forecastMethodDim.getEvaluatedMembers("ILvl0Descendants(OCF_Total Project Milestones)", cube)
+					if (forecastMethodDim.hasMember("OCF_Total Direct Taxes",cube)==true)  taxInstallmentLst=forecastMethodDim.getEvaluatedMembers("ILvl0Descendants(OCF_Total Direct Taxes)", cube)
+					paytermsLst = paytermsLst.unique()
+					String periodRollup; 
+					def isWeeklyEnabled = "Monthly" == "Weekly"
+					def isMonthlyEnabled = "Monthly" == "Monthly"
+					if (cube.toString()=="OEP_DCSH")
+					{
+					periodRollup = "OEP_Daily YearTotal";
+					}
+					else
+					{
+						if (isMonthlyEnabled)  { periodRollup="YearTotal";}
+						if (isWeeklyEnabled)  { periodRollup="OEP_Weekly YearTotal"; }
+					}	
+					if (periodRollup=="") throwVetoException("Correct Periodic Model is not enabled");
+						Application application = operation.application;
+						Cube cashFlowCube = application.getCube("$cube");				
+						List&lt;String> lstPeriods=application.getDimension("Period",cashFlowCube).getEvaluatedMembers('ILvl0Descendants("'+periodRollup+'")',cashFlowCube).collect{it.toString()};
+						int totalPeriods=lstPeriods.size();	
+
+
+					//Below function to check the percentage values for each payterm and sum should be equal to 100
+					def totalPercentage = {
+					   DataCell it ->
+					   def total = 0
+					   for (def j = 0; j &lt; paytermsLst.size(); j++) {
+						  total += it.crossDimCell("${paytermsLst[j]}").data
+					   }
+					   return total
+					}
+					
+				  //Below to check for milestone percentages  
+					def totalMilestonePercentage = {
+					   DataCell it ->
+					   def total = 0
+					   for (def j = 0; j &lt; milestonesLst.size(); j++) {
+						  total += it.crossDimCell("${milestonesLst[j]}").data
+					   }
+					   return total
+					}
+					  def totalTaxInstallmentPercentage = {
+					   DataCell it ->
+					   def total = 0
+					   for (def j = 0; j &lt; taxInstallmentLst.size(); j++) {
+						  total += it.crossDimCell("${taxInstallmentLst[j]}").data
+					   }
+					   return total
+					}
+
+					//Below function to check the payterm validation, Next should be less than before and if any fails, it will return 1
+					def payTermFlag = {
+					   DataCell it ->
+					   def isValidPayTerm = 0
+					   def isNullPayTerm = 0
+					   for (def j = 0; j &lt; paytermsLst.size() - 1; j++) {
+						  if (it.crossDimCell("${paytermsLst[j+1]}").data &lt;= it.crossDimCell("${paytermsLst[j]}").data &amp;&amp; it.crossDimCell("${paytermsLst[j+1]}").data != 0) {
+							 isValidPayTerm = 1
+						  } else if (it.crossDimCell("${paytermsLst[j+1]}").data > 0 &amp;&amp; (it.crossDimCell("${paytermsLst[j]}").data == null )) {
+							 isValidPayTerm = 1
+						  }
+					   }
+					   return isValidPayTerm
+					}
+
+					//Below to iterate on the accounts/LineItems which are in the form in rows.
+					operation.grid.dataCellIterator().each {
+					   lstAccounts.add(it.getMemberName("Line Item"))
+					}
+					lstAccounts = lstAccounts.unique()
+					for (def i = 0; i &lt; lstAccounts.size(); i++) {
+					   String str = lstAccounts[i]
+					   //Below checks the  percentage validation value
+					   percentTotal = 0
+					   mileStonePercentTotal = 0
+					   taxInstallmentPercentTotal = 0
+					   operation.grid.dataCellIterator(str, 'OCF_Percentage').each {
+					   sForecastMember = it.getMemberName("$forecastMethodDim")
+					   if(sForecastMember.contains('Milestone'))
+					   {
+						  if (it.data > 0) {
+							 mileStonePercentTotal = totalMilestonePercentage(it)
+							 if (((mileStonePercentTotal.round(3) > 1) || (mileStonePercentTotal.round(3) &lt; 1))) 
+							 {
+								throwVetoException("Sum of Milestone percentage should be equal to 100% ")
+							 }
+						  } else if (it.data &lt; 0) {
+							 throwVetoException("Milestone Percentage should be only positive")
+						  }
+					   }
+					   else if (sForecastMember.contains('Tax Installment'))
+					   {
+						 if (it.data > 0) {
+							 taxInstallmentPercentTotal = totalTaxInstallmentPercentage(it)
+							 if (((taxInstallmentPercentTotal.round(3) > 1) || (taxInstallmentPercentTotal.round(3) &lt; 1))) 
+							 {
+								throwVetoException("Sum of Tax Installment percentage should be equal to 100% ")
+							 }
+						  } else if (it.data &lt; 0) {
+							 throwVetoException("Tax Installment Percentage should be only positive")
+						  }
+					   }
+					   else
+					   {
+							if (it.data > 0) {
+							 percentTotal = totalPercentage(it)
+							 if ((((percentTotal.round(3)) > 1) || (percentTotal.round(3)) &lt; 1)) 
+							 {
+								throwVetoException("Sum of percentage should be equal to 100% ")
+							 }
+						  } else if (it.data &lt; 0) {
+							 throwVetoException("Percentage and Payterms should be only positive")
+						  }
+					   }
+					   }
+						//Below checks the  Payterm validation value
+					   int isValidPayTermFlg = 0
+					   operation.grid.dataCellIterator(str, 'OCF_Due Period').each {
+						  isValidPayTermFlg = payTermFlag(it)
+						  if (isValidPayTermFlg == 1) {
+							 throwVetoException("Next period should be greater than previous and No Nulls permitted between payterms") }
+						  if (it.data &lt; 0) {
+							 throwVetoException("Percentage and Payterms should be only positive") }
+						  if ( it.data > totalPeriods) { throwVetoException("The value of Due Period cannot be greater than $totalPeriods ") }
+							 }
+					   	//Below function to check for pay period, it should not be Null if Pay Basis is selected      
+					   operation.grid.dataCellIterator(str,'OCF_Pay Basis','OCF_Pay Period').each {
+							  sForecastMember = it.getMemberName("$forecastMethodDim")
+							  if(sForecastMember == 'OCF_Pay Basis') {
+									sPayBasisMissing = it.isMissing()
+							  }
+							  
+								if(sForecastMember == 'OCF_Pay Period') {
+								   if(sPayBasisMissing == 'false') {
+										String sPayPeriodMissing = it.isMissing()
+											if(sPayPeriodMissing == 'true') { 
+											throwVetoException("$str has Pay Period as Null, Please select a date and Save")
+											}
+										}
+									}	
+									
+							}
+					
+			
+				}		
+			
+		
+</script><template_wizard/><template_prompts><restricted_prompt name="Application Type" type="Application Type" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Generic</property><property name="value">GENERAL</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PFP</property><property name="value">PROJECT</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PSB</property><property name="value">PSB</property></restricted_prompt_item></restricted_prompt><restricted_prompt name="Application" type="Application" isPrompt="no"><property name="is_system">true</property><value>Is Single Currency</value><restricted_prompt_item><property name="prompt">Is Multi Currency</property><property name="value">multi</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Single Currency</property><property name="value">single</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Simple Currency</property><property name="value">simple</property></restricted_prompt_item></restricted_prompt><template_slice_prompt name="UpperPOV" type="Member Range" isPrompt="false"><property name="is_system">true</property></template_slice_prompt><restricted_prompt name="Essbase Mode" type="Essbase Mode" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Hybrid</property><property name="value">Hybrid</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is NonHybrid</property><property name="value">NonHybrid</property></restricted_prompt_item></restricted_prompt></template_prompts></template></templates></HBRRepo>

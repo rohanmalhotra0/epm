@@ -1,0 +1,7 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<HBRRepo><variables/><rulesets/><rules><rule id="1" name="OCF_Daily Set Write Only Party" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><script type="groovy">					/* Purpose: Make all Columns with OCF_Total Forecasted Cash Member as write Only, This is an onload rule for Forecast by Party form*/
+					operation.grid.dataCellIterator('OCF_Total Forecasted Cash').each {
+					  
+					it.setForceEditable(true);
+						}					
+			</script></rule></rules><components/><deployobjects><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="1" obj_type="1" name="OCF_DAILY SET WRITE ONLY PARTY"/></deployobjects></HBRRepo>

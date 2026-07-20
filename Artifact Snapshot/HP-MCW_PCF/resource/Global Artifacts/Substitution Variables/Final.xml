@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <substitutionVariable>
+ <name>Final</name>
+ <value>NewV2</value>
+ <planType>ALL</planType>
+</substitutionVariable>

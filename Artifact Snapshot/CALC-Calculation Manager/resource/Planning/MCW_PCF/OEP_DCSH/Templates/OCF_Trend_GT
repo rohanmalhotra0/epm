@@ -1,0 +1,606 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<HBRRepo><variables/><rulesets/><rules/><components/><deployobjects><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="1" obj_type="19" name="OCF_TREND_GT"/></deployobjects><templates><template custom="yes" id="1" name="OCF_Trend_GT" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><property name="standAlone">false</property><script type="groovy">		/***
+			 * Purpose: Forecasts numbers for given planning range based on chosen trend method.  Trend data will be stored in the Trend Forecast Method.
+			 *@Param: Cube (Daily/ Periodic) Scenario, Version, Entity, Start and End periods, Top Node of Period dimension, Other dimension member list if we need to execute for specific intersection.
+			 * This method is applicable only to periodic model, This function picks member from form context in case of on save operation, otherwise it assumes all members of the corresponding dimension.	
+			 * Trend method works only if appropriate data set is available.
+			 * While Trending Invoices, it uses corresponding customer receipts or supplier payments as we can expect invoices for prior days.
+			 * If a rolling window in the cross. Previous year numbers will be carried forward.
+			 * For Non ERP line items, data has to be loaded in Smart Drivers Member. 
+			 * Trend Methods: 
+			 * 1 - Current year Actual Average
+			 * 2 - Current Period Actuals
+			 * 3 - Previous Year Actuals
+			 * 4 - Previous Year Actual Average
+			 * 5 - Current year Forecast
+			 * 6 - Seasonalization
+			 * 7 - Year over year increase
+			 * 8 - Periodic Growth
+			 * 9 - Current Year Actuals Year to Date Average
+			 * 10 - No Trend					 			
+		***/
+	  String calculateTrend(Cube cashFlowCube,String scenarioMember,String versionMember,String entityMember,String startPeriod,String endPeriod, String topNode,String flexDim1Member,String flexDim2Member,String flexDim3Member,String partyMember,String buMember,String prjMember,String currencyMember)
+		{
+				StringBuilder cscript = new StringBuilder(); // The variable that contains the actual script that will be returned at the end.
+				String yearOne, yearTwo, yearThree				
+				def calcString;
+				String fixCategory,aggCategory;
+				List&lt;String> noFixMembers=[];
+				List&lt;String> fixMembers=[];	
+				String flexDim1Name = "flexDimension1";
+				String flexDim2Name = "flexDimension2";
+				String flexDim3Name = "flexDimension3";
+				String currencyDimName="Currency";
+				String partyDimName="Party";
+				String buDimName="Business Unit";
+				String prjDimName="Category";
+				String bankDimName="Bank";
+				String totalBank="OEP_Total "+ bankDimName;
+				String forecastMethodDimName = "Forecast Method";
+				String yearDimName="Years"
+				String lineItemDimName="Line Item"
+				String entityDimName = "Entity";
+				def isflexDim1Enabled = "NoTrendflexdim1" == "No flexDimension1"			
+				def isflexDim2Enabled = "NoTrendflexdim2" == "No flexDimension2"				
+				def isflexDim3Enabled = "NoTrendflexdim3" == "No flexDimension3"
+				def isPartyEnabled = "No Party" == "No Party"
+				def isBuEnabled = "No Business Unit" == "No Business Unit"
+				def isPrjEnabled = "No Category" == "No Category"		
+				Application application = operation.application;				
+				List&lt;String> lstYears=application.getDimension(yearDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("All Years")',cashFlowCube).collect{it.toString()};
+				String numOfPeriods = getNumberOfYears(cashFlowCube);
+				String currYear=getCurrentYear(cashFlowCube);	
+				String nextPeriod=getFirstForecastPeriod(cashFlowCube);
+				yearOne=currYear;
+				yearTwo=nextYear(yearOne,lstYears);
+				yearThree=nextYear(yearTwo,lstYears);
+				String finalForecastScript=populateFinalForecastMethod(cashFlowCube, scenarioMember, versionMember, "@Relative(\""+entityMember+"\",0)", "OCF_Total Cash",fixMembers)
+				String calcOpenBal=calculateOpeningBalanceForOnsave(numOfPeriods,startPeriod,endPeriod,"OCF_Forecasted");		
+				populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim1Name,flexDim1Member,isflexDim1Enabled,fixMembers);
+				populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim2Name,flexDim2Member,isflexDim2Enabled,fixMembers);
+				populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim3Name,flexDim3Member,isflexDim3Enabled,fixMembers);
+				populateFixMembersPostDimCheckForStdDim(cashFlowCube,partyDimName,partyMember,isPartyEnabled,fixMembers);
+				populateFixMembersPostDimCheckForStdDim(cashFlowCube,buDimName,buMember,isBuEnabled,fixMembers);
+				fixCategory=getFixOfCategoryDimension(cashFlowCube,prjDimName,prjMember,isPrjEnabled)
+				aggCategory=getAggOfCategoryDimension(cashFlowCube,prjDimName,prjMember,isPrjEnabled)
+				addCurrency(fixMembers,currencyMember);
+				addNoCurrency(noFixMembers);					
+				if(operation.application.hasDimension(bankDimName, cashFlowCube))
+				{
+					 noFixMembers.add('"OEP_Any '+bankDimName+'"') ;
+					 fixMembers.add('"OEP_Any '+bankDimName+'"') ;
+				}
+				
+				String noFixMembersJoinStr=noFixMembers.join("->");
+				String noFixMembersStr=noFixMembers.join(",");
+				String fixMembersJoin=fixMembers.join(",");
+				
+				String  receivablesTrend="""
+						IF (( "OCF_Trend Method"->"BegBalance"==1 ) OR ( "OCF_Trend Method"->"BegBalance"==6 ))
+								"OCF_Trend"=@AVGRANGE(SKIPNONE , "OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_CurrYr->"OCF_Customer Receipts"->"$totalBank" , $startPeriod:&amp;OEP_ActPeriod)*(1+"OCF_%Increase/(Decrease)"->"BegBalance");               
+							ELSEIF ( "OCF_Trend Method"->"BegBalance"==2 )      			
+							   "OCF_Trend"=("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_ActPeriod->&amp;OEP_CurrYr->"OCF_Customer Receipts"->"$totalBank")*(1+"OCF_%Increase/(Decrease)"->"BegBalance");				
+							ELSEIF( "OCF_Trend Method"->"BegBalance"==3 )    			
+								 "OCF_Trend"= ("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_PriorYr->"OCF_Customer Receipts"->"$totalBank") *(1+"OCF_%Increase/(Decrease)"->"BegBalance");
+							ELSEIF ( "OCF_Trend Method"->"BegBalance"==4 )    			
+								"OCF_Trend"= @avgrange(skipnone,"OEP_Actual"->"OCF_Smart Drivers"->"OCF_Customer Receipts"->"$totalBank"->&amp;OEP_PriorYr,$startPeriod:$endPeriod)*(1+"OCF_%Increase/(Decrease)"->"BegBalance");
+							ELSEIF( "OCF_Trend Method"->"BegBalance"==5 )    			               
+								"OCF_Trend" = @avgrange(skipnone,"OEP_Forecast"->&amp;OEP_CurrYr->"OCF_Forecasted"->"$totalBank",$startPeriod:&amp;OEP_ActPeriod)*(1+"OCF_%Increase/(Decrease)"->"BegBalance");                
+							ELSEIF( "OCF_Trend Method"->"BegBalance"==7 )    			               
+								"OCF_Trend" = @prior("OEP_Actual"->"OCF_Smart Drivers"->"OCF_Customer Receipts"->"$totalBank",1,@LEVMBRS ("Years", 0))*(1+"OCF_%Increase/(Decrease)"->"BegBalance");
+							ELSEIF ( "OCF_Trend Method"->"BegBalance"==8 )    			               
+								"OCF_Trend" =@round(("OEP_Actual"->"OCF_Smart Drivers"->"OCF_Customer Receipts"->&amp;OEP_ActPeriod->&amp;OEP_CurrYr->"$totalBank" *					
+								(@prior("OCF_Smart Drivers"->OEP_Actual->"OCF_Customer Receipts"->"$totalBank",1,@LEVMBRS ("Years", 0))+@prior("OCF_Smart Drivers"->OEP_Actual->"OCF_Customer Receipts"->"$totalBank",2,@LEVMBRS ("Years", 0)))/
+								(@MDSHIFT( "OCF_Smart Drivers"->OEP_Actual->"OCF_Customer Receipts"->"$totalBank", -1, "Period",@relative("$topNode",0) , -1, "Years", )+@MDSHIFT( "OCF_Smart Drivers"->OEP_Actual->"OCF_Customer Receipts"->"$totalBank", -1, "Period",@relative("$topNode",0) , -2, "Years", )))*(1+"OCF_%Increase/(Decrease)"->"BegBalance"));					
+							ELSEIF ("OCF_Trend Method"->"BegBalance"==9 )
+								"OCF_Trend"=@AVGRANGE(SKIPNONE , "OEP_Actual"->"OCF_Smart Drivers"->"OCF_Customer Receipts"->"$totalBank" , @LIST("$startPeriod": @MEMBERAT(@LIST("$startPeriod":@CURRMBR("Period")),-1)))*(1+ "OCF_%Increase/(Decrease)"->"BegBalance");
+							ELSEIF(	"OCF_Trend Method"->"BegBalance"==10)
+								"OCF_Trend"=#MISSING;				
+							ELSEIF ("OCF_Trend Method"->"BegBalance" == #MISSING)
+								"OCF_Trend"=#MISSING;				
+							ENDIF						
+						"""
+				 String receivablesTrendYearTwo="""
+							IF (( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==1 ) OR ( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==6 ))
+								"OCF_Trend"=@AVGRANGE(SKIPNONE , "OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_CurrYr->"OCF_Customer Receipts"->"$totalBank" , $startPeriod:&amp;OEP_ActPeriod)*(1+"OCF_%Increase/(Decrease)"->"BegBalance");               
+							ELSEIF ( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==2 )      			
+							   "OCF_Trend"=("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_ActPeriod->&amp;OEP_CurrYr->"OCF_Customer Receipts"->"$totalBank")*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance");				
+							ELSEIF (&amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==3)
+								  "OCF_Trend"=("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_CurrYr->"OCF_Customer Receipts"->"$totalBank")*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance");	
+							ELSEIF ( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==4 )    			
+								"OCF_Trend"= @avgrange(skipnone,"OEP_Actual"->"OCF_Smart Drivers"->"OCF_Customer Receipts"->"$totalBank"->&amp;OEP_PriorYr,$startPeriod:$endPeriod)*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance");
+							ELSEIF (&amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==5 )    			               
+								"OCF_Trend" = @avgrange(skipnone,"OEP_Forecast"->&amp;OEP_CurrYr->"OCF_Forecasted"->"$totalBank",$startPeriod:&amp;OEP_ActPeriod)*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance");                
+							ELSEIF ( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==7 )    			               
+								"OCF_Trend" = @prior("OEP_Actual"->"OCF_Smart Drivers"->"OCF_Customer Receipts"->"$totalBank",1,@LEVMBRS ("Years", 0))*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance");
+							ELSEIF ( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==8 )
+								IF (@ISMBR("$startPeriod"))
+								"OCF_Trend" =@round(("OEP_Actual"->"OCF_Smart Drivers"->"OCF_Customer Receipts"->&amp;OEP_ActPeriod->&amp;OEP_CurrYr->"$totalBank"*					
+								(@prior("OCF_Smart Drivers"->"OCF_Customer Receipts"->OEP_Actual->"$totalBank",1,@LEVMBRS ("Years", 0))+@prior("OCF_Smart Drivers"->"OCF_Customer Receipts"->OEP_Actual->"$totalBank",2,@LEVMBRS ("Years", 0)))/
+								(@MDSHIFT( "OCF_Smart Drivers"->"OCF_Customer Receipts"->OEP_Actual->"$totalBank", -1, "Period",@LIST(&amp;OEP_ActPeriod:$endPeriod,$startPeriod:$endPeriod ) , -1, "Years", )+@MDSHIFT( "OCF_Smart Drivers"->"OCF_Customer Receipts"->OEP_Actual->"$totalBank", -1, "Period",@LIST(&amp;OEP_ActPeriod:$endPeriod,$startPeriod:$endPeriod ) , -2, "Years", ))
+								)*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance"));						
+								ELSE
+								"OCF_Trend" =@round(("OEP_Actual"->"OCF_Smart Drivers"->"OCF_Customer Receipts"->&amp;OEP_ActPeriod->&amp;OEP_CurrYr->"$totalBank" *					
+								(@prior("OCF_Smart Drivers"->OEP_Actual->"OCF_Customer Receipts"->"$totalBank",1,@LEVMBRS ("Years", 0))+@prior("OCF_Smart Drivers"->OEP_Actual->"OCF_Customer Receipts"->"$totalBank",2,@LEVMBRS ("Years", 0)))/
+								(@MDSHIFT( "OCF_Smart Drivers"->OEP_Actual->"OCF_Customer Receipts"->"$totalBank", -1, "Period",@relative("$topNode",0) , -1, "Years", )+@MDSHIFT( "OCF_Smart Drivers"->OEP_Actual->"OCF_Customer Receipts"->"$totalBank", -1, "Period",@relative("$topNode",0) , -2, "Years", )))*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance"));					
+								ENDIF;
+							ELSEIF (&amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==9 )
+								 "OCF_Trend"=@AVGRANGE(SKIPNONE , "OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_CurrYr->"OCF_Customer Receipts"->"$totalBank" , @LIST("$startPeriod": @MEMBERAT(@LIST("$startPeriod":"$endPeriod","$startPeriod":@CURRMBR("Period")),-1)))*(1+ &amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance");
+							ELSEIF(&amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==10)
+								"OCF_Trend"=#MISSING;				
+							ELSEIF(&amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"== #MISSING)
+								"OCF_Trend"=#MISSING;              
+							ENDIF; 
+
+							"""
+					
+				String payablesTrend="""
+							 IF (( "OCF_Trend Method"->"BegBalance"==1 ) OR ( "OCF_Trend Method"->"BegBalance"==6 ))
+								  "OCF_Trend"=@AVGRANGE(SKIPNONE , "OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_CurrYr->"OCF_Supplier Payments"->"$totalBank" , $startPeriod:&amp;OEP_ActPeriod)*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance");	
+							 ELSEIF ( "OCF_Trend Method"->"BegBalance"==2 )      			
+								 "OCF_Trend"=("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_ActPeriod->&amp;OEP_CurrYr->"OCF_Supplier Payments"->"$totalBank")*(1+"OCF_%Increase/(Decrease)"->"BegBalance");				
+							 ELSEIF ( "OCF_Trend Method"->"BegBalance"==3 )    			
+								 "OCF_Trend"= ("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_PriorYr->"OCF_Supplier Payments"->"$totalBank") *(1+"OCF_%Increase/(Decrease)"->"BegBalance");
+							 ELSEIF ( "OCF_Trend Method"->"BegBalance"==4 )    			
+								 "OCF_Trend"= @avgrange(skipnone,"OEP_Actual"->"OCF_Smart Drivers"->"OCF_Supplier Payments"->"$totalBank"->&amp;OEP_PriorYr,$startPeriod:$endPeriod)*(1+"OCF_%Increase/(Decrease)"->"BegBalance");
+							 ELSEIF ( "OCF_Trend Method"->"BegBalance"==5 )    			               
+								  "OCF_Trend" = @avgrange(skipnone,"OEP_Forecast"->&amp;OEP_CurrYr->"OCF_Forecasted"->"OCF_Supplier Payments"->"$totalBank",$startPeriod:&amp;OEP_ActPeriod)*(1+"OCF_%Increase/(Decrease)"->"BegBalance"); 
+							 ELSEIF ( "OCF_Trend Method"->"BegBalance"==7 )    			               
+								"OCF_Trend" = @prior("OEP_Actual"->"OCF_Smart Drivers"->"OCF_Supplier Payments"->"$totalBank",1,@LEVMBRS ("Years", 0))*(1+"OCF_%Increase/(Decrease)"->"BegBalance");
+							 ELSEIF ( "OCF_Trend Method"->"BegBalance"==8 )    			               
+								"OCF_Trend" =@round(("OEP_Actual"->"OCF_Smart Drivers"->"OCF_Supplier Payments"->&amp;OEP_ActPeriod->&amp;OEP_CurrYr->"$totalBank" *					
+								(@prior("OCF_Smart Drivers"->OEP_Actual->"OCF_Supplier Payments"->"$totalBank",1,@LEVMBRS ("Years", 0))+@prior("OCF_Smart Drivers"->OEP_Actual->"OCF_Supplier Payments"->"$totalBank",2,@LEVMBRS ("Years", 0)))/
+								(@MDSHIFT( "OCF_Smart Drivers"->OEP_Actual->"OCF_Supplier Payments"->"$totalBank", -1, "Period",@relative("$topNode",0) , -1, "Years", )+@MDSHIFT( "OCF_Smart Drivers"->OEP_Actual->"OCF_Supplier Payments"->"$totalBank", -1, "Period",@relative("$topNode",0) , -2, "Years", )))*(1+"OCF_%Increase/(Decrease)"->"BegBalance"));					
+							ELSEIF ( "OCF_Trend Method"->"BegBalance"==9 )
+								"OCF_Trend"=@AVGRANGE(SKIPNONE , "OEP_Actual"->"OCF_Smart Drivers"->"OCF_Supplier Payments"->"$totalBank" , @LIST("$startPeriod": @MEMBERAT(@LIST("$startPeriod":@CURRMBR("Period")),-1)))*(1+ "OCF_%Increase/(Decrease)"->"BegBalance");
+							ELSEIF (	"OCF_Trend Method"->"BegBalance"==10)
+								"OCF_Trend"=#MISSING;				
+							ELSEIF ("OCF_Trend Method"->"BegBalance"== #MISSING)
+								"OCF_Trend"=#MISSING;
+							ENDIF;
+							
+						"""
+				String payablesTrendYearTwo="""
+							  IF (( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==1 ) OR ( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==6 ))
+								  "OCF_Trend"=@AVGRANGE(SKIPNONE , "OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_CurrYr->"OCF_Supplier Payments"->"$totalBank" , $startPeriod:&amp;OEP_ActPeriod)*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance");	
+							  ELSEIF ( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==2 )      			
+								 "OCF_Trend"=("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_ActPeriod->&amp;OEP_CurrYr->"OCF_Supplier Payments"->"$totalBank")*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance");				
+							  ELSEIF (&amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==3)
+								  "OCF_Trend"=("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_CurrYr->"OCF_Supplier Payments"->"$totalBank")*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance");	
+							  ELSEIF (&amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==4 )    			
+								 "OCF_Trend"= @avgrange(skipnone,"OEP_Actual"->"OCF_Smart Drivers"->"OCF_Supplier Payments"->"$totalBank"->&amp;OEP_PriorYr,$startPeriod:$endPeriod)*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance");
+							  ELSEIF (&amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==5 )    			               
+								  "OCF_Trend" = @avgrange(skipnone,"OEP_Forecast"->&amp;OEP_CurrYr->"OCF_Forecasted"->"OCF_Supplier Payments"->"$totalBank",$startPeriod:&amp;OEP_ActPeriod)*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance"); 
+							  ELSEIF ( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==7 )    			               
+								"OCF_Trend" = @prior("OEP_Actual"->"OCF_Smart Drivers"->"OCF_Supplier Payments"->"$totalBank",1,@LEVMBRS ("Years", 0))*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance");
+							  ELSEIF ( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==8 ) 
+								IF (@ISMBR("$startPeriod"))
+								"OCF_Trend" =@round(("OEP_Actual"->"OCF_Smart Drivers"->"OCF_Supplier Payments"->&amp;OEP_ActPeriod->&amp;OEP_CurrYr->"$totalBank"*					
+								(@prior("OCF_Smart Drivers"->"OCF_Supplier Payments"->OEP_Actual->"$totalBank",1,@LEVMBRS ("Years", 0))+@prior("OCF_Smart Drivers"->"OCF_Supplier Payments"->OEP_Actual->"$totalBank",2,@LEVMBRS ("Years", 0)))/
+								(@MDSHIFT( "OCF_Smart Drivers"->"OCF_Supplier Payments"->OEP_Actual->"$totalBank", -1, "Period",@LIST(&amp;OEP_ActPeriod:$endPeriod,$startPeriod:$endPeriod ) , -1, "Years", )+@MDSHIFT( "OCF_Smart Drivers"->"OCF_Supplier Payments"->OEP_Actual->"$totalBank", -1, "Period",@LIST(&amp;OEP_ActPeriod:$endPeriod,$startPeriod:$endPeriod ) , -2, "Years", ))
+								)*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance"));						
+								ELSE
+								"OCF_Trend" =@round(("OEP_Actual"->"OCF_Smart Drivers"->"OCF_Supplier Payments"->&amp;OEP_ActPeriod->&amp;OEP_CurrYr->"$totalBank"*					
+								(@prior("OCF_Smart Drivers"->OEP_Actual->"OCF_Supplier Payments"->"$totalBank",1,@LEVMBRS ("Years", 0))+@prior("OCF_Smart Drivers"->OEP_Actual->"OCF_Supplier Payments"->"$totalBank",2,@LEVMBRS ("Years", 0)))/
+								(@MDSHIFT( "OCF_Smart Drivers"->OEP_Actual->"OCF_Supplier Payments"->"$totalBank", -1, "Period",@relative("$topNode",0) , -1, "Years", )+@MDSHIFT( "OCF_Smart Drivers"->OEP_Actual->"OCF_Supplier Payments"->"$totalBank", -1, "Period",@relative("$topNode",0) , -2, "Years", )))*(1+"OCF_%Increase/(Decrease)"->"BegBalance"));					
+								ENDIF;
+							  ELSEIF ( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==9 )
+								 "OCF_Trend"=@AVGRANGE(SKIPNONE , "OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_CurrYr->"OCF_Supplier Payments"->"$totalBank" , @LIST("$startPeriod": @MEMBERAT(@LIST("$startPeriod":"$endPeriod","$startPeriod":@CURRMBR("Period")),-1)))*(1+ &amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance");
+							  ELSEIF(&amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==10)
+								"OCF_Trend"=#MISSING;				
+							  ELSEIF(&amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"== #MISSING)
+								"OCF_Trend"=#MISSING;              
+							  ENDIF;
+					"""
+
+				
+				String trendScript="""
+							IF (( "OCF_Trend Method"->"BegBalance"==1 ) OR ( "OCF_Trend Method"->"BegBalance"==6 ))
+								  "OCF_Trend"=@AVGRANGE(SKIPNONE , "OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_CurrYr->"$totalBank" , $startPeriod:&amp;OEP_ActPeriod)*(1+"OCF_%Increase/(Decrease)"->"BegBalance");	
+							ELSEIF ("OCF_Trend Method"->"BegBalance"==2)
+								  "OCF_Trend"=("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_ActPeriod->&amp;OEP_CurrYr->"$totalBank")*(1+"OCF_%Increase/(Decrease)"->"BegBalance");	
+							ELSEIF ( "OCF_Trend Method"->"BegBalance"==3 )    			
+								 "OCF_Trend"= ("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_PriorYr->"$totalBank") *(1+"OCF_%Increase/(Decrease)"->"BegBalance");
+							ELSEIF ( "OCF_Trend Method"->"BegBalance"==4 )    			
+								 "OCF_Trend"= @avgrange(skipnone,"OEP_Actual"->"OCF_Smart Drivers"->"$totalBank"->&amp;OEP_PriorYr,$startPeriod:$endPeriod)*(1+"OCF_%Increase/(Decrease)"->"BegBalance");
+							ELSEIF ( "OCF_Trend Method"->"BegBalance"==5 )    			               
+								"OCF_Trend" = @avgrange(skipnone,"OEP_Forecast"->&amp;OEP_CurrYr->"OCF_Forecasted"->"$totalBank",$startPeriod:&amp;OEP_ActPeriod)*(1+"OCF_%Increase/(Decrease)"->"BegBalance");                
+							ELSEIF ( "OCF_Trend Method"->"BegBalance"==7 )    			               
+								"OCF_Trend" = @prior("OEP_Actual"->"OCF_Smart Drivers"->"$totalBank",1,@LEVMBRS ("Years", 0))*(1+"OCF_%Increase/(Decrease)"->"BegBalance");
+							ELSEIF ( "OCF_Trend Method"->"BegBalance"==8 ) 							
+								"OCF_Trend" =@round(("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_ActPeriod->&amp;OEP_CurrYr->"$totalBank"*					
+								(@prior("OCF_Smart Drivers"->OEP_Actual->"$totalBank",1,@LEVMBRS ("Years", 0))+@prior("OCF_Smart Drivers"->OEP_Actual->"$totalBank",2,@LEVMBRS ("Years", 0)))/
+								(@MDSHIFT( "OCF_Smart Drivers"->OEP_Actual->"$totalBank", -1, "Period",@relative("$topNode",0) , -1, "Years", )+@MDSHIFT( "OCF_Smart Drivers"->OEP_Actual->"$totalBank", -1, "Period",@relative("$topNode",0) , -2, "Years", )))*(1+"OCF_%Increase/(Decrease)"->"BegBalance"));													
+							ELSEIF ( "OCF_Trend Method"->"BegBalance"==9 )
+								"OCF_Trend"=@AVGRANGE(SKIPNONE , "OEP_Actual"->"OCF_Smart Drivers"->"$totalBank" , @LIST("$startPeriod": @MEMBERAT(@LIST("$startPeriod":@CURRMBR("Period")),-1)))*(1+ "OCF_%Increase/(Decrease)"->"BegBalance");
+							ELSEIF(	"OCF_Trend Method"->"BegBalance"==10)
+								"OCF_Trend"=#MISSING;				
+							ELSEIF(	"OCF_Trend Method"->"BegBalance"== #MISSING)
+								"OCF_Trend"=#MISSING;              
+							ENDIF; 
+						"""
+						
+				String trendScriptYeartTwo="""
+							IF (( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==1 ) OR ( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==6 ))
+								  "OCF_Trend"=@AVGRANGE(SKIPNONE , "OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_CurrYr->"$totalBank" , $startPeriod:&amp;OEP_ActPeriod)*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance");	
+							 ELSEIF (&amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==2)
+								  "OCF_Trend"=("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_ActPeriod->&amp;OEP_CurrYr->"$totalBank")*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance");	
+							 ELSEIF (&amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==3)
+								  "OCF_Trend"=("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_CurrYr->"$totalBank")*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance");	
+							 ELSEIF( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==4 )    			
+								 "OCF_Trend"= @avgrange(skipnone,"OEP_Actual"->"OCF_Smart Drivers"->"$totalBank"->&amp;OEP_PriorYr,$startPeriod:$endPeriod)*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance");
+							 ELSEIF ( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==5 )    			               
+								"OCF_Trend" = @avgrange(skipnone,"OEP_Forecast"->&amp;OEP_CurrYr->"OCF_Forecasted"->"$totalBank",$startPeriod:&amp;OEP_ActPeriod)*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance");                
+							 ELSEIF ( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==7 )    			               
+								"OCF_Trend" = @prior("OEP_Actual"->"OCF_Smart Drivers"->"$totalBank",1,@LEVMBRS ("Years", 0))*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance");
+							 ELSEIF ( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==8 ) 
+								IF (@ISMBR("$startPeriod"))
+								"OCF_Trend" =@round(("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_ActPeriod->&amp;OEP_CurrYr->"$totalBank"*					
+								(@prior("OCF_Smart Drivers"->OEP_Actual->"$totalBank",1,@LEVMBRS ("Years", 0))+@prior("OCF_Smart Drivers"->OEP_Actual->"$totalBank",2,@LEVMBRS ("Years", 0)))/
+								(@MDSHIFT( "OCF_Smart Drivers"->OEP_Actual->"$totalBank", -1, "Period",@LIST(&amp;OEP_ActPeriod:$endPeriod,$startPeriod:$endPeriod ) , -1, "Years", )+@MDSHIFT( "OCF_Smart Drivers"->OEP_Actual->"$totalBank", -1, "Period",@LIST(&amp;OEP_ActPeriod:$endPeriod,$startPeriod:$endPeriod ) , -2, "Years", ))
+								)*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance"));						
+								ELSE
+								"OCF_Trend" =@round(("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_ActPeriod->&amp;OEP_CurrYr->"$totalBank"*					
+								(@prior("OCF_Smart Drivers"->OEP_Actual->"$totalBank",1,@LEVMBRS ("Years", 0))+@prior("OCF_Smart Drivers"->OEP_Actual->"$totalBank",2,@LEVMBRS ("Years", 0)))/
+								(@MDSHIFT( "OCF_Smart Drivers"->OEP_Actual->"$totalBank", -1, "Period",@relative("$topNode",0) , -1, "Years", )+@MDSHIFT( "OCF_Smart Drivers"->OEP_Actual->"$totalBank", -1, "Period",@relative("$topNode",0) , -2, "Years", )))*(1+&amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance"));						
+								ENDIF;
+							 ELSEIF (&amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==9 )
+								 "OCF_Trend"=@AVGRANGE(SKIPNONE , "OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_CurrYr->"$totalBank" , @LIST("$startPeriod": @MEMBERAT(@LIST("$startPeriod":"$endPeriod","$startPeriod":@CURRMBR("Period")),-1)))*(1+ &amp;OEP_CurrYr->"OCF_%Increase/(Decrease)"->"BegBalance");
+							 ELSEIF(&amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==10)
+								"OCF_Trend"=#MISSING;				
+							 ELSEIF(&amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==#MISSING)
+								"OCF_Trend"=#MISSING;              
+							 ENDIF;	
+
+				"""
+				String receivablesSeasonTrend="""
+												"OCF_Trend"=  (@SUMRANGE("OCF_Trend",&amp;OEP_CurrYrPeriodRange)) * (("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_PriorYr->"OCF_Customer Receipts"->"$totalBank")/@SUMRANGE( "OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_PriorYr->"OCF_Customer Receipts"->"$totalBank",&amp;OEP_CurrYrPeriodRange));
+										"""
+				
+				String receivablesSeasonTrendYearTwo="""	
+								"OCF_Trend"=  (@SUMRANGE("OCF_Trend",&amp;OEP_NextYrPeriodRange)) * (("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_PriorYr->"OCF_Customer Receipts"->"$totalBank")/@SUMRANGE( "OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_PriorYr->"OCF_Customer Receipts"->"$totalBank",&amp;OEP_NextYrPeriodRange));
+						"""
+				String payablesSeasonTrend="""
+											"OCF_Trend"=  (@SUMRANGE("OCF_Trend",&amp;OEP_CurrYrPeriodRange)) * (("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_PriorYr->"OCF_Supplier Payments"->"$totalBank")/@SUMRANGE( "OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_PriorYr->"OCF_Supplier Payments"->"$totalBank",&amp;OEP_CurrYrPeriodRange));
+										"""	
+				String payablesSeasonTrendYearTwo="""
+								"OCF_Trend"=  (@SUMRANGE("OCF_Trend",&amp;OEP_NextYrPeriodRange)) * (("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_PriorYr->"OCF_Supplier Payments"->"$totalBank")/@SUMRANGE( "OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_PriorYr->"OCF_Supplier Payments"->"$totalBank",&amp;OEP_NextYrPeriodRange));
+									"""
+				String seasonTrend="""
+										"OCF_Trend"=  (@SUMRANGE("OCF_Trend",&amp;OEP_CurrYrPeriodRange)) * (("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_PriorYr->"$totalBank")/@SUMRANGE( "OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_PriorYr->"$totalBank",&amp;OEP_CurrYrPeriodRange));
+								"""
+			    String SeasonTrendYearTwo="""
+						"OCF_Trend"=  (@SUMRANGE("OCF_Trend",&amp;OEP_NextYrPeriodRange)) * (("OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_PriorYr->"$totalBank")/@SUMRANGE( "OEP_Actual"->"OCF_Smart Drivers"->&amp;OEP_PriorYr->"$totalBank",&amp;OEP_NextYrPeriodRange));				
+				"""
+			  Dimension dimLineItem=application.getDimension(DimensionType.ACCOUNT,cashFlowCube);
+			   calcString="""	SET UPDATECALC OFF;
+								SET AGGMISSG ON;
+								Var PrefRang1;
+								Var PrefRang2;
+								Var PrefRang3;	
+								FIX(@Relative("$entityMember",0),$scenarioMember,$versionMember,$fixMembersJoin)
+									FIX($fixCategory)
+						  """		
+			  cscript.append(calcString);
+			 if (numOfPeriods=="2")
+				  {
+				  if ((dimLineItem.hasMember("OCF_Receivables Invoices",cashFlowCube)==true) &amp;&amp; (dimLineItem.hasMember("OCF_Payables Invoices",cashFlowCube)==true))
+					{
+							calcString="""								
+									FIX(@relative("OCF_Total Cash",0),&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange,@Relative("Input Currencies",0))
+										"OCF_Trend"  (
+										   IF (@ISMBR("OCF_Receivables Invoices"))							
+											 $receivablesTrend
+										   ELSEIF (@ISMBR("OCF_Payables Invoices"))
+											 $payablesTrend
+										   ELSE
+											 $trendScript
+										   ENDIF;  
+										);
+									ENDFIX;
+								  FIX(@relative("OCF_Total Cash",0),&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange,@Relative("Input Currencies",0))
+										"OCF_Trend"  (
+										 IF ( "OCF_Trend Method"->"BegBalance"==6 )
+										   IF (@ISMBR("OCF_Receivables Invoices"))
+											 $receivablesSeasonTrend
+										   ELSEIF (@ISMBR("OCF_Payables Invoices"))			
+											$payablesSeasonTrend
+										   ELSE            
+											$seasonTrend
+										   ENDIF;
+										ENDIF; 
+										);
+								   ENDFIX;     
+									FIX(@relative("OCF_Total Cash",0),&amp;OEP_NextYr,&amp;OEP_NextYrPeriodRange,@Relative("Input Currencies",0))
+										"OCF_Trend"  (
+										   IF (@ISMBR("OCF_Receivables Invoices"))						
+												$receivablesTrendYearTwo						 
+										   ELSEIF (@ISMBR("OCF_Payables Invoices"))
+											   $payablesTrendYearTwo							
+										   ELSE
+											   $trendScriptYeartTwo         
+										  ENDIF;  
+										);						
+									ENDFIX;
+									FIX(@relative("OCF_Total Cash",0),&amp;OEP_NextYr,&amp;OEP_NextYrPeriodRange,@Relative("Input Currencies",0))
+										"OCF_Trend"  (
+										 IF ( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==6 )
+										   IF (@ISMBR("OCF_Receivables Invoices"))
+											 $receivablesSeasonTrendYearTwo
+										   ELSEIF (@ISMBR("OCF_Payables Invoices"))			
+											 $payablesSeasonTrendYearTwo
+										   ELSE            
+											 $SeasonTrendYearTwo
+										   ENDIF;
+										ENDIF; 
+										);
+								   ENDFIX; 											
+							"""
+						}	
+						else if((dimLineItem.hasMember("OCF_Receivables Invoices",cashFlowCube)==true))
+						{
+						 							calcString="""								
+									FIX(@relative("OCF_Total Cash",0),&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange,@Relative("Input Currencies",0))
+										"OCF_Trend"  (
+										   IF (@ISMBR("OCF_Receivables Invoices"))							
+											 $receivablesTrend										   
+										   ELSE
+											 $trendScript
+										   ENDIF;  
+										);
+									ENDFIX;
+								  FIX(@relative("OCF_Total Cash",0),&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange,@Relative("Input Currencies",0))
+										"OCF_Trend"  (
+										 IF ( "OCF_Trend Method"->"BegBalance"==6 )
+										   IF (@ISMBR("OCF_Receivables Invoices"))
+											 $receivablesSeasonTrend
+										   ELSE            
+											$seasonTrend
+										   ENDIF;
+										ENDIF; 
+										);
+								   ENDFIX;     
+									FIX(@relative("OCF_Total Cash",0),&amp;OEP_NextYr,&amp;OEP_NextYrPeriodRange,@Relative("Input Currencies",0))
+										"OCF_Trend"  (
+										   IF (@ISMBR("OCF_Receivables Invoices"))						
+												$receivablesTrendYearTwo					 
+										  			
+										   ELSE
+											   $trendScriptYeartTwo         
+										  ENDIF;  
+										);						
+									ENDFIX;
+									FIX(@relative("OCF_Total Cash",0),&amp;OEP_NextYr,&amp;OEP_NextYrPeriodRange,@Relative("Input Currencies",0))
+										"OCF_Trend"  (
+										 IF ( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==6 )
+										   IF (@ISMBR("OCF_Receivables Invoices"))
+											 $receivablesSeasonTrendYearTwo										  
+										   ELSE            
+											 $SeasonTrendYearTwo
+										   ENDIF;
+										ENDIF; 
+										);
+								   ENDFIX; 								 			
+							"""
+	
+						
+						}
+						else if((dimLineItem.hasMember("OCF_Payables Invoices",cashFlowCube)==true))
+						{
+							calcString="""								
+									FIX(@relative("OCF_Total Cash",0),&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange,@Relative("Input Currencies",0))
+										"OCF_Trend"  (
+										   IF (@ISMBR("OCF_Payables Invoices"))
+											 $payablesTrend
+										   ELSE
+											 $trendScript
+										   ENDIF;  
+										);
+									ENDFIX;
+								  FIX(@relative("OCF_Total Cash",0),&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange,@Relative("Input Currencies",0))
+										"OCF_Trend"  (
+										 IF ( "OCF_Trend Method"->"BegBalance"==6 )
+										  IF (@ISMBR("OCF_Payables Invoices"))			
+											$payablesSeasonTrend
+										   ELSE            
+											$seasonTrend
+										   ENDIF;
+										ENDIF; 
+										);
+								   ENDFIX;     
+									FIX(@relative("OCF_Total Cash",0),&amp;OEP_NextYr,&amp;OEP_NextYrPeriodRange,@Relative("Input Currencies",0))
+										"OCF_Trend"  (
+										  IF (@ISMBR("OCF_Payables Invoices"))
+											   $payablesTrendYearTwo							
+										   ELSE
+											   $trendScriptYeartTwo         
+										  ENDIF;  
+										);						
+									ENDFIX;
+									FIX(@relative("OCF_Total Cash",0),&amp;OEP_NextYr,&amp;OEP_NextYrPeriodRange,@Relative("Input Currencies",0))
+										"OCF_Trend"  (
+										 IF ( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==6 )
+										   IF (@ISMBR("OCF_Payables Invoices"))			
+											 $payablesSeasonTrendYearTwo
+										   ELSE            
+											 $SeasonTrendYearTwo
+										   ENDIF;
+										ENDIF; 
+										);
+								   ENDFIX; 											
+							"""
+
+						}
+						else
+						{
+						 calcString="""								
+									FIX(@relative("OCF_Total Cash",0),&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange,@Relative("Input Currencies",0))
+										"OCF_Trend"  (
+											$trendScript
+											);
+									ENDFIX;
+								  FIX(@relative("OCF_Total Cash",0),&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange,@Relative("Input Currencies",0))
+										"OCF_Trend"  (
+										   IF ( "OCF_Trend Method"->"BegBalance"==6 )
+										    $seasonTrend
+										   ENDIF;
+										
+										);
+								   ENDFIX;     
+									FIX(@relative("OCF_Total Cash",0),&amp;OEP_NextYr,&amp;OEP_NextYrPeriodRange,@Relative("Input Currencies",0))
+										"OCF_Trend"  (
+											$trendScriptYeartTwo         
+										  );						
+									ENDFIX;
+									FIX(@relative("OCF_Total Cash",0),&amp;OEP_NextYr,&amp;OEP_NextYrPeriodRange,@Relative("Input Currencies",0))
+										"OCF_Trend"  (
+										 IF ( &amp;OEP_CurrYr->"OCF_Trend Method"->"BegBalance"==6 )
+										        $SeasonTrendYearTwo
+										  ENDIF; 
+										);
+								    ENDFIX;
+											
+							"""
+
+						}
+					
+					
+				cscript.append(calcString);
+				calcString="""	
+							$finalForecastScript
+							$calcOpenBal
+						ENDFIX;
+						FIX(@relative("OCF_Total Cash",0),"OCF_Opening Balance","OCF_Trend","OCF_Forecasted")
+							FIX (&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange)
+								$aggCategory
+							ENDFIX;
+							FIX (&amp;OEP_NextYr,&amp;OEP_NextYrPeriodRange)
+								$aggCategory
+							ENDFIX;
+						ENDFIX;
+					 ENDFIX	
+					 """
+				
+				cscript.append(calcString);	
+			}
+			else
+			{
+				if ((dimLineItem.hasMember("OCF_Receivables Invoices",cashFlowCube)==true) &amp;&amp; (dimLineItem.hasMember("OCF_Payables Invoices",cashFlowCube)==true))
+					{
+						calcString="""									
+										FIX(@relative("OCF_Total Cash",0),&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange,@Relative("Input Currencies",0))
+											"OCF_Trend"  (
+											   IF (@ISMBR("OCF_Receivables Invoices"))
+												$receivablesTrend							 
+											   ELSEIF (@ISMBR("OCF_Payables Invoices"))							  
+												$payablesTrend
+											  ELSE
+												 $trendScript
+											  ENDIF;  
+											);
+										ENDFIX;
+										FIX(@relative("OCF_Total Cash",0),&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange,@Relative("Input Currencies",0))
+											"OCF_Trend"  (
+											 IF ( "OCF_Trend Method"->"BegBalance"==6 )
+											   IF (@ISMBR("OCF_Receivables Invoices"))
+												$receivablesSeasonTrend
+											   ELSEIF (@ISMBR("OCF_Payables Invoices"))			
+												$payablesSeasonTrend
+											   ELSE            
+												$seasonTrend
+											   ENDIF;
+											ENDIF; 
+											);
+										ENDFIX; 
+									  
+								"""
+					}
+					else if ((dimLineItem.hasMember("OCF_Receivables Invoices",cashFlowCube)==true))
+					{ 
+						calcString="""									
+										FIX(@relative("OCF_Total Cash",0),&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange,@Relative("Input Currencies",0))
+											"OCF_Trend"  (
+											   IF (@ISMBR("OCF_Receivables Invoices"))
+												$receivablesTrend							 
+											   ELSE
+												 $trendScript
+											  ENDIF;  
+											);
+										ENDFIX;
+										FIX(@relative("OCF_Total Cash",0),&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange,@Relative("Input Currencies",0))
+											"OCF_Trend"  (
+											 IF ( "OCF_Trend Method"->"BegBalance"==6 )
+											   IF (@ISMBR("OCF_Receivables Invoices"))
+												$receivablesSeasonTrend
+											   ELSE            
+												$seasonTrend
+											   ENDIF;
+											ENDIF; 
+											);
+										ENDFIX; 									   
+								"""
+					}
+					else if ((dimLineItem.hasMember("OCF_Payables Invoices",cashFlowCube)==true))
+					{
+						calcString="""									
+										FIX(@relative("OCF_Total Cash",0),&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange,@Relative("Input Currencies",0))
+											"OCF_Trend"  (
+											   IF (@ISMBR("OCF_Payables Invoices"))							  
+												$payablesTrend
+											  ELSE
+												 $trendScript
+											  ENDIF;  
+											);
+										ENDFIX;
+										FIX(@relative("OCF_Total Cash",0),&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange,@Relative("Input Currencies",0))
+											"OCF_Trend"  (
+											 IF ( "OCF_Trend Method"->"BegBalance"==6 )
+											   IF (@ISMBR("OCF_Payables Invoices"))			
+												$payablesSeasonTrend
+											   ELSE            
+												$seasonTrend
+											   ENDIF;
+											ENDIF; 
+											);
+										ENDFIX;									 
+								"""
+					}
+					else
+					{
+							calcString="""									
+										FIX(@relative("OCF_Total Cash",0),&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange,@Relative("Input Currencies",0))
+											"OCF_Trend"  (
+											 	 $trendScript
+											 	);
+										ENDFIX;
+										FIX(@relative("OCF_Total Cash",0),&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange,@Relative("Input Currencies",0))
+											"OCF_Trend"  (
+											 IF ( "OCF_Trend Method"->"BegBalance"==6 )											          
+												$seasonTrend											   
+											ENDIF; 
+											);
+										ENDFIX;  									  
+								"""
+					
+					}
+						
+				cscript.append(calcString);
+				
+				calcString="""	
+							$finalForecastScript
+							$calcOpenBal
+						ENDFIX;
+						FIX("OCF_Trend","OCF_Forecasted",@relative("OCF_Total Cash",0),&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange,"OCF_Opening Balance")
+							$aggCategory
+						ENDFIX;
+					 ENDFIX	
+					 """
+				
+				cscript.append(calcString);		
+			}	
+			
+					
+			return cscript;
+		}
+
+	</script><template_wizard/><template_prompts><restricted_prompt name="Application Type" type="Application Type" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Generic</property><property name="value">GENERAL</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PFP</property><property name="value">PROJECT</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PSB</property><property name="value">PSB</property></restricted_prompt_item></restricted_prompt><restricted_prompt name="Application" type="Application" isPrompt="no"><property name="is_system">true</property><value>Is Single Currency</value><restricted_prompt_item><property name="prompt">Is Multi Currency</property><property name="value">multi</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Single Currency</property><property name="value">single</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Simple Currency</property><property name="value">simple</property></restricted_prompt_item></restricted_prompt><template_slice_prompt name="UpperPOV" type="Member Range" isPrompt="false"><property name="is_system">true</property></template_slice_prompt><restricted_prompt name="Essbase Mode" type="Essbase Mode" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Hybrid</property><property name="value">Hybrid</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is NonHybrid</property><property name="value">NonHybrid</property></restricted_prompt_item></restricted_prompt></template_prompts></template></templates></HBRRepo>

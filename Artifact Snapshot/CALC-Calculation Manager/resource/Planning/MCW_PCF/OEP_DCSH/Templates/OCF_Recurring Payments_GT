@@ -1,0 +1,305 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<HBRRepo><variables/><rulesets/><rules/><components/><deployobjects><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="1" obj_type="19" name="OCF_RECURRING PAYMENTS_GT"/></deployobjects><templates><template custom="yes" id="1" name="OCF_Recurring Payments_GT" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><property name="standAlone">false</property><script type="groovy">	    /***
+		 * Calculate Recurring payments based on the recurring assumptions.
+		 * @param cube, scenario, version, entity will be passed from form context.
+		 * @param  startperiod and end periods, Daily, weekly and Monthly first and last period of corresponding period dimension.
+		 * @param fixParallelDim  - name of the dimension on which fix parallel to be applied.
+		 * @return  - returns calculation scrip that computes recurring payments and copies them in to rolling forecast screen based on forecast method settings, and calculation logic to compute opening balance.
+			Additional Notes:
+		 *		1. Groovy script generates calc script based on the request type, if request comes onsave rule, script generated on specific intersection, if request is coming from rules, card script runs 
+		 *		for all intersections, if request is coming from DM, request gets executed for a specific date.
+		 *	 	2. Based on fix parallel dimension, logic gets aligned accordingly
+		 *		3. For pay basis, Annually- Recurring amount gets posted on that given date. in case of monthly model, it posts on the month, in weekly model, it posts on week corresponding to date.
+		 *		4. For pay basis, Monthly - recurring Amount gets posted on every month or 2 months based on recurring frequency 
+		**/
+	   String calculateRecurringPayments(Cube cashFlowCube,String scenarioMember,String versionMember,String entityMember,String startPeriod,String endPeriod,String fixParallelDim, int totalPeriods, String periodRollup,String flexDim1Member,String flexDim2Member,String flexDim3Member,String partyMember,String buMember,String prjMember,String currencyMember)
+		{
+				String fixParalleFixStmt,calcCopyString,calcOpenBal,variableDeclarationForFixPrarallel,varDeclaration;
+				boolean chkEntityIsFixParallel=false, chkCategoryFixParallel=false;
+				String yearOne,yearTwo,yearThree,noFixMembersJoinStr,entityBeginStr,entityEndStr;
+				String  lineItemsMemberGroup='ILvl0Descendants("OCF_Total Recurring Payments")';
+				String yearOneFinalCalc,yearTwoFinalCalc;
+				String startFixParallel,endFixParallel, catStartFix,catEndFix;
+				StringBuilder cscript = new StringBuilder();
+				StringBuilder finalCalc1 = new StringBuilder();	
+                StringBuilder finalCalc2 = new StringBuilder();	
+				List&lt;String> fixMembers = new ArrayList&lt;String>();
+				List&lt;String> noFixMembers = new ArrayList&lt;String>();
+				String fixMembersJoin;
+                String calcString;   
+				String fixCategory,aggCategory;
+                String flexDim1Name = "flexDimension1";
+                String flexDim2Name = "flexDimension2";
+                String flexDim3Name = "flexDimension3";
+                String currencyDimName="Currency";
+                String partyDimName="Party";
+                String buDimName="Business Unit";
+                String prjDimName="Category";
+                String bankDimName="Bank";
+                String forecastMethodDimName = "Forecast Method";
+                String yearDimName="Years"
+                String lineItemDimName="Line Item"
+                String entityDimName = "Entity";
+                def isflexDim1Enabled = "NoRecurringflexdim1" == "No flexDimension1"            
+                def isflexDim2Enabled = "NoRecurringflexdim2" == "No flexDimension2"                
+                def isflexDim3Enabled = "NoRecurringflexdim3" == "No flexDimension3"
+                def isPartyEnabled = "No Party" == "No Party"
+                def isBuEnabled = "No Business Unit" == "No Business Unit"
+                def isPrjEnabled = "No Category" == "No Category" 
+				Application application = operation.application;				
+				List&lt;String> lineItems=application.getDimension(lineItemDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("OCF_Total Recurring Payments")',cashFlowCube).collect{it.toString()};
+				List&lt;String> lstYears=application.getDimension(yearDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("All Years")',cashFlowCube).collect{it.toString()};
+				String numOfPeriods = getNumberOfYears(cashFlowCube);
+				String currYear=getCurrentYear(cashFlowCube);	
+				String nextPeriod=getFirstForecastPeriod(cashFlowCube);
+				yearOne=currYear;
+				yearTwo=nextYear(yearOne,lstYears);
+				yearThree=nextYear(yearTwo,lstYears);
+				calcCopyString= populateFinalForecastMethod(cashFlowCube,scenarioMember,versionMember,entityMember,"OCF_Total Recurring Payments",fixMembers);
+				calcOpenBal=calculateOpeningBalanceForOnsave(numOfPeriods,startPeriod,endPeriod,"OCF_Forecasted");	
+				String variableString=getPreferedRangeVarialbeDeclaration();
+				String varialStringForFixParallel=getPreferedRangeFixParllelVarialbeDeclaration();
+				fixParalleFixStmt='FIXPARALLEL (4,@RELATIVE("'+fixParallelDim+'",0))';	
+				if ( operation.hasGrid() ) fixParallelDim ="none";
+				if (fixParallelDim==entityDimName) chkEntityIsFixParallel=true;
+				if (fixParallelDim==prjDimName ) 	chkCategoryFixParallel=true;
+				if (fixParallelDim==partyDimName)  partyDimName="NoDimension";
+				if (fixParallelDim==flexDim1Name)  flexDim1Name="NoDimension";
+				if (fixParallelDim==flexDim2Name) flexDim2Name="NoDimension";				
+				if (fixParallelDim==flexDim3Name) flexDim3Name="NoDimension";
+				populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim1Name,flexDim1Member,isflexDim1Enabled,fixMembers);
+				populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim2Name,flexDim2Member,isflexDim2Enabled,fixMembers);
+				populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim3Name,flexDim3Member,isflexDim3Enabled,fixMembers);
+				populateFixMembersPostDimCheckForStdDim(cashFlowCube,partyDimName,partyMember,isPartyEnabled,fixMembers);
+				populateFixMembersPostDimCheckForStdDim(cashFlowCube,buDimName,buMember,isBuEnabled,fixMembers);
+				fixCategory=getFixOfCategoryDimension(cashFlowCube,prjDimName,prjMember,isPrjEnabled)
+				catStartFix= """ FIX($fixCategory) """
+				catEndFix =""" ENDFIX """
+				aggCategory=getAggOfCategoryDimension(cashFlowCube,prjDimName,prjMember,isPrjEnabled)
+				addCurrency(fixMembers,currencyMember);
+				addNoCurrency(noFixMembers);
+              			variableDeclarationForFixPrarallel ="";
+              			varDeclaration ="";                
+				if(operation.application.hasDimension(bankDimName, cashFlowCube))
+				{
+					noFixMembers.add('"OEP_Any '+bankDimName+'"'); 
+					fixMembers.add('"OEP_Any '+bankDimName+'"'); 
+				}
+				noFixMembersJoinStr=noFixMembers.join("->");
+				fixMembersJoin=fixMembers.join(",");
+				entityBeginStr =(chkEntityIsFixParallel==true) ? fixParalleFixStmt : "FIX($entityMember)"
+				entityEndStr =(chkEntityIsFixParallel==true) ? "ENDFIXPARALLEL" : "ENDFIX"   
+				String yearOneFIX = """ FIX("$yearOne",$versionMember,$fixMembersJoin,"Begbalance") """
+                String yearTwoFIX = """ FIX("$yearOne","$yearTwo",$versionMember,$fixMembersJoin,"Begbalance") """
+                   String finalCalc1String= """	
+
+										"OCF_Cash Drivers" (
+												@CALCMODE(BOTTOMUP);										
+                                                 if (@ISMBR("begbalance"))
+                                                 v_OccurencesCount =0;
+                                                 v_Occurences=0;
+                                                 v_StartFlag=0;
+                                                 ENDIF;
+											IF ( (  @int("Begbalance"->$noFixMembersJoinStr->"OCF_Pay Period") >= "OCF_Tp_Date" ) AND ( @int("Begbalance"->$noFixMembersJoinStr->"OCF_Pay Period") &lt;= "OCF_Tp_EndDate"   ) AND ("OCF_Period Number" &lt;= $totalPeriods))
+											/* Enters this loop when the Recurring first period is met from assumptions */
+                                            v_OccurencesCount = #Missing;
+												if((v_OccurencesCount == #Missing ) OR (v_OccurencesCount == 0 ))
+														v_StartFlag = 1;
+														v_OccurencesCount=1;
+											/* Need to initialize so that the next year values are not overwriting the current year incase the occurence is spilled over into next year */                                    
+														v_Occurences = "Begbalance"->$noFixMembersJoinStr->"OCF_Number Of Occurences";
+														v_PayBasis="Begbalance"->$noFixMembersJoinStr->"OCF_Pay Basis";
+											/* Initialize the frequency, add 12 months to date for annual and one month for the monthly */                                    
+														If ("Begbalance"->$noFixMembersJoinStr->"OCF_Pay Basis" == 1)
+															v_RecurringFrequency = 12 * "Begbalance"->$noFixMembersJoinStr->"OCF_Recurring Frequency";
+														ELSE
+															v_RecurringFrequency = 1 * "Begbalance"->$noFixMembersJoinStr->"OCF_Recurring Frequency";
+														ENDIF
+											/* Check for the next period recuurence and post in the corresponding week, Add months for annual,monthly and days for the daily  */
+													  If (("Begbalance"->$noFixMembersJoinStr->"OCF_Pay Basis" == 2) OR ("Begbalance"->$noFixMembersJoinStr->"OCF_Pay Basis" == 1))
+														"OCF_Calculated Cashflow" ="OCF_Cash Drivers"->"Begbalance" ;
+														v_OccurencesCount=1;
+														v_NextDate = @CalcMgrAddMonths("Begbalance"->$noFixMembersJoinStr->"OCF_Pay Period",v_RecurringFrequency) ;
+													  Endif
+													  
+													  If ("Begbalance"->$noFixMembersJoinStr->"OCF_Pay Basis" == 3)
+														"OCF_Calculated Cashflow" ="OCF_Cash Drivers"->"Begbalance" ;
+														v_OccurencesCount=1;
+														v_NextDate = @CalcMgrAddDays("Begbalance"->$noFixMembersJoinStr->"OCF_Pay Period", v_RecurringFrequency) ;
+													  Endif                                  
+													  
+												 Endif  
+											Endif  
+											
+									   if(v_StartFlag==1)
+											if(v_OccurencesCount &lt; v_Occurences )
+											/* Below for Monthly and Annually for other occurences apart from first period posting */
+												If ((v_PayBasis == 2) OR (v_PayBasis == 1))
+													IF ( (  @int(v_NextDate) >= "OCF_Tp_date" ) And ( @int(v_NextDate) &lt;= "OCF_TP_EndDate") AND ("OCF_Period Number" &lt;= $totalPeriods))
+														"OCF_Calculated Cashflow" = "Begbalance"->"OCF_Cash Drivers" ;
+														v_NextDate = @CalcMgrAddMonths(v_NextDate,v_RecurringFrequency) ;
+														v_OccurencesCount = v_OccurencesCount + 1;
+													ENDIF
+												Endif
+											 /* Below for Weekly for other occurences apart from first period posting*/  
+												 If (v_PayBasis == 3)
+													IF ( (  @int(v_NextDate) >= "OCF_Tp_date" ) And ( @int(v_NextDate) &lt;= "OCF_TP_EndDate") AND ("OCF_Period Number" &lt;= $totalPeriods))
+														"OCF_Calculated Cashflow" = "Begbalance"->"OCF_Cash Drivers" ;
+														v_NextDate = @CalcMgrAddDays(v_NextDate, v_RecurringFrequency) ;
+														v_OccurencesCount = v_OccurencesCount + 1;
+													ENDIF  
+											   endif  
+											   else
+											/* if the occurences are all complete, set the flag back to zero for next */
+												v_StartFlag=0;
+                                                v_OccurencesCount=0;
+										   Endif 
+										Endif      
+										   )  
+										  """                                          
+					finalCalc1.append(finalCalc1String)		
+ 				if(chkEntityIsFixParallel == true)
+				{
+				variableDeclarationForFixPrarallel="""
+                            			ThreadVar v_OccurencesCount;
+								 	    ThreadVar v_StartFlag;
+                                        ThreadVar v_NextDate;
+                                        ThreadVar v_Occurences;
+                                        ThreadVar v_RecurringAmount;
+                                        ThreadVar v_RecurringFrequency;
+                                        ThreadVar v_PayBasis;
+										$varialStringForFixParallel
+				"""
+				}
+				else
+                {
+				varDeclaration="""
+                            			Var v_OccurencesCount;
+								 	    Var v_StartFlag;
+                                        Var v_NextDate;
+                                        Var v_Occurences;
+                                        Var v_RecurringAmount;
+                                        Var v_RecurringFrequency;
+                                        Var v_PayBasis;
+										$variableString
+                                        """
+					 if (!operation.application.hasDimension(fixParallelDim, cashFlowCube) )
+					  {					
+						cscript.append(varDeclaration);				   
+					  }					
+                }
+				 lineItems.each{lineItemsMem->
+				String memName=removeParentFromShared(lineItemsMem.toString()); 
+				  	  startFixParallel=""" """
+					  endFixParallel=""" """
+					  if(operation.application.hasDimension(fixParallelDim, cashFlowCube) &amp;&amp; chkEntityIsFixParallel==false )
+						{
+						  if (chkCategoryFixParallel==true )					
+							{
+								catStartFix="""$fixParalleFixStmt
+												ThreadVar v_OccurencesCount;
+												ThreadVar v_StartFlag;
+												ThreadVar v_NextDate;
+												ThreadVar v_Occurences;
+												ThreadVar v_RecurringAmount;
+												ThreadVar v_RecurringFrequency;
+												ThreadVar v_PayBasis;
+												$varialStringForFixParallel	
+											  """	
+								 catEndFix = "ENDFIXPARALLEL"						 
+							}
+							else 
+							{
+								 startFixParallel="""$fixParalleFixStmt
+													ThreadVar v_OccurencesCount;
+													ThreadVar v_StartFlag;
+													ThreadVar v_NextDate;
+													ThreadVar v_Occurences;
+													ThreadVar v_RecurringAmount;
+													ThreadVar v_RecurringFrequency;
+													ThreadVar v_PayBasis;
+													$varialStringForFixParallel	
+												  """	
+								 endFixParallel = "ENDFIXPARALLEL"
+							 }
+							}  
+						  if (numOfPeriods=="2")
+						  {
+						  yearTwoFinalCalc="""
+												$yearTwoFIX
+													FIX("$memName",@Relative("$periodRollup",0))
+														   $finalCalc1
+													ENDFIX
+												ENDFIX
+													  """	
+						   calcString="""
+								   SET UPDATECALC OFF;
+									SET AGGMISSG ON;
+								   $entityBeginStr
+								   $variableDeclarationForFixPrarallel
+									  FIX($scenarioMember,$fixMembersJoin)          	
+										$startFixParallel
+										$catStartFix	
+											FIX("$yearOne", "OCF_Calculated Cashflow","$memName")
+												 ClearData "$versionMember";
+											ENDFIX
+											FIX("$yearTwo",  "OCF_Calculated Cashflow","$memName")
+												 ClearData "$versionMember";
+											ENDFIX 
+											FIX("$versionMember")	
+												 $yearTwoFinalCalc
+												 $calcCopyString
+												 $calcOpenBal
+											ENDFIX
+										$catEndFix	
+								FIX( "$versionMember","$yearOne","$yearTwo",@relative("$periodRollup",0),@Relative("OCF_Total Recurring Payments",0),"OCF_Opening Balance",@Relative("OCF_Cash Flow Metrics",0),@Relative("OCF_All Forecast Method",0),@Relative("OCF_Total Forecasted Cash",0))
+											$aggCategory
+										ENDFIX
+										$endFixParallel
+									  ENDFIX 
+									  
+								   $entityEndStr   
+							 """ 
+							 cscript.append(calcString)  
+						  }
+						  else
+						  {
+						   yearOneFinalCalc="""
+												$yearOneFIX
+													FIX("$memName",@Relative("$periodRollup",0))
+														   $finalCalc1
+													ENDFIX
+												ENDFIX  
+													  """
+							calcString="""						
+									SET UPDATECALC OFF;
+									SET AGGMISSG ON;
+								   $entityBeginStr
+									$variableDeclarationForFixPrarallel
+									FIX($scenarioMember,$fixMembersJoin)
+										$startFixParallel
+										$catStartFix
+											FIX("$yearOne", "OCF_Calculated Cashflow","$memName")
+											  ClearData "$versionMember";
+											ENDFIX 
+											FIX("$versionMember")		
+												$yearOneFinalCalc
+												$calcCopyString
+												$calcOpenBal
+											ENDFIX
+										$catEndFix	
+								FIX( "$versionMember","$yearOne",@relative("$periodRollup",0),@Relative("OCF_Total Recurring Payments",0),"OCF_Opening Balance",@Relative("OCF_Cash Flow Metrics",0),@Relative("OCF_All Forecast Method",0),@Relative("OCF_Total Forecasted Cash",0))
+											$aggCategory
+										ENDFIX
+										$endFixParallel
+									ENDFIX 
+								   $entityEndStr   
+							 """ 
+								cscript.append(calcString)  
+								
+							
+						  }
+                  }				
+				return cscript.toString()					
+		}
+     </script><template_wizard/><template_prompts><restricted_prompt name="Application Type" type="Application Type" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Generic</property><property name="value">GENERAL</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PFP</property><property name="value">PROJECT</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PSB</property><property name="value">PSB</property></restricted_prompt_item></restricted_prompt><restricted_prompt name="Application" type="Application" isPrompt="no"><property name="is_system">true</property><value>Is Single Currency</value><restricted_prompt_item><property name="prompt">Is Multi Currency</property><property name="value">multi</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Single Currency</property><property name="value">single</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Simple Currency</property><property name="value">simple</property></restricted_prompt_item></restricted_prompt><template_slice_prompt name="UpperPOV" type="Member Range" isPrompt="false"><property name="is_system">true</property></template_slice_prompt><restricted_prompt name="Essbase Mode" type="Essbase Mode" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Hybrid</property><property name="value">Hybrid</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is NonHybrid</property><property name="value">NonHybrid</property></restricted_prompt_item></restricted_prompt></template_prompts></template></templates></HBRRepo>

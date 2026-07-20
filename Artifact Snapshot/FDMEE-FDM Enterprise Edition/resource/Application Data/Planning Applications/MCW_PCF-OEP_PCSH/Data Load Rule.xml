@@ -1,0 +1,115 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<DataRuleForLcmVO>
+   <DataRuleForLcmVORow>
+      <AmountType null="true"/>
+      <BalSegValueOptionCode null="true"/>
+      <BalanceAmountBs null="true"/>
+      <BalanceAmountIs null="true"/>
+      <BalanceMethodCode null="true"/>
+      <BalanceSelection null="true"/>
+      <BalanceType null="true"/>
+      <ExchangeAverageRateType null="true"/>
+      <ExchangeBeginRateType null="true"/>
+      <ExchangeEndRateType null="true"/>
+      <ExchangeRateOptionCode null="true"/>
+      <InclZeroBalanceFlag null="true"/>
+      <IncludeAdjPeriodsFlag null="true"/>
+      <LedgerGroup null="true"/>
+      <PlanType>PLAN1</PlanType>
+      <RuleDescription null="true"/>
+      <RuleName>PCF_DATA_MONTHLY</RuleName>
+      <CalendarId null="true"/>
+      <BrMemberName null="true"/>
+      <BrMemberDispName null="true"/>
+      <CurrencyCode null="true"/>
+      <FileNameDateFormat null="true"/>
+      <FileNameStatic null="true"/>
+      <FileNameSuffixType null="true"/>
+      <FilePath null="true"/>
+      <PeriodMappingType>DEFAULT</PeriodMappingType>
+      <Version null="true"/>
+      <DpMemberName null="true"/>
+      <BlankPeriodkey null="true"/>
+      <AsOfDate null="true"/>
+      <Partname>PCF_DATA_MONTHLY</Partname>
+      <Catname>PCF_Category</Catname>
+      <MultiCurrencyFlag null="true"/>
+      <ApplicationName>MCW_PCF-OEP_PCSH</ApplicationName>
+      <SourceLedgerName null="true"/>
+      <LedgerGroupName null="true"/>
+      <SignageMethod null="true"/>
+      <DirectFileLoadFlag>N</DirectFileLoadFlag>
+      <LoadOptions null="true"/>
+      <Impgroupkey>PCF_DATA_MONTHLY</Impgroupkey>
+      <MultiPeriodFileFlag null="true"/>
+      <IcpLoad null="true"/>
+      <RuleAttr1 null="true"/>
+      <RuleAttr2 null="true"/>
+      <RuleAttr3 null="true"/>
+      <RuleAttr4 null="true"/>
+      <RuleParamsForLcmVO>
+         <RuleParamsForLcmVORow>
+            <ParameterId>1078</ParameterId>
+            <ParameterName>LOAD_METHOD</ParameterName>
+            <ParameterValue>ESSFILE</ParameterValue>
+            <ParameterType>TARGET_OPTIONS</ParameterType>
+         </RuleParamsForLcmVORow>
+         <RuleParamsForLcmVORow>
+            <ParameterId>1079</ParameterId>
+            <ParameterName>BATCH_SIZE</ParameterName>
+            <ParameterValue>10000</ParameterValue>
+            <ParameterType>TARGET_OPTIONS</ParameterType>
+         </RuleParamsForLcmVORow>
+         <RuleParamsForLcmVORow>
+            <ParameterId>1080</ParameterId>
+            <ParameterName>PURGE_DATA_FILE</ParameterName>
+            <ParameterValue>0</ParameterValue>
+            <ParameterType>TARGET_OPTIONS</ParameterType>
+         </RuleParamsForLcmVORow>
+         <RuleParamsForLcmVORow>
+            <ParameterId>1081</ParameterId>
+            <ParameterName>ENFORCE_SECURITY_FOR_ADMIN</ParameterName>
+            <ParameterValue>0</ParameterValue>
+            <ParameterType>TARGET_OPTIONS</ParameterType>
+         </RuleParamsForLcmVORow>
+         <RuleParamsForLcmVORow>
+            <ParameterId>1082</ParameterId>
+            <ParameterName>DISPLAY_VALIDATION_REASON</ParameterName>
+            <ParameterValue>1</ParameterValue>
+            <ParameterType>TARGET_OPTIONS</ParameterType>
+         </RuleParamsForLcmVORow>
+         <RuleParamsForLcmVORow>
+            <ParameterId>1083</ParameterId>
+            <ParameterName>DATE_FORMAT</ParameterName>
+            <ParameterValue>MM-DD-YYYY</ParameterValue>
+            <ParameterType>TARGET_OPTIONS</ParameterType>
+         </RuleParamsForLcmVORow>
+         <RuleParamsForLcmVORow>
+            <ParameterId>1084</ParameterId>
+            <ParameterName>EXPORT_FILE_DELIMITER</ParameterName>
+            <ParameterValue>comma</ParameterValue>
+            <ParameterType>TARGET_OPTIONS</ParameterType>
+         </RuleParamsForLcmVORow>
+         <RuleParamsForLcmVORow>
+            <ParameterId>1085</ParameterId>
+            <ParameterName>CREATE_DRILL_REGION</ParameterName>
+            <ParameterValue>0</ParameterValue>
+            <ParameterType>TARGET_OPTIONS</ParameterType>
+         </RuleParamsForLcmVORow>
+         <RuleParamsForLcmVORow>
+            <ParameterId>1086</ParameterId>
+            <ParameterName>SOURCE_DATASET_NAME</ParameterName>
+            <ParameterValue>PCF_DATA_DAILY</ParameterValue>
+            <ParameterType>SOURCE_FILTERS</ParameterType>
+            <Condition>EQ</Condition>
+         </RuleParamsForLcmVORow>
+         <RuleParamsForLcmVORow>
+            <ParameterId>1087</ParameterId>
+            <ParameterName>CUSTOM_SQL_FILTER</ParameterName>
+            <ParameterValue>$Balance Type$ IS NULL OR $Balance Type$ = 'PERIODIC'</ParameterValue>
+            <ParameterType>STAGE_FILTERS</ParameterType>
+            <Condition>EQ</Condition>
+         </RuleParamsForLcmVORow>
+      </RuleParamsForLcmVO>
+   </DataRuleForLcmVORow>
+</DataRuleForLcmVO>

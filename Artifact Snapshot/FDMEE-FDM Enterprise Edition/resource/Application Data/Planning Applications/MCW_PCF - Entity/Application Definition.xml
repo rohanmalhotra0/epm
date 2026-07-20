@@ -1,0 +1,171 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<TargetApplicationForLcmVO>
+   <TargetApplicationForLcmVORow>
+      <ApplicationName>MCW_PCF - Entity</ApplicationName>
+      <CreateDrillRegionFlag>N</CreateDrillRegionFlag>
+      <DataLoadMethod>NA</DataLoadMethod>
+      <DefaultLanguage>ENGLISH</DefaultLanguage>
+      <EssbaseDbName null="true"/>
+      <MarkedForDeletion>N</MarkedForDeletion>
+      <MetadataLoadMethod>OLU</MetadataLoadMethod>
+      <MultiCurrencyFlag>N</MultiCurrencyFlag>
+      <Plan1Name>REGULAR</Plan1Name>
+      <Plan2Name>METADATA_ENTITY_ATTR</Plan2Name>
+      <SelectedFlag>Y</SelectedFlag>
+      <TargetApplicationName>MCW_PCF</TargetApplicationName>
+      <TargetApplicationSubType>Entity</TargetApplicationSubType>
+      <TargetApplicationType>HPL</TargetApplicationType>
+      <ValidForPlan1>1</ValidForPlan1>
+      <ValidForPlan2>0</ValidForPlan2>
+      <ValidForPlan3>0</ValidForPlan3>
+      <ValidForPlan4>0</ValidForPlan4>
+      <ValidForPlan5>0</ValidForPlan5>
+      <ValidForPlan6>0</ValidForPlan6>
+      <TargetAppDimensionsForLcmVO>
+         <TargetAppDimensionsForLcmVORow>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>0</ValidForPlan1>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>Aggregation (OEP_DCSH)</TargetDimensionName>
+            <TargetDimensionNameOrg>Aggregation (OEP_DCSH)</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>0</ValidForPlan1>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>Aggregation (OEP_PCSH)</TargetDimensionName>
+            <TargetDimensionNameOrg>Aggregation (OEP_PCSH)</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <BalanceColumnName>ICP</BalanceColumnName>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>1</ValidForPlan1>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>Alias: Default</TargetDimensionName>
+            <TargetDimensionNameOrg>Alias: Default</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <BalanceColumnName>UD4</BalanceColumnName>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>1</ValidForPlan1>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>Base Currency</TargetDimensionName>
+            <TargetDimensionNameOrg>Base Currency</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <BalanceColumnName>UD1</BalanceColumnName>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>1</ValidForPlan1>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>Data Storage</TargetDimensionName>
+            <TargetDimensionNameOrg>Data Storage</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>0</ValidForPlan1>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>Data Type</TargetDimensionName>
+            <TargetDimensionNameOrg>Data Type</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <BalanceColumnName>UD2</BalanceColumnName>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>1</ValidForPlan1>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>Description</TargetDimensionName>
+            <TargetDimensionNameOrg>Description</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <BalanceColumnName>ACCOUNT</BalanceColumnName>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>1</ValidForPlan1>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>Entity</TargetDimensionName>
+            <TargetDimensionNameOrg>Entity</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>0</ValidForPlan1>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>Intercompany Entity</TargetDimensionName>
+            <TargetDimensionNameOrg>Intercompany Entity</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>0</ValidForPlan1>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>Operation</TargetDimensionName>
+            <TargetDimensionNameOrg>Operation</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <BalanceColumnName>ENTITY</BalanceColumnName>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>1</ValidForPlan1>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>Parent</TargetDimensionName>
+            <TargetDimensionNameOrg>Parent</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>0</ValidForPlan1>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>Smart List</TargetDimensionName>
+            <TargetDimensionNameOrg>Smart List</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>0</ValidForPlan1>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>Two Pass Calculation</TargetDimensionName>
+            <TargetDimensionNameOrg>Two Pass Calculation</TargetDimensionNameOrg>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+         <TargetAppDimensionsForLcmVORow>
+            <BalanceColumnName>UD3</BalanceColumnName>
+            <UseForDrillRegion>N</UseForDrillRegion>
+            <ValidForPlan1>1</ValidForPlan1>
+            <TargetDimClassNameOrg>Generic</TargetDimClassNameOrg>
+            <TargetDimensionClassName>Generic</TargetDimensionClassName>
+            <TargetDimensionName>UDA</TargetDimensionName>
+            <PrefixMemberFlag>N</PrefixMemberFlag>
+         </TargetAppDimensionsForLcmVORow>
+      </TargetAppDimensionsForLcmVO>
+      <TargetApplicationPropertiesForLcmVO>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>EXPORT_FILE_DELIMITER</PropertyType>
+            <PropertyValue>comma</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>1000</PropertyLevel>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>METADATA_LOAD_DIMENSION</PropertyType>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>1000</PropertyLevel>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>PURGE_DATA_FILE</PropertyType>
+            <PropertyValue>0</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>1000</PropertyLevel>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>REFRESH_DATABASE</PropertyType>
+            <PropertyValue>0</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>1000</PropertyLevel>
+         </TargetApplicationPropertiesForLcmVORow>
+      </TargetApplicationPropertiesForLcmVO>
+   </TargetApplicationForLcmVORow>
+</TargetApplicationForLcmVO>

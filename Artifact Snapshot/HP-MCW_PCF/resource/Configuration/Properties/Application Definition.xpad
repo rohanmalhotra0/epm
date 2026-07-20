@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <application taskManager="false" datasource="PlanningDatasource1" serviceMode="ENTERPRISE" name="MCW_PCF" appMode="ADVANCED" appType="OCF" isHybrid="true" essbaseVersion="21.7.4.0.0.024" essbaseSupportHybrid="true" extXactEnabled="false" project="Default Application Group" ignoreConstantsEnabled="true" instanceName="PLANNING_LWA" description="PCF App" dpBREnabled="false" isEssbasePS4AtOnset="false" >
+ <PlanningAppType>GENERAL</PlanningAppType>
+ <AppAttribute1><![CDATA[{AES2}28Lf2lRpR13j+BuGpBF77XrmE3fLiN9OdCC+aR6ZrO5EC22+towuGiVJfrLFZ35lB3Gk94o5hjgGXZDQsZLJFQ==]]></AppAttribute1>
+ <Calendar>
+ <BaseTimePeriod>12 Months</BaseTimePeriod>
+ <WeeksDistribution>Even</WeeksDistribution>
+ <AppStartYear>2025</AppStartYear>
+ <FiscalYearStartDate>SameCalendarYear</FiscalYearStartDate>
+ <StartMonth>Jan</StartMonth>
+ <NumberOfYear>11</NumberOfYear>
+ <AllYearsParent>Y</AllYearsParent>
+</Calendar>
+ <Currencies>
+ <DefaultCurrency>USD</DefaultCurrency>
+ <MultiCurrency>SIMPLE_MULTI</MultiCurrency>
+</Currencies>
+ <PlanTypes>
+ <ValidForPlan1>Y</ValidForPlan1>
+ <Plan1Name>CFREP</Plan1Name>
+ <Plan1Type>ASO</Plan1Type>
+ <Plan1PlanType>1</Plan1PlanType>
+ <Plan1LocAlias>_ASO1Cube_</Plan1LocAlias>
+ <Plan1CubeType>ASO</Plan1CubeType>
+ <Plan1CubeName>CFREP</Plan1CubeName>
+ <Plan1SandboxEnabled>N</Plan1SandboxEnabled>
+ <Plan1AppName>AMCW_PCF</Plan1AppName>
+ <ValidForOEP_RCSH>Y</ValidForOEP_RCSH>
+ <PlanOEP_RCSHName>OEP_RCSH</PlanOEP_RCSHName>
+ <PlanOEP_RCSHType>ASO</PlanOEP_RCSHType>
+ <PlanOEP_RCSHPlanType>2</PlanOEP_RCSHPlanType>
+ <PlanOEP_RCSHLocAlias>_OcfCube_</PlanOEP_RCSHLocAlias>
+ <PlanOEP_RCSHCubeType>ASO</PlanOEP_RCSHCubeType>
+ <PlanOEP_RCSHCubeName>OEP_RCSH</PlanOEP_RCSHCubeName>
+ <PlanOEP_RCSHSandboxEnabled>N</PlanOEP_RCSHSandboxEnabled>
+ <PlanOEP_RCSHAppName>A_MCW_PC</PlanOEP_RCSHAppName>
+ <ValidForOEP_DCSH>Y</ValidForOEP_DCSH>
+ <PlanOEP_DCSHName>OEP_DCSH</PlanOEP_DCSHName>
+ <PlanOEP_DCSHType>BSO</PlanOEP_DCSHType>
+ <PlanOEP_DCSHPlanType>4</PlanOEP_DCSHPlanType>
+ <PlanOEP_DCSHLocAlias>_OcfDailyCube_</PlanOEP_DCSHLocAlias>
+ <PlanOEP_DCSHCubeType>GENERIC</PlanOEP_DCSHCubeType>
+ <PlanOEP_DCSHCubeName>OEP_DCSH</PlanOEP_DCSHCubeName>
+ <PlanOEP_DCSHSandboxEnabled>N</PlanOEP_DCSHSandboxEnabled>
+ <ValidForOEP_PCSH>Y</ValidForOEP_PCSH>
+ <PlanOEP_PCSHName>OEP_PCSH</PlanOEP_PCSHName>
+ <PlanOEP_PCSHType>BSO</PlanOEP_PCSHType>
+ <PlanOEP_PCSHPlanType>8</PlanOEP_PCSHPlanType>
+ <PlanOEP_PCSHLocAlias>_OcfPeriodicCube_</PlanOEP_PCSHLocAlias>
+ <PlanOEP_PCSHCubeType>GENERIC</PlanOEP_PCSHCubeType>
+ <PlanOEP_PCSHCubeName>OEP_PCSH</PlanOEP_PCSHCubeName>
+ <PlanOEP_PCSHSandboxEnabled>N</PlanOEP_PCSHSandboxEnabled>
+ <ValidForPlan5>N</ValidForPlan5>
+ <ValidForPlan6>N</ValidForPlan6>
+ <ValidForPlan7>N</ValidForPlan7>
+ <ValidForPlan8>N</ValidForPlan8>
+ <ValidForPlan9>N</ValidForPlan9>
+ <ValidForPlan10>N</ValidForPlan10>
+ <ValidForPlan11>N</ValidForPlan11>
+ <ValidForPlan12>N</ValidForPlan12>
+ <ValidForPlan13>N</ValidForPlan13>
+ <ValidForPlan14>N</ValidForPlan14>
+ <ValidForPlan15>N</ValidForPlan15>
+</PlanTypes>
+</application>

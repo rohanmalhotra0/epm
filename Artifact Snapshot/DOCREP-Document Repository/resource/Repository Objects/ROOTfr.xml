@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<FRFolder isInternal="false" isBrowsable="true">
+    <identifier>ROOTfr</identifier>
+    <Author>epm_default_cloud_admin</Author>
+    <CreationDate>Sat Jun 13 12:56:53 UTC 2026</CreationDate>
+    <Description/>
+    <LastModifiedBy/>
+    <LastModifiedDate/>
+    <ParentUUID/>
+    <Path>/</Path>
+    <Name>ROOT</Name>
+    <Type>FOLDER</Type>
+    <Properties/>
+    <Properties size="4">
+        <Property Name="NAME" Value="ROOT"/>
+        <BINARY NAME="Value"><![CDATA[TmFtZT1ST09UdHlwZT1GT0xERVJBdXRob3I9ZXBtX2RlZmF1bHRfY2xvdWRfYWRtaW4=]]></BINARY>
+        <Property Name="jcr:data"/>
+        <Property Name="fileSize" Value="50"/>
+        <BINARY NAME="Value"><![CDATA[AAABnsEOfqU=]]></BINARY>
+        <Property Name="jcr:lastModifiedby"/>
+    </Properties>
+</FRFolder>

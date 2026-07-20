@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <substitutionVariable>
+ <name>OEP_CurrYrActPeriodRange</name>
+ <value>Jan:Jul</value>
+ <planType>OEP_PCSH</planType>
+</substitutionVariable>

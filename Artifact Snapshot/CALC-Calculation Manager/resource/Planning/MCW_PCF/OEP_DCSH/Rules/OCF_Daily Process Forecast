@@ -1,0 +1,1773 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<HBRRepo><variables><variable name="OCF_Entity" type="member" usage="const" id="3" product="Planning"><property name="application">MCW_PCF</property><property name="dimensionInputMode">type</property><property name="dimensionType">Entity</property><property name="prompt_text">LABEL_OCF_CASH_FORECST_PRMPT_ENTITY</property><property name="scope">ruleset</property><property name="seeded">true</property><value/></variable><variable name="OCF_Scenario" type="member" usage="const" id="1" product="Planning"><property name="application">MCW_PCF</property><property name="dimensionInputMode">type</property><property name="dimensionType">Scenario</property><property name="prompt_text">LABEL_OCF_CASH_FORECST_PRMPT_SCENARIO</property><property name="scope">ruleset</property><property name="seeded">true</property><value/></variable><variable name="OCF_Version" type="member" usage="const" id="2" product="Planning"><property name="application">MCW_PCF</property><property name="dimensionInputMode">type</property><property name="dimensionType">Version</property><property name="prompt_text">LABEL_OCF_CASH_FORECST_PRMPT_VERSION</property><property name="scope">ruleset</property><property name="seeded">true</property><value/></variable></variables><rulesets/><rules><rule id="1" name="OCF_Daily Process Forecast" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><variable_references><variable_reference name="OCF_Entity" id="3"><property name="application">MCW_PCF</property><property name="hidden">false</property><property name="rule_name">OCF_Daily Process Forecast</property><property name="seq">1</property><property name="type">3</property><property name="useAsOverrideValue">false</property><property name="validation_value">"OEP_No Entity"</property></variable_reference><variable_reference name="OCF_Scenario" id="1"><property name="application">MCW_PCF</property><property name="hidden">false</property><property name="rule_name">OCF_Daily Process Forecast</property><property name="seq">2</property><property name="type">3</property><property name="useAsOverrideValue">false</property><property name="validation_value">"OEP_Forecast"</property><property name="value">"OEP_Forecast"</property></variable_reference><variable_reference name="OCF_Version" id="2"><property name="application">MCW_PCF</property><property name="hidden">false</property><property name="rule_name">OCF_Daily Process Forecast</property><property name="seq">3</property><property name="type">3</property><property name="useAsOverrideValue">false</property><property name="validation_value">"OEP_Working"</property><property name="value">"OEP_Working"</property></variable_reference></variable_references><script type="groovy">			 /* RTPS: {OCF_Scenario} {OCF_Version} {OCF_Entity} */
+				/*
+				 Purpose: This rule generates blended forecast based on the set forecast method settings. This rule is used in case user wants to populate forecast for all combinations.
+				          it invokes populate forecast method passing all members as part of the fix.
+						  Once populate forecast method is completed, it invokes method that computes opening balance.						  
+				*/
+				String cube = "OEP_DCSH"
+				%Template(name:="OCF_Forecast Utils_GT",plantype:="OEP_DCSH",dtps:=()) 
+				%Template(name:="OCF_FixParallel_GT",plantype:="OEP_DCSH",dtps:=())					
+				String startPeriod="OEP_Day1";
+				String endPeriod="OEP_Day366";					
+				List&lt;String> fixMembers=[];
+				String versionMember = rtps.OCF_Version.member.name;
+				String scenarioMember= rtps.OCF_Scenario.member.name;
+				String entityMember = rtps.OCF_Entity.member.name; 				
+				String lineItemsDimMembers="OCF_Total Cash";				
+				Application application = operation.application;
+				Cube cashFlowCube = application.getCube("OEP_DCSH");						
+				StringBuilder cscript = new StringBuilder();
+				String calcString = processForecast(cashFlowCube,scenarioMember,versionMember,entityMember,fixParallelDim,startPeriod,endPeriod)
+				cscript.append(calcString);	
+                 return cscript;
+			</script></rule></rules><components/><deployobjects><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="1" obj_type="19" name="OCF_FORECAST UTILS_GT"/><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="2" obj_type="19" name="OCF_FIXPARALLEL_GT"/><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="1" obj_type="1" name="OCF_DAILY PROCESS FORECAST"/></deployobjects><templates><template custom="yes" id="2" name="OCF_FixParallel_GT" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><property name="standAlone">false</property><script type="groovy">	   /***
+			 * This is the global option to set up a dimension for fix parallel.
+			 * Partner/Customer can edit this template, put in appropriate dimension to apply fix parallel
+			 * On save business rules will not run in fix parallel mode.
+			 * This setting is applicable only to batch rule or rule that runs from rules card.		 			
+		**/
+	  String fixParallelDim="None";
+	</script><template_wizard/><template_prompts><restricted_prompt name="Application Type" type="Application Type" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Generic</property><property name="value">GENERAL</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PFP</property><property name="value">PROJECT</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PSB</property><property name="value">PSB</property></restricted_prompt_item></restricted_prompt><restricted_prompt name="Application" type="Application" isPrompt="no"><property name="is_system">true</property><value>Is Single Currency</value><restricted_prompt_item><property name="prompt">Is Multi Currency</property><property name="value">multi</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Single Currency</property><property name="value">single</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Simple Currency</property><property name="value">simple</property></restricted_prompt_item></restricted_prompt><template_slice_prompt name="UpperPOV" type="Member Range" isPrompt="false"><property name="is_system">true</property></template_slice_prompt><restricted_prompt name="Essbase Mode" type="Essbase Mode" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Hybrid</property><property name="value">Hybrid</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is NonHybrid</property><property name="value">NonHybrid</property></restricted_prompt_item></restricted_prompt></template_prompts></template><template custom="yes" id="1" name="OCF_Forecast Utils_GT" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><property name="standAlone">false</property><script type="groovy">		/***
+		 * Returns number of Periods between first and last periods.
+		 * 	@param  PeriodDimension, predicate is member function that give list of members, Cash cube names, First and last periods.					 
+		 * 	@return  - returns count of number periods between first and last periods.		
+		 **/
+	  	int getPeriodCount(PeriodDimension periodDim,String Predicate, Cube cashCube,String firstPeriod,String lastPeriod)
+			{
+					int positionOfCurrPeriod = 0 ;
+					int postionOfLastPeriod=0;
+					  List&lt;Member> PeriodMbrs=periodDim.getEvaluatedMembers(Predicate,cashCube)
+				  PeriodMbrs.eachWithIndex {it, i ->
+							String strPeriod=it.toString();
+							 if (strPeriod.equals(firstPeriod) )
+								{
+									positionOfCurrPeriod=i;
+								}
+							  if (strPeriod.equals(lastPeriod) )
+								{
+									postionOfLastPeriod=i;
+								}  
+				  }
+				  return (postionOfLastPeriod-positionOfCurrPeriod+1);
+			}
+			
+		/**
+		* This function returns number of years in rolling forecast range.
+		* @Param : Cashflow cube 
+		* @return : Number of years value.
+		*/
+			
+			String getNumberOfYears(Cube cashFlowCube)
+			{
+					SubstitutionVariable subVariableNumOfPeriods=cashFlowCube.getSubstitutionVariable("OEP_NumberOfYears");
+					String numOfPeriods=subVariableNumOfPeriods.getValue();	
+					return numOfPeriods;					
+			}
+		/**
+		* This function returns current Year by reading values from  sub variable .
+		* @Param : Cashflow cube 
+		* @return : Current Year.
+		*/
+			
+			String getCurrentYear(Cube cashFlowCube)
+			{
+					SubstitutionVariable subVariableYear = cashFlowCube.getSubstitutionVariable("OEP_CurrYr");
+					String currYear = subVariableYear.getValue();
+					return currYear;					
+			}
+		/**
+		* This function returns first forecast period by reading values form  sub variable .
+		* @Param : Cashflow cube 
+		* @return : Current Period.
+		*/
+			
+			String getFirstForecastPeriod(Cube cashFlowCube)
+			{
+					SubstitutionVariable subVariableFirstForecastPeriod=cashFlowCube.getSubstitutionVariable("OEP_CurrPeriod");
+					String firstForecastPeriod=subVariableFirstForecastPeriod.getValue();
+					return firstForecastPeriod;					
+			}				
+		/***
+		 *  Retuns first periods from list of Period members.
+		 * 	@param  PeriodDimension, predictate is member function that give list of members , Cash cube names 					 
+		 * 	@return  - returns first period.		 
+		 **/
+			String getFirstPeriod(PeriodDimension periodDim, String Predicate, Cube cashCube)
+			{
+				List&lt;Member> PeriodMbrs=periodDim.getEvaluatedMembers(Predicate,cashCube);
+				return PeriodMbrs[0]; 
+			}
+			
+		/***
+		 *  Retuns next period of current period by looking up in to list of period members.
+		 * 	@param  PeriodDimension, predictate is member function that give list of members , Cash cube name,current period and next period. 					 
+		 * 	@return  - returns first period.		 
+		 **/
+			String getNextPeriodFromCurrentPeriod(PeriodDimension periodDim, String Predicate, Cube cashCube,String currPeriod,int NumberofPeriods)
+			{
+				int positionOfCurrPeriod = 0 ;
+				String nextPeriod; 
+			  List&lt;Member> PeriodMbrs=periodDim.getEvaluatedMembers(Predicate,cashCube)
+				  PeriodMbrs.eachWithIndex {it, i ->
+					  String strPeriod=it.toString();
+					  if (strPeriod.equals(currPeriod) )
+						{
+						   positionOfCurrPeriod=i; 
+						} 
+						if ((positionOfCurrPeriod==0)  &amp;&amp; (i == positionOfCurrPeriod+NumberofPeriods-1 ))
+						{
+						 nextPeriod=strPeriod;
+						}
+						else if ((positionOfCurrPeriod!=0) &amp;&amp; (i == positionOfCurrPeriod+NumberofPeriods ))
+						{
+						  nextPeriod=strPeriod;	
+						}
+					}
+			 return nextPeriod;
+
+			}
+		/***
+		 *  Retuns Forecast method name based on the smart lis vaule.
+		 * 	@param  index values of the method 					 
+		 * 	@return  - returns method name.
+		 *  Additonal Notes :
+		 **/
+			String getMethodName( def indexValue )
+			{
+			 String methodName
+				 if (indexValue==1.0)  methodName="OCF_Driver";
+				 if (indexValue==2.0)  methodName="OCF_Smart Drivers";
+				 if (indexValue==3.0)  methodName="OCF_Statistical Prediction";
+				 if (indexValue==4.0)  methodName="OCF_Machine Learning Prediction";
+				 if (indexValue==5.0)  methodName="OCF_Manual Input";
+				 if (indexValue==6.0)  methodName="OCF_Trend";
+				 if (indexValue==7.0)  methodName="OCF_Short Term Machine Learning Prediction";				 
+					return methodName;
+			}
+			
+		/***
+		 *  Generates copy script to copy data from individual forecast method  in to final forecast method based on set forecast method settings.
+		 * 	@param  List of Drivers and , No bank member to fix copy script.					 
+		 * 	@return  - returns driver copy script.
+		 *  Additonal Notes :
+		 **/
+			String getDriverCopyScript(List&lt;String> drivers,String noBankMember)
+			{
+					def driverCalcScript = new StringBuilder()        
+						 
+					drivers.eachWithIndex{ it ,i ->
+					 def driver='"'+it.toString()+'"';
+						def calcString ="""
+													 DATACOPY $driver to "OCF_Forecasted";
+									"""
+					   driverCalcScript.append(calcString);          
+					   
+					 }
+					driverCalcScript.append('"'+noBankMember+'"(\n');
+					driverCalcScript.append("		@CALCMODE(BOTTOMUP);\n");   
+					driverCalcScript.append ('		"OCF_Forecasted"="'+drivers.join('"+"')+'";\n')
+					driverCalcScript.append ('		)\n');
+				return driverCalcScript
+			}
+		
+		/***
+		* Splits thee string converts in to Realtive String	
+		**/
+		List&lt;String>  getRelativeOfLineItems (String listOfLineItems)
+		{
+		  String [] lstLineItems =listOfLineItems.split(',')		 
+		  List&lt;String> lstRelativeLineItems=[];
+			 for( String values : lstLineItems )
+			 lstRelativeLineItems.add('@Relative("'+values+'",0)')
+			 return lstRelativeLineItems;
+		}		
+		/***
+		This method generates copy script based on the presence of member .  Copy script creates the blocks to forecasted members. based on the availablity of the source line item.		
+		***/
+		String setForecastDataCopy(Cube cashFlowCube)
+		{
+		 
+			 StringBuilder copyScript = new StringBuilder();
+			 Dimension fcstMethodDimension=operation.application.getDimension("Forecast Method",cashFlowCube);
+			 if (fcstMethodDimension.hasMember("OCF_Smart Drivers",cashFlowCube))	copyScript.append('DATACOPY "OCF_Smart Drivers" to "OCF_Forecasted";\n');
+			 if (fcstMethodDimension.hasMember("OCF_Pay Term1",cashFlowCube))	copyScript.append('									DATACOPY "OCF_Pay Term1" to "OCF_Forecasted";\n');
+			 if (fcstMethodDimension.hasMember("OCF_Calculated Cashflow",cashFlowCube))	copyScript.append('									DATACOPY "OCF_Calculated Cashflow" to "OCF_Forecasted";\n');
+			 if (fcstMethodDimension.hasMember("OCF_Tax Installment1",cashFlowCube))	copyScript.append('									DATACOPY "OCF_Tax Installment1" to "OCF_Forecasted";\n');
+			 if (fcstMethodDimension.hasMember("OCF_Machine Learning Prediction",cashFlowCube))	copyScript.append('									DATACOPY "OCF_Machine Learning Prediction" to "OCF_Forecasted";\n');
+			 if (fcstMethodDimension.hasMember("OCF_Statistical Prediction",cashFlowCube))	copyScript.append('									DATACOPY "OCF_Statistical Prediction" to "OCF_Forecasted";\n');
+			 if (fcstMethodDimension.hasMember("OCF_Trend",cashFlowCube))	copyScript.append('									DATACOPY "OCF_Trend" to "OCF_Forecasted";\n');
+			 if (fcstMethodDimension.hasMember("OCF_Short Term Machine Learning Prediction",cashFlowCube))	copyScript.append('						DATACOPY "OCF_Short Term Machine Learning Prediction" to "OCF_Forecasted";\n');			 
+			 if (fcstMethodDimension.hasMember("OCF_Manual Input",cashFlowCube))	copyScript.append('									DATACOPY "OCF_Manual Input" to "OCF_Forecasted";\n');		  
+			return copyScript.toString();
+		
+		}
+		/***
+		  * To get Valid ERP Line items
+		 ***/
+         String getValidERPLineItems(Cube cashFlowCube)
+			{
+				List&lt;String> erpMembers = new ArrayList&lt;String>();
+				Dimension dimLineItem=operation.application.getDimension(DimensionType.ACCOUNT,cashFlowCube);
+				if (dimLineItem.hasMember("OCF_Receivables Invoices",cashFlowCube)==true)  erpMembers.add("OCF_Receivables Invoices");
+				if (dimLineItem.hasMember("OCF_Payables Invoices",cashFlowCube)==true)  erpMembers.add("OCF_Payables Invoices");
+				if (dimLineItem.hasMember("OCF_Cash Transactions Inflows",cashFlowCube)==true)  erpMembers.add("OCF_Cash Transactions Inflows");
+				if (dimLineItem.hasMember("OCF_Cash Transactions Outflows",cashFlowCube)==true)  erpMembers.add("OCF_Cash Transactions Outflows");
+				if (dimLineItem.hasMember("OCF_Customer Receipts",cashFlowCube)==true)  erpMembers.add("OCF_Customer Receipts");
+				if (dimLineItem.hasMember("OCF_Payables Overdue Invoices",cashFlowCube)==true)  erpMembers.add("OCF_Payables Overdue Invoices");
+				if (dimLineItem.hasMember("OCF_Receivables Overdue Invoices",cashFlowCube)==true)  erpMembers.add("OCF_Receivables Overdue Invoices");
+				if (dimLineItem.hasMember("OCF_Supplier Payments",cashFlowCube)==true)  erpMembers.add("OCF_Supplier Payments");
+				if (dimLineItem.hasMember("OCF_Unapplied Receipts Offset",cashFlowCube)==true)  erpMembers.add("OCF_Unapplied Receipts Offset");	
+				if (dimLineItem.hasMember("OCF_Unapplied Prepayments Offset",cashFlowCube)==true)  erpMembers.add("OCF_Unapplied Prepayments Offset");	
+			 return erpMembers.join('","').toString();
+			}
+		/***
+		* fetchs  Prefereed Range Variablelist String
+		***/	
+		String  getPreferedRangeVarialbeDeclaration()
+		{
+		  String  variableListString ="""
+								Var PrefRang1;
+								Var PrefRang2;
+								Var PrefRang3;		
+				"""
+			return 	variableListString;
+		}	
+	/***
+		* fetchs  Prefereed Range Variablelist String For Fix Parallel
+		***/	
+		String  getPreferedRangeFixParllelVarialbeDeclaration()
+		{
+		  String  variableListString ="""
+								ThreadVar PrefRang1;
+								ThreadVar PrefRang2;
+								ThreadVar PrefRang3;		
+				"""
+			return 	variableListString;
+		}		
+		
+		/***
+		*  This method checks for existing of member and generates code to set default driver method in case users do not set forecast method in form.
+		*  User forecast method and range will override default method.
+		***/
+		String setForecastMethod(Cube cashFlowCube,String noFixMembersJoin, String preferedMethod,String lineItemsMemberGroup)
+		{
+			 String cscript,endScript;
+			 StringBuilder fcstScript = new StringBuilder();
+			 Dimension fcstMethodDimension=operation.application.getDimension("Forecast Method",cashFlowCube);
+			 Dimension dimLineItem=operation.application.getDimension(DimensionType.ACCOUNT,cashFlowCube);
+			
+			  if (fcstMethodDimension.hasMember("OCF_Driver",cashFlowCube))
+			  {
+				  cscript="""
+																IF("No Currency"->"No Year"->"BegBalance"->$noFixMembersJoin->"$preferedMethod"==1)  
+																	  "OCF_Forecasted"="OCF_Driver";
+						 """
+				  fcstScript.append(cscript);
+			  }
+			  if (fcstMethodDimension.hasMember("OCF_Smart Drivers",cashFlowCube))
+			  {
+				  cscript="""										ELSEIF("No Currency"->"No Year"->"BegBalance"->$noFixMembersJoin->"$preferedMethod"==2)  
+																	  "OCF_Forecasted"="OCF_Smart Drivers";
+						 """
+				  fcstScript.append(cscript);
+			   
+			  }
+			  if (fcstMethodDimension.hasMember("OCF_Statistical Prediction",cashFlowCube))
+			  {
+				  cscript="""										ELSEIF("No Currency"->"No Year"->"BegBalance"->$noFixMembersJoin->"$preferedMethod"==3)  
+																		"OCF_Forecasted"="OCF_Statistical Prediction";
+						 """
+				  fcstScript.append(cscript);			  
+			  }
+			   if (fcstMethodDimension.hasMember("OCF_Machine Learning Prediction",cashFlowCube))
+			  {
+			    cscript="""										ELSEIF("No Currency"->"No Year"->"BegBalance"->$noFixMembersJoin->"$preferedMethod"==4)  
+																		"OCF_Forecasted"="OCF_Machine Learning Prediction";
+						 """
+				  fcstScript.append(cscript);			  
+			  }
+			   if (fcstMethodDimension.hasMember("OCF_Short Term Machine Learning Prediction",cashFlowCube))
+			  {
+			    cscript="""										ELSEIF("No Currency"->"No Year"->"BegBalance"->$noFixMembersJoin->"$preferedMethod"==7)  
+																		"OCF_Forecasted"="OCF_Short Term Machine Learning Prediction";
+						 """
+				  fcstScript.append(cscript);			  
+			  }			  
+			  if (fcstMethodDimension.hasMember("OCF_Manual Input",cashFlowCube))
+			  {
+			   cscript="""										ELSEIF("No Currency"->"No Year"->"BegBalance"->$noFixMembersJoin->"$preferedMethod"==5)  
+																		"OCF_Forecasted"="OCF_Manual Input";
+						 """
+				  fcstScript.append(cscript);			 
+			  }
+			  if (fcstMethodDimension.hasMember("OCF_Trend",cashFlowCube))
+			  {
+			   cscript="""										ELSEIF("No Currency"->"No Year"->"BegBalance"->$noFixMembersJoin->"$preferedMethod"==6)  
+																		"OCF_Forecasted"="OCF_Trend";
+						 """
+				  fcstScript.append(cscript);			  
+			  }
+			  
+			  if ((dimLineItem.hasMember("OCF_Receivables Invoices",cashFlowCube)==true) ||  (dimLineItem.hasMember("OCF_Payables Invoices",cashFlowCube)==true) ||  (dimLineItem.hasMember("OCF_Cash Transactions Inflows",cashFlowCube)==true) || (fcstMethodDimension.hasMember("OCF_Driver",cashFlowCube)))
+			  {
+				cscript="""	 									ELSEIF("No Currency"->"No Year"->"BegBalance"->$noFixMembersJoin->"$preferedMethod"==#MISSING)
+						 """
+				  fcstScript.append(cscript);
+				
+				  
+			  }
+			  if (lineItemsMemberGroup=="OCF_Total Cash")
+			  {
+				  if (dimLineItem.hasMember("OCF_Receivables Invoices",cashFlowCube)==true)
+				  {
+					cscript="""	    										IF (@ISMBR("OCF_Customer Receipts") OR @ISMBR("OCF_Receivables Invoices") OR @ISMBR("OCF_Receivables Overdue Invoices") OR @ISMBR("OCF_Unapplied Receipts Offset"))
+																				"OCF_Forecasted"="OCF_Smart Drivers";																  
+																			ENDIF;
+							 """
+					  fcstScript.append(cscript);			
+						
+				  }
+				  if (dimLineItem.hasMember("OCF_Payables Invoices",cashFlowCube)==true)
+				  {
+					cscript="""	    										IF (@ISMBR("OCF_Supplier Payments") OR @ISMBR("OCF_Payables Invoices") OR @ISMBR("OCF_Payables Overdue Invoices") OR @ISMBR("OCF_Unapplied Prepayments Offset")) 
+																				"OCF_Forecasted"="OCF_Smart Drivers";																  
+																			ENDIF;
+							 """
+					  fcstScript.append(cscript);	
+				  }
+				   if (dimLineItem.hasMember("OCF_Cash Transactions Inflows",cashFlowCube)==true)
+				  {
+						cscript="""	    										IF (@ISMBR("OCF_Cash Transactions Inflows") OR @ISMBR("OCF_Cash Transactions Outflows") )
+																					"OCF_Forecasted"="OCF_Smart Drivers";																  
+																			ENDIF;
+							 """
+					  fcstScript.append(cscript);		
+				  }
+				}  
+			   if (fcstMethodDimension.hasMember("OCF_Driver",cashFlowCube))
+			  {
+					cscript="""	    										IF (@ISMBR(@DESCENDANTS("OCF_Driver Groups"))) 
+																				"OCF_Forecasted"="OCF_Driver";																  
+																		ENDIF;
+						 """
+				  fcstScript.append(cscript);
+			  }
+			  
+			  fcstScript.append("										ENDIF;")
+			  return fcstScript.toString() ;
+			  
+		}
+		/***
+		* This method returns processForecast business rule code.
+		
+		**/
+		String processForecast(Cube cashFlowCube,String scenarioMember,String versionMember,String entityMember,String fixParallelDim,String startPeriod,String endPeriod)
+		{
+				boolean chkCategoryFixParallel=false,chkEntityIsFixParallel=false;
+				String startEntityFix,endEntityFix,catStartFix,catEndFix,startFixParallel="",endFixParallel="",variableDeclaration="";
+				String prjDimName="Category"
+				String bankDimName="Bank";	
+				String flexDim1Name = "flexDimension1";
+				String flexDim2Name = "flexDimension2";
+				String flexDim3Name = "flexDimension3";
+				String forecastMethodDimName = "Forecast Method";
+				String yearDimName="Years"
+				String entityDimName = "Entity";
+				String currencyDimName="Currency";
+				String partyDimName="Party";
+				String buDimName="Business Unit";
+				List&lt;String> fixMembers=[];
+				String variableString=getPreferedRangeVarialbeDeclaration();
+				String varialStringForFixParallel=getPreferedRangeFixParllelVarialbeDeclaration();	
+				if (fixParallelDim == entityDimName) chkEntityIsFixParallel=true;
+				if (fixParallelDim == prjDimName) chkCategoryFixParallel=true;				
+				if (chkEntityIsFixParallel == false)  
+				{
+					startEntityFix = """ Fix (@Relative("$entityMember",0)) """;
+					endEntityFix ="ENDFIX"					
+				}
+				else
+				{
+					startEntityFix = """ 
+										FIXPARALLEL (4,@Relative("$entityMember",0))
+										$varialStringForFixParallel 
+										"""
+					endEntityFix ="ENDFIXPARALLEL"
+				}
+				if (chkCategoryFixParallel == false)  
+				{
+					catStartFix = """ 	FIX( @Relative("OEP_Total $prjDimName",0)) """;
+					catEndFix ="ENDFIX"					
+				}
+				else
+				{
+					catStartFix = """  FIXPARALLEL (4,@Relative("OEP_Total $prjDimName",0)) 
+										$varialStringForFixParallel
+										"""
+					catEndFix ="ENDFIXPARALLEL"
+				}
+				if (operation.application.hasDimension(fixParallelDim , cashFlowCube)  &amp;&amp; (chkCategoryFixParallel==false) &amp;&amp; (chkEntityIsFixParallel == false))
+				{
+					startFixParallel = """ FIXPARALLEL (4,@Relative("$fixParallelDim" ,0)) 
+											 $varialStringForFixParallel
+										"""
+					endFixParallel = "ENDFIXPARALLEL"
+				}
+				
+				if(operation.application.hasDimension(flexDim1Name, cashFlowCube) &amp;&amp; (fixParallelDim!=flexDim1Name)) 
+				{  
+				  fixMembers.add('@Relative("Total '+ flexDim1Name +'",0)') 
+				}
+				if(operation.application.hasDimension(flexDim2Name, cashFlowCube)&amp;&amp; (fixParallelDim!=flexDim2Name)) 
+				{  
+				  fixMembers.add('@Relative("Total '+ flexDim2Name +'",0)') 
+				}
+				if(operation.application.hasDimension(flexDim3Name, cashFlowCube) &amp;&amp; (fixParallelDim!=flexDim3Name) ) 
+				{  
+				  fixMembers.add('@Relative("Total '+ flexDim3Name +'",0)') 
+				}
+				if(operation.application.hasDimension(partyDimName, cashFlowCube) &amp;&amp; (fixParallelDim!=partyDimName)) 
+				{  
+				  fixMembers.add('@Relative("OEP_Total '+ partyDimName +'",0)') 				 
+				}
+				if(operation.application.hasDimension(buDimName, cashFlowCube) &amp;&amp; (fixParallelDim!=buDimName)) 
+				{  
+				  fixMembers.add('@Relative("OEP_Total '+ buDimName +'",0)') 
+				}			
+				if(operation.application.getCurrencyMode().equals(CurrencyMode.SIMPLIFIED_MULTI_CURRENCY))
+				{  
+				  fixMembers.add('@Relative("Input Currencies",0)');  
+				}
+				if (!operation.application.hasDimension(fixParallelDim, cashFlowCube) )
+					  {	
+						variableDeclaration="""									
+									$variableString
+						"""
+					}	
+				 String calcString ;	
+				 String lineItemsDimMembers="OCF_Total Cash";
+				 String  fixMembersJoin = fixMembers.join(",");	
+				 String numOfPeriods = getNumberOfYears(cashFlowCube);
+				 String ListofYears =(numOfPeriods=="1") ? "&amp;OEP_CurrYr" : "&amp;OEP_CurrYr,&amp;OEP_NextYr"	
+				 String strPopulateForecast=populateFinalForecastMethod(cashFlowCube,scenarioMember,versionMember,entityMember,lineItemsDimMembers,fixMembers)               			
+				 String strcalcOpenBal=calculateOpeningBalanceIncludingActuals(cashFlowCube,scenarioMember,versionMember,entityMember,startPeriod,endPeriod);
+				 calcString="""
+						SET UPDATECALC OFF;
+						SET AGGMISSG ON;
+						$variableDeclaration		
+						 $startEntityFix
+							FIX($fixMembersJoin,"$versionMember")
+							 $startFixParallel
+							 $catStartFix
+								FIX("$scenarioMember", "OEP_Any $bankDimName")
+										$strPopulateForecast
+								ENDFIX;
+								$strcalcOpenBal
+							 $catEndFix	
+							 FIX("$scenarioMember","OEP_Actual",@Relative("OEP_Total $bankDimName",0),$ListofYears,@Relative("OCF_All Forecast Method",0),@Relative("OCF_Total Forecasted Cash",0))
+								@IDESCENDANTS("OEP_Total $prjDimName");	
+							 ENDFIX;
+							 $endFixParallel
+						  ENDFIX	
+						$endEntityFix;
+					"""
+		return calcString;
+		
+		}
+		
+		/***
+		* This method returns the process forecast business rule code for an individual line item.		
+		**/
+		String processForecastbylineitem(Cube cashFlowCube,String scenarioMember,String versionMember,String entityMember,String fixParallelDim,String startPeriod,String endPeriod)
+		{
+				boolean chkCategoryFixParallel=false,chkEntityIsFixParallel=false;
+				String startEntityFix,endEntityFix,catStartFix,catEndFix,startFixParallel="",endFixParallel="",variableDeclaration="";
+				String prjDimName="Category"
+				String bankDimName="Bank";	
+				String flexDim1Name = "flexDimension1";
+				String flexDim2Name = "flexDimension2";
+				String flexDim3Name = "flexDimension3";
+				String forecastMethodDimName = "Forecast Method";
+				String yearDimName="Years"
+				String entityDimName = "Entity";
+				String currencyDimName="Currency";
+				String partyDimName="Party";
+				String buDimName="Business Unit";
+                String lineItemsDimMembers ="";
+				List&lt;String> fixMembers=[];
+				Application application = operation.application;	
+				String variableString=getPreferedRangeVarialbeDeclaration();
+				String varialStringForFixParallel=getPreferedRangeFixParllelVarialbeDeclaration();	
+				if (fixParallelDim == entityDimName) chkEntityIsFixParallel=true;
+				if (fixParallelDim == prjDimName) chkCategoryFixParallel=true;				
+				if (chkEntityIsFixParallel == false)  
+				{
+					startEntityFix = """ Fix (@Relative("$entityMember",0)) """;
+					endEntityFix ="ENDFIX"					
+				}
+				else
+				{
+					startEntityFix = """ 
+										FIXPARALLEL (4,@Relative("$entityMember",0))
+										$varialStringForFixParallel 
+										"""
+					endEntityFix ="ENDFIXPARALLEL"
+				}
+				if (chkCategoryFixParallel == false)  
+				{
+					catStartFix = """ 	FIX( @Relative("OEP_Total $prjDimName",0)) """;
+					catEndFix ="ENDFIX"					
+				}
+				else
+				{
+					catStartFix = """  FIXPARALLEL (4,@Relative("OEP_Total $prjDimName",0)) 
+										$varialStringForFixParallel
+										"""
+					catEndFix ="ENDFIXPARALLEL"
+				}
+				if (operation.application.hasDimension(fixParallelDim , cashFlowCube)  &amp;&amp; (chkCategoryFixParallel==false) &amp;&amp; (chkEntityIsFixParallel == false))
+				{
+					startFixParallel = """ FIXPARALLEL (4,@Relative("$fixParallelDim" ,0)) 
+											 $varialStringForFixParallel
+										"""
+					endFixParallel = "ENDFIXPARALLEL"
+				}
+				
+				if(operation.application.hasDimension(flexDim1Name, cashFlowCube) &amp;&amp; (fixParallelDim!=flexDim1Name)) 
+				{  
+				  fixMembers.add('@Relative("Total '+ flexDim1Name +'",0)') 
+				}
+				if(operation.application.hasDimension(flexDim2Name, cashFlowCube)&amp;&amp; (fixParallelDim!=flexDim2Name)) 
+				{  
+				  fixMembers.add('@Relative("Total '+ flexDim2Name +'",0)') 
+				}
+				if(operation.application.hasDimension(flexDim3Name, cashFlowCube) &amp;&amp; (fixParallelDim!=flexDim3Name) ) 
+				{  
+				  fixMembers.add('@Relative("Total '+ flexDim3Name +'",0)') 
+				}
+				if(operation.application.hasDimension(partyDimName, cashFlowCube) &amp;&amp; (fixParallelDim!=partyDimName)) 
+				{  
+				  fixMembers.add('@Relative("OEP_Total '+ partyDimName +'",0)') 				 
+				}
+				if(operation.application.hasDimension(buDimName, cashFlowCube) &amp;&amp; (fixParallelDim!=buDimName)) 
+				{  
+				  fixMembers.add('@Relative("OEP_Total '+ buDimName +'",0)') 
+				}				
+				if (operation.hasGrid()) {		
+					UserVariable uvVariable=application.getUserVariable("OEP_Currency")	;
+					fixMembers.add(uvVariable.value.name);
+				}	
+				if (!operation.application.hasDimension(fixParallelDim, cashFlowCube) )
+					  {	
+						variableDeclaration="""									
+									$variableString
+						"""
+					}	
+				 String calcString ;	
+					operation.grid.dataCellIterator({DataCell cell -> cell.edited}).each { it ->					
+					  lineItemsDimMembers=it.getAccountName();
+					}
+				 if (!lineItemsDimMembers.isEmpty()) { 	
+				 String  fixMembersJoin = fixMembers.join(",");	
+				 String numOfPeriods = getNumberOfYears(cashFlowCube);
+				 String ListofYears =(numOfPeriods=="1") ? "&amp;OEP_CurrYr" : "&amp;OEP_CurrYr,&amp;OEP_NextYr"	
+				 String strPopulateForecast=populateFinalForecastMethod(cashFlowCube,scenarioMember,versionMember,entityMember,lineItemsDimMembers,fixMembers)               			
+				 String strcalcOpenBal=calculateOpeningBalanceIncludingActuals(cashFlowCube,scenarioMember,versionMember,entityMember,startPeriod,endPeriod);
+				 calcString="""
+						SET UPDATECALC OFF;
+						SET AGGMISSG ON;
+						$variableDeclaration		
+						 $startEntityFix
+							FIX($fixMembersJoin,"$versionMember")
+							 $startFixParallel
+							 $catStartFix
+								FIX("$scenarioMember", "OEP_Any $bankDimName")
+										$strPopulateForecast
+								ENDFIX;
+								$strcalcOpenBal
+							 $catEndFix	
+							 FIX("$scenarioMember","OEP_Actual",@Relative("OEP_Total $bankDimName",0),$ListofYears,@Relative("OCF_All Forecast Method",0),@Relative("OCF_Total Forecasted Cash",0))
+								@IDESCENDANTS("OEP_Total $prjDimName");	
+							 ENDFIX;							 
+							 $endFixParallel
+						  ENDFIX	
+						$endEntityFix;
+					"""
+		return calcString;		
+		}  		
+		}
+		/**
+		  *
+		**/
+		  String  calculateOpeningBalance(String noFixMembersJoin,String startPeriod,String endPeriod)
+		  {
+			
+				String calcString =	""" 
+									FIX(&amp;OEP_PriorYr,$startPeriod:$endPeriod)										  
+									 "OCF_Opening Balance"(
+										@CALCMODE(BOTTOMUP);
+											IF ($noFixMembersJoin->"OCF_Historical Opening Bank Balance"!= #Missing)
+												"OCF_Opening Balance"="OCF_Historical Opening Bank Balance";
+											ELSE
+												IF (NOT @ISMBR("$startPeriod"))
+													"OCF_Opening Balance"= @PRIOR("OCF_Opening Balance")+( @PRIOR("OCF_Operating Cash Inflow")+ @PRIOR("OCF_Financing Cash Inflows")+@PRIOR("OCF_Investing Cash Inflows"))-( @PRIOR("OCF_Operating Cash Outflow")+ @PRIOR("OCF_Financing Cash Outflows")+ @PRIOR("OCF_Investing Cash Outflows")+@PRIOR("OCF_Cash Outflows for Fixed Assets"));
+												ENDIF;
+											ENDIF;	
+									 );
+									 ENDFIX;
+									 FIX("OCF_Opening Balance")
+										Datacopy "$endPeriod"->&amp;OEP_PriorYr  to  "$startPeriod"->&amp;OEP_CurrYr;									
+									 ENDFIX;
+									 FIX($startPeriod:&amp;OEP_CurrPeriod,&amp;OEP_CurrYr)									
+										"OCF_Opening Balance" (
+										@CALCMODE(BOTTOMUP);
+										 IF ( @ISMBR("$startPeriod"))									
+											IF ($noFixMembersJoin->"OCF_Historical Opening Bank Balance"!= #Missing)
+												"OCF_Opening Balance"="OCF_Historical Opening Bank Balance";
+											ELSE
+											"OCF_Opening Balance"= "OCF_Opening Balance"->&amp;OEP_PriorYr->"$endPeriod"+( "OCF_Operating Cash Inflow"->&amp;OEP_PriorYr->"$endPeriod"+ "OCF_Financing Cash Inflows"->&amp;OEP_PriorYr->"$endPeriod"+"OCF_Investing Cash Inflows"->&amp;OEP_PriorYr->"$endPeriod")-( "OCF_Operating Cash Outflow"->&amp;OEP_PriorYr->"$endPeriod"+ "OCF_Financing Cash Outflows"->&amp;OEP_PriorYr->"$endPeriod"+ "OCF_Investing Cash Outflows"->&amp;OEP_PriorYr->"$endPeriod" + "OCF_Cash Outflows for Fixed Assets"->&amp;OEP_PriorYr->"$endPeriod");
+										 ENDIF;
+										ElSE
+											IF ($noFixMembersJoin->"OCF_Historical Opening Bank Balance"!= #Missing)
+												"OCF_Opening Balance"="OCF_Historical Opening Bank Balance";
+											ELSE
+											"OCF_Opening Balance"= @PRIOR("OCF_Opening Balance")+( @PRIOR("OCF_Operating Cash Inflow")+ @PRIOR("OCF_Financing Cash Inflows")+@PRIOR("OCF_Investing Cash Inflows"))-( @PRIOR("OCF_Operating Cash Outflow")+ @PRIOR("OCF_Financing Cash Outflows")+ @PRIOR("OCF_Investing Cash Outflows")+@PRIOR("OCF_Cash Outflows for Fixed Assets"));
+										ENDIF;
+										 ENDIF;
+										);
+									ENDFIX;	
+								"""	
+						return 	calcString;	
+
+			}	
+
+		/* This method returns Historical Opening Bank Balance business rule code. */
+		
+		String CalculateHistoricalOpeningBankBalance(Cube cashFlowCube,String scenarioMember,String versionMember,String entityMember,String periodRollup)
+		{
+				String startEntityFix,endEntityFix,catStartFix,catEndFix,startFixParallel="",endFixParallel="";
+				String prjDimName="Category"
+				String bankDimName="Bank";					 
+				String flexDim1Name = "flexDimension1";
+				String flexDim2Name = "flexDimension2";
+				String flexDim3Name = "flexDimension3";
+				String forecastMethodDimName = "Forecast Method";
+				String yearDimName="Years"
+				String entityDimName = "Entity";
+				String currencyDimName="Currency";
+				String partyDimName="Party";
+				String buDimName="Business Unit";
+				List&lt;String> noFixMembers =[];	
+				List&lt;String> BankMemlist =[];
+				String calcString ;	
+                Application application = operation.application;				
+				if(operation.application.hasDimension(flexDim1Name, cashFlowCube))  noFixMembers.add('"No '+ flexDim1Name +'"')
+				if(operation.application.hasDimension(flexDim2Name, cashFlowCube)) 	noFixMembers.add('"No '+ flexDim2Name +'"')
+				if(operation.application.hasDimension(flexDim3Name, cashFlowCube)) 	noFixMembers.add('"No '+ flexDim3Name +'"')	
+				if(operation.application.hasDimension(partyDimName, cashFlowCube))	noFixMembers.add('"OEP_Any '+ partyDimName +'"')	
+				if(operation.application.hasDimension(buDimName, cashFlowCube))		noFixMembers.add('"OEP_Any '+ buDimName +'"')
+				if(operation.application.hasDimension(prjDimName, cashFlowCube)) 	noFixMembers.add('"OEP_Any '+ prjDimName +'"') 
+				if (operation.hasGrid()) {				 
+					operation.grid.dataCellIterator({DataCell cell -> cell.edited}, MemberNameType.ESSBASE_NAME).each{DataCell cell ->
+							BankMemlist.add('"'+cell.getMemberName(bankDimName)+'"')
+						}							
+				  }	else {	
+						BankMemlist.add('@Relative("OEP_Total '+ bankDimName +'",0)')						
+				  }				
+				String BankList=BankMemlist.unique().join(",")                              
+				if (operation.hasGrid()) {		
+					UserVariable uvVariable=application.getUserVariable("OEP_Currency")	;
+					noFixMembers.add(uvVariable.value.name);
+				}
+				 else {			 
+					noFixMembers.add('@Relative("Input Currencies",0)')	
+				}				
+				 String  noFixMembersJoin = noFixMembers.join(",");	
+				 if (!BankList.isEmpty()) {
+				 calcString="""
+						SET UPDATECALC OFF;
+						SET AGGMISSG ON;
+					
+							FIX(@Relative("$entityMember",0), "$scenarioMember", "$versionMember", &amp;OEP_PriorYr, &amp;OEP_CurrYr, @relative("$periodRollup",0),$noFixMembersJoin,$BankList)
+									FIX("OCF_Smart Drivers")
+									 CLEARDATA "OCF_Historical Opening Bank Balance";
+									ENDFIX 
+								"OCF_Smart Drivers" (                  
+									IF (("OCF_Historical Opening Bank Balance"->"No Year"->"OCF_Due Date">="OCF_Tp_date") AND ("OCF_Historical Opening Bank Balance"->"No Year"->"OCF_Due Date"&lt;="OCF_Tp_EndDate") )                                     
+										  IF ("BegBalance"->"No Year"->"OCF_Historical Opening Bank Balance"!= #Missing)
+											"OCF_Historical Opening Bank Balance"+0;
+										  ENDIF;
+										"OCF_Historical Opening Bank Balance" ="BegBalance"->"No Year"->"OCF_Historical Opening Bank Balance"; 
+									ENDIF; )	
+								 ENDFIX	                               
+					"""					
+		return calcString;	
+		}
+		}  			
+		
+		/***
+		* This method returns process Actuals  business rule code.
+		
+		**/
+		String processActuals(Cube cashFlowCube,String scenarioMember,String versionMember,String entityMember,String fixParallelDim,String startPeriod,String endPeriod)
+		{
+				boolean chkCategoryFixParallel=false,chkEntityIsFixParallel=false;
+				String startEntityFix,endEntityFix,catStartFix,catEndFix,startFixParallel="",endFixParallel="";
+				String prjDimName="Category"
+				String bankDimName="Bank";					 
+				String flexDim1Name = "flexDimension1";
+				String flexDim2Name = "flexDimension2";
+				String flexDim3Name = "flexDimension3";
+				String forecastMethodDimName = "Forecast Method";
+				String yearDimName="Years"
+				String entityDimName = "Entity";
+				String currencyDimName="Currency";
+				String partyDimName="Party";
+				String buDimName="Business Unit";
+				List&lt;String> fixMembers=[];					
+				List&lt;String> noFixMembers =[];
+				if (fixParallelDim == entityDimName) chkEntityIsFixParallel=true;
+				if (fixParallelDim == prjDimName) chkCategoryFixParallel=true;				
+				if (chkEntityIsFixParallel == false)  
+				{
+					startEntityFix = """ Fix (@Relative("$entityMember",0)) """;
+					endEntityFix ="ENDFIX"					
+				}
+				else
+				{
+					startEntityFix = """ FIXPARALLEL (4,@Relative("$entityMember",0)) """
+					endEntityFix ="ENDFIXPARALLEL"
+				}
+				if (chkCategoryFixParallel == false)  
+				{
+					catStartFix = """ FIX( @Relative("OEP_Total $prjDimName",0)) """;
+					catEndFix ="ENDFIX"					
+				}
+				else
+				{
+					catStartFix = """ FIXPARALLEL (4,@Relative("OEP_Total $prjDimName",0)) """
+					catEndFix ="ENDFIXPARALLEL"
+				}
+				if (operation.application.hasDimension(fixParallelDim , cashFlowCube) &amp;&amp; (chkCategoryFixParallel==false) &amp;&amp; (chkEntityIsFixParallel == false))
+				{
+					startFixParallel = """ FIXPARALLEL (4,@Relative("$fixParallelDim" ,0)) """
+					endFixParallel = "ENDFIXPARALLEL"
+				}
+				if(operation.application.hasDimension(flexDim1Name, cashFlowCube) &amp;&amp; (fixParallelDim!=flexDim1Name)) 
+				{  
+				  fixMembers.add('@Relative("Total '+ flexDim1Name +'",0)') 
+				  noFixMembers.add('"No '+ flexDim1Name +'"')
+				}
+				if(operation.application.hasDimension(flexDim2Name, cashFlowCube)&amp;&amp; (fixParallelDim!=flexDim2Name)) 
+				{  
+				  fixMembers.add('@Relative("Total '+ flexDim2Name +'",0)') 
+				  noFixMembers.add('"No '+ flexDim2Name +'"')
+				}
+				if(operation.application.hasDimension(flexDim3Name, cashFlowCube) &amp;&amp; (fixParallelDim!=flexDim3Name) ) 
+				{  
+				  fixMembers.add('@Relative("Total '+ flexDim3Name +'",0)')
+				  noFixMembers.add('"No '+ flexDim3Name +'"')	
+				}
+				if(operation.application.hasDimension(partyDimName, cashFlowCube) &amp;&amp; (fixParallelDim!=partyDimName)) 
+				{  
+				  fixMembers.add('@Relative("OEP_Total '+ partyDimName +'",0)') 
+				  noFixMembers.add('"OEP_Any '+ partyDimName +'"')	
+				}
+				if(operation.application.hasDimension(buDimName, cashFlowCube) &amp;&amp; (fixParallelDim!=buDimName)) 
+				{  
+				  fixMembers.add('@Relative("OEP_Total '+ buDimName +'",0)') 
+				  noFixMembers.add('"OEP_Any '+ buDimName +'"')
+				}	
+				if(operation.application.hasDimension(prjDimName, cashFlowCube)) noFixMembers.add('"OEP_Any '+ prjDimName +'"') 
+				if(operation.application.getCurrencyMode().equals(CurrencyMode.SIMPLIFIED_MULTI_CURRENCY))
+				{  
+				  fixMembers.add('@Relative("Input Currencies",0)');  
+				}
+				 String calcString ;	
+				 String lineItemsDimMembers="OCF_Total Cash";
+				 String  fixMembersJoin = fixMembers.join(",");	
+				 String  noFixMembersJoin = noFixMembers.join("->");
+				String calcOpeningBal = calculateOpeningBalance( noFixMembersJoin,startPeriod, endPeriod)	
+				 calcString="""
+						SET UPDATECALC OFF;
+						SET AGGMISSG ON;
+                        $startEntityFix						
+						FIX("$scenarioMember","$versionMember",@Relative("OEP_Total $bankDimName",0),$fixMembersJoin,"OCF_Smart Drivers")
+								$startFixParallel
+								$catStartFix
+									 $calcOpeningBal	
+								$catEndFix
+								FIX($startPeriod:$endPeriod,&amp;OEP_PriorYr,&amp;OEP_CurrYr,@Relative("$lineItemsDimMembers",0),"OCF_Opening Balance")
+									@IDESCENDANTS("OEP_Total $prjDimName");	
+								ENDFIX;
+								$endFixParallel
+						ENDFIX;
+						$endEntityFix
+					"""					
+		return calcString;
+		
+		}
+		
+		/****/
+		String processIntegrationData(Cube cashFlowCube,String scenarioMember,String versionMember,List&lt;String> entityMembers,String fixParallelDim,String startPeriod,String endPeriod)
+		{
+				boolean chkCategoryFixParallel=false,chkEntityIsFixParallel=false;
+				String startEntityFix,endEntityFix,catStartFix,catEndFix,startFixParallel="",endFixParallel="",variableDeclaration="";
+				String prjDimName="Category"
+				String bankDimName="Bank";					 
+				String flexDim1Name = "flexDimension1";
+				String flexDim2Name = "flexDimension2";
+				String flexDim3Name = "flexDimension3";
+				String forecastMethodDimName = "Forecast Method";
+				String yearDimName="Years"
+				String entityDimName = "Entity";
+				String currencyDimName="Currency";
+				String partyDimName="Party";
+				String buDimName="Business Unit";				
+				List&lt;String> fixMembers=[];					
+				List&lt;String> noFixMembers =[];	
+				String entityList= entityMembers.join('","');				
+				String variableString=getPreferedRangeVarialbeDeclaration();
+				String varialStringForFixParallel=getPreferedRangeFixParllelVarialbeDeclaration();	
+				if (fixParallelDim == entityDimName) chkEntityIsFixParallel=true;
+				if (fixParallelDim == prjDimName) chkCategoryFixParallel=true;				
+				if (chkEntityIsFixParallel == false)  
+				{
+					startEntityFix = """ Fix ("$entityList") """;
+					endEntityFix ="ENDFIX"					
+				}
+				else
+				{
+					startEntityFix = """ FIXPARALLEL (4,"$entityList") 
+										$varialStringForFixParallel 
+					
+										"""
+					endEntityFix ="ENDFIXPARALLEL"
+				}
+				if (chkCategoryFixParallel == false)  
+				{
+					catStartFix = """ FIX( @Relative("OEP_Total $prjDimName",0)) """;
+					catEndFix ="ENDFIX"					
+				}
+				else
+				{
+					catStartFix = """ FIXPARALLEL (4,@Relative("OEP_Total $prjDimName",0)) """
+					catEndFix ="ENDFIXPARALLEL"
+				}
+				if (operation.application.hasDimension(fixParallelDim , cashFlowCube) &amp;&amp; (chkCategoryFixParallel==false) &amp;&amp; (chkEntityIsFixParallel == false))
+				{
+					startFixParallel = """ FIXPARALLEL (4,@Relative("$fixParallelDim" ,0)) """
+					endFixParallel = "ENDFIXPARALLEL"
+				}
+				if(operation.application.hasDimension(flexDim1Name, cashFlowCube) &amp;&amp; (fixParallelDim!=flexDim1Name)) 
+				{  
+				  fixMembers.add('@Relative("Total '+ flexDim1Name +'",0)') 
+				  noFixMembers.add('"No '+ flexDim1Name +'"')
+				}
+				if(operation.application.hasDimension(flexDim2Name, cashFlowCube)&amp;&amp; (fixParallelDim!=flexDim2Name)) 
+				{  
+				  fixMembers.add('@Relative("Total '+ flexDim2Name +'",0)') 
+				  noFixMembers.add('"No '+ flexDim2Name +'"')
+				}
+				if(operation.application.hasDimension(flexDim3Name, cashFlowCube) &amp;&amp; (fixParallelDim!=flexDim3Name) ) 
+				{  
+				  fixMembers.add('@Relative("Total '+ flexDim3Name +'",0)')
+				  noFixMembers.add('"No '+ flexDim3Name +'"')	
+				}
+				if(operation.application.hasDimension(partyDimName, cashFlowCube) &amp;&amp; (fixParallelDim!=partyDimName)) 
+				{  
+				  fixMembers.add('@Relative("OEP_Total '+ partyDimName +'",0)') 
+				  noFixMembers.add('"OEP_Any '+ partyDimName +'"')	
+				}
+				if(operation.application.hasDimension(buDimName, cashFlowCube) &amp;&amp; (fixParallelDim!=buDimName)) 
+				{  
+				  fixMembers.add('@Relative("OEP_Total '+ buDimName +'",0)') 
+				  noFixMembers.add('"OEP_Any '+ buDimName +'"')
+				}	
+				if(operation.application.hasDimension(prjDimName, cashFlowCube)) noFixMembers.add('"OEP_Any '+ prjDimName +'"') 
+				if(operation.application.getCurrencyMode().equals(CurrencyMode.SIMPLIFIED_MULTI_CURRENCY))
+				{  
+				  fixMembers.add('@Relative("Input Currencies",0)');  
+				}
+				if (!operation.application.hasDimension(fixParallelDim, cashFlowCube) )
+					  {	
+						variableDeclaration="""									
+									$variableString
+						"""
+					}
+				String calcString ;
+				String lineItemsDimMembers="OCF_Total Cash";
+				String fixMembersJoin = fixMembers.join(",");	
+				String noFixMembersJoin = noFixMembers.join("->");	
+				String numOfPeriods = getNumberOfYears(cashFlowCube);
+				String ListofYears =(numOfPeriods=="1") ? "&amp;OEP_CurrYr" : "&amp;OEP_CurrYr,&amp;OEP_NextYr"
+				String strPopulateForecast=populateFinalForecastMethod(cashFlowCube,scenarioMember,versionMember,entityList,lineItemsDimMembers,fixMembers)               			
+				String strcalcOpenBal=calculateOpeningBalanceIncludingActuals(cashFlowCube,scenarioMember,versionMember,entityList,startPeriod,endPeriod);
+				String calcOpeningBal = calculateOpeningBalance( noFixMembersJoin,startPeriod, endPeriod)				 				
+				calcString="""
+						SET UPDATECALC OFF;
+						SET AGGMISSG ON;
+						$variableDeclaration
+                        $startEntityFix						
+						FIX("$versionMember",$fixMembersJoin)
+								$startFixParallel
+								$catStartFix
+									Fix("OEP_Actual",@Relative("OEP_Total $bankDimName",0))
+										$calcOpeningBal
+									ENDFIX;
+									FIX("$scenarioMember", "OEP_Any $bankDimName")
+											$strPopulateForecast
+									ENDFIX;
+									$strcalcOpenBal	
+								$catEndFix
+								FIX($startPeriod:$endPeriod,"OEP_Actual","$scenarioMember",&amp;OEP_PriorYr,$ListofYears,@Relative("$lineItemsDimMembers",0),"OCF_Opening Balance")
+									@IDESCENDANTS("OEP_Total $prjDimName");	
+								ENDFIX;
+								$endFixParallel
+						ENDFIX;
+						$endEntityFix						
+					"""	
+					
+					return calcString;
+		
+		}
+		
+		
+		/***
+		 *  This method generates script to copy data from forecast methods into final forecast method based on the set configruation settings.
+		 * 	@param  cube name, Scenario ,version and Entity members , list of line items, form context on addtional dimensions.					 
+		 * 	@return  - returns script that copies numbers from  forecast methods in to final forecast method.
+		 *  Additonal Notes :
+		 *			1. Prefered Method , Time range is stored any member combination of dimension. 
+					2. Copies the data from All methods in to Forecast member to create blocks.
+					3. Pulls the time range and methods in to variables.
+					4. For each time period check method selected and copies corresponding value in to forecast method.
+					5. Add time range to "OEP_Period Number" to check if periods falls in the range or not.
+					5. Rolling forecast range falls in to multiple years. system ensures to copies the right forecast member in to final forecast.
+		 **/
+		String populateFinalForecastMethod(Cube cashFlowCube,String scenarioMember,String versionMember,String entityMember,String lineItemsMemberGroup,List&lt;String> fixMembers)
+		{
+			String calcScript,startPeriod,endPeriod,periodRollup,prefMethod1Script,prefMethod2Script,prefMethod3Script;
+			def isWeeklyEnabled = "Monthly" == "Weekly"
+			def isMonthlyEnabled = "Monthly" == "Monthly"	
+			List&lt;String> noFixMembers=[];
+			String fixMembersJoin, noFixMembersJoin;
+			String flexDim1Name = "flexDimension1";
+			String flexDim2Name = "flexDimension2";
+			String flexDim3Name = "flexDimension3";
+			String trendMethod = "No Forecast Method";
+			String yearDimName="Years"
+			String bankDimName="Bank";		
+			String entityDimName = "Entity";
+			String currencyDimName="Currency";
+			String partyDimName="Party";
+			String buDimName="Business Unit";
+			String prjDimName="Category"
+			String firstYearSmartDriverScript="";
+			String secondYearSmartDriverScript="";
+			String beginFixScript = "";	
+            String endFixScript = "";			
+			List&lt;String>  lineItems = getRelativeOfLineItems(lineItemsMemberGroup);			
+			String erpMembers = getValidERPLineItems(cashFlowCube) ;			
+			if ((lineItemsMemberGroup=="OCF_Total Cash") &amp;&amp; (erpMembers!=""))
+			{
+				firstYearSmartDriverScript= """
+												FIX("$erpMembers",&amp;OEP_CurrYr,&amp;OEP_CurrPeriod:&amp;OEP_FcstStartPeriod)
+													Datacopy "OCF_Smart Drivers" to "OCF_Forecasted";								
+												ENDFIX;
+											"""
+				secondYearSmartDriverScript= """
+												FIX("$erpMembers"&amp;OEP_NextYr,&amp;OEP_CurrPeriod:&amp;OEP_FcstStartPeriod)
+													Datacopy "OCF_Smart Drivers" to "OCF_Forecasted";								
+												ENDFIX;
+											"""							
+			}
+			String  lineItemsGroup= lineItems.join(',');
+			
+			String copyScript=setForecastDataCopy(cashFlowCube);
+			Application application = operation.application;				
+			if (cashFlowCube.getEssbaseName()=="OEP_PCSH")
+			{
+				trendMethod="OCF_Trend";
+				if (isMonthlyEnabled) periodRollup="YearTotal"	;
+				if (isWeeklyEnabled)  periodRollup="OEP_Weekly YearTotal";
+			}
+			else
+			{
+				periodRollup="OEP_Daily YearTotal";
+			}
+			List&lt;String> lstPeriods=application.getDimension("Period",cashFlowCube).getEvaluatedMembers('ILvl0Descendants("'+periodRollup+'")',cashFlowCube).collect{it.toString()};	
+			 startPeriod=lstPeriods.first();	
+			 endPeriod=lstPeriods.last();			
+			String numOfPeriods = getNumberOfYears(cashFlowCube);
+			SubstitutionVariable subVariableFcstPeriods=cashFlowCube.getSubstitutionVariable("OEP_NumberOfForecastPeriods");
+			String fcstPeriods=subVariableFcstPeriods.getValue();
+			if(application.hasDimension(flexDim1Name, cashFlowCube)) noFixMembers.add('"No '+ flexDim1Name +'"')
+			if(application.hasDimension(flexDim2Name, cashFlowCube)) noFixMembers.add('"No '+ flexDim2Name +'"') 
+			if(application.hasDimension(flexDim3Name, cashFlowCube)) noFixMembers.add('"No '+ flexDim3Name +'"') 
+			if(application.hasDimension(prjDimName, cashFlowCube)) noFixMembers.add('"OEP_Any '+ prjDimName +'"') 
+			if(application.hasDimension(partyDimName, cashFlowCube)) noFixMembers.add('"OEP_Any '+ partyDimName +'"') 
+			if(application.hasDimension(buDimName, cashFlowCube)) noFixMembers.add('"OEP_Any '+ buDimName +'"') 			
+			fixMembersJoin=fixMembers.join(",");
+			noFixMembersJoin=noFixMembers.join("->")
+			prefMethod1Script = setForecastMethod(cashFlowCube,noFixMembersJoin,"OCF_Preferred Method 1",lineItemsMemberGroup);
+			prefMethod2Script = setForecastMethod(cashFlowCube,noFixMembersJoin,"OCF_Preferred Method 2",lineItemsMemberGroup);
+			prefMethod3Script = setForecastMethod(cashFlowCube,noFixMembersJoin,"OCF_Preferred Method 3",lineItemsMemberGroup);
+		   /* if (fixMembers.size() != 0)
+			{
+				beginFixScript ="""
+									Var PrefRang1;
+									Var PrefRang2;
+									Var PrefRang3;		
+									 FIX($entityMember,$scenarioMember,$versionMember,$fixMembersJoin)
+									"""
+				endFixScript="ENDFIX"	
+			}
+			else
+			{
+			   beginFixScript ="";
+			   endFixScript=""
+			} */
+			if (numOfPeriods=="2")
+			{
+			calcScript="""
+								$beginFixScript
+								FIX($lineItemsGroup)
+								 FIX(&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange)
+									$copyScript										
+								 ENDFIX;
+								 $firstYearSmartDriverScript								 
+								 FIX(&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange)
+								  CLEARDATA "OCF_Forecasted";
+								 ENDFIX;
+								 FIX(&amp;OEP_NextYr,&amp;OEP_NextYrPeriodRange)
+									$copyScript										
+								 ENDFIX;
+								 $secondYearSmartDriverScript
+								 FIX(&amp;OEP_NextYr,&amp;OEP_NextYrPeriodRange)
+								  CLEARDATA "OCF_Forecasted";
+								 ENDFIX;
+								ENDFIX; 
+								FIX($lineItemsGroup,&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange)
+									   "OCF_Forecasted"
+												(
+													@CALCMODE(BOTTOMUP);
+													If ("No Currency"->"No Year"->"BegBalance"->$noFixMembersJoin->"OCF_Preferred Range 1" == #MISSING)
+														if ("OCF_Period Number"->&amp;OEP_FcstStartPeriod != "OCF_Period Number"->&amp;OEP_CurrPeriod)
+															if ("OCF_Period Number"->&amp;OEP_FcstStartPeriod &lt; "OCF_Period Number"->$endPeriod)
+																PrefRang1 = "OCF_Period Number"->&amp;OEP_FcstStartPeriod -"OCF_Period Number"->&amp;OEP_CurrPeriod+$fcstPeriods;
+															else
+																PrefRang1 = "OCF_Period Number"->&amp;OEP_FcstStartPeriod +"OCF_Period Number"->$endPeriod -"OCF_Period Number"->&amp;OEP_CurrPeriod+$fcstPeriods;
+															ENDIF;
+														ELSE
+															PrefRang1=$fcstPeriods;
+														ENDIF;
+													ELSE													
+														PrefRang1="No Currency"->"No Year"->"BegBalance"->$noFixMembersJoin->"OCF_Preferred Range 1" ;
+													ENDIF;
+													PrefRang2="No Currency"->"No Year"->"BegBalance"->$noFixMembersJoin->"OCF_Preferred Range 2" ;
+													PrefRang3="No Currency"->"No Year"->"BegBalance"->$noFixMembersJoin->"OCF_Preferred Range 3" ;
+													IF (("OCF_Period Number" ) >= "OCF_Period Number"->&amp;OEP_FcstStartPeriod-1)
+														IF( "OCF_Period Number"  &lt;= ("OCF_Period Number"->&amp;OEP_FcstStartPeriod +PrefRang1-1)) 
+															$prefMethod1Script													
+														ELSEIF(( "OCF_Period Number"  > ("OCF_Period Number"->&amp;OEP_FcstStartPeriod +PrefRang1-1 )) AND ( "OCF_Period Number"  &lt;= ("OCF_Period Number"->&amp;OEP_FcstStartPeriod +PrefRang2-1))) 
+															$prefMethod2Script												
+														ELSEIF(( "OCF_Period Number"  > ("OCF_Period Number"->&amp;OEP_FcstStartPeriod +PrefRang2-1 )) AND ( "OCF_Period Number"  &lt;= ("OCF_Period Number"->&amp;OEP_FcstStartPeriod +PrefRang3-1))) 
+															$prefMethod3Script
+														ENDIF;
+													ENDIF;
+												
+												);								
+								ENDFIX;
+								FIX($lineItemsGroup,&amp;OEP_NextYr,&amp;OEP_NextYrPeriodRange)
+									   "OCF_Forecasted"
+												(
+													@CALCMODE(BOTTOMUP);
+													If ("No Currency"->"No Year"->"BegBalance"->$noFixMembersJoin->"OCF_Preferred Range 1" == #MISSING)
+														PrefRang1=$fcstPeriods+1;
+													ELSE													
+														PrefRang1="No Currency"->"No Year"->"BegBalance"->$noFixMembersJoin->"OCF_Preferred Range 1" ;
+													ENDIF;
+													PrefRang2="No Currency"->"No Year"->"BegBalance"->$noFixMembersJoin->"OCF_Preferred Range 2" ;
+													PrefRang3="No Currency"->"No Year"->"BegBalance"->$noFixMembersJoin->"OCF_Preferred Range 3" ;													
+														IF( ("OCF_Period Number"+ "OCF_Period Number"->$endPeriod) &lt;= ("OCF_Period Number"->&amp;OEP_CurrYr->&amp;OEP_FcstStartPeriod +PrefRang1-1)) 
+															$prefMethod1Script													
+														ELSEIF(( ("OCF_Period Number"+"OCF_Period Number"->$endPeriod)  > ("OCF_Period Number"->&amp;OEP_CurrYr->&amp;OEP_FcstStartPeriod +PrefRang1-1 )) AND ( ("OCF_Period Number"+ "OCF_Period Number"->$endPeriod)  &lt;= ("OCF_Period Number"->&amp;OEP_CurrYr->&amp;OEP_FcstStartPeriod + PrefRang2-1))) 
+															$prefMethod2Script													
+														ELSEIF(( ("OCF_Period Number"+ "OCF_Period Number"->$endPeriod)  > ("OCF_Period Number"->&amp;OEP_CurrYr->&amp;OEP_FcstStartPeriod +PrefRang2-1 )) AND ( ("OCF_Period Number"+ "OCF_Period Number"->$endPeriod)  &lt;= ("OCF_Period Number"->&amp;OEP_CurrYr->&amp;OEP_FcstStartPeriod +PrefRang3-1))) 
+															$prefMethod3Script
+														ENDIF;
+												);								
+								ENDFIX;
+						 $endFixScript;
+				
+				
+				"""
+			
+			}
+			else
+			{
+			calcScript="""
+								$beginFixScript	
+								FIX($lineItemsGroup,&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange)
+									$copyScript									
+								ENDFIX;
+								$firstYearSmartDriverScript
+								FIX($lineItemsGroup,&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange)
+								  CLEARDATA "OCF_Forecasted";
+								ENDFIX;
+								FIX($lineItemsGroup,&amp;OEP_CurrYr,&amp;OEP_CurrYrPeriodRange)
+									   "OCF_Forecasted"
+												(
+													@CALCMODE(BOTTOMUP);
+													If ("No Currency"->"No Year"->"BegBalance"->$noFixMembersJoin->"OCF_Preferred Range 1" == #MISSING)
+														PrefRang1=("OCF_Period Number"->&amp;OEP_FcstStartPeriod) - ("OCF_Period Number"->&amp;OEP_CurrPeriod) +$fcstPeriods;
+													ELSE													
+														PrefRang1="No Currency"->"No Year"->"BegBalance"->$noFixMembersJoin->"OCF_Preferred Range 1" ;
+													ENDIF;
+													PrefRang2="No Currency"->"No Year"->"BegBalance"->$noFixMembersJoin->"OCF_Preferred Range 2" ;
+													PrefRang3="No Currency"->"No Year"->"BegBalance"->$noFixMembersJoin->"OCF_Preferred Range 3" ;
+													IF (("OCF_Period Number" ) >= "OCF_Period Number"->&amp;OEP_FcstStartPeriod-1)
+														IF( "OCF_Period Number"  &lt;= ("OCF_Period Number"->&amp;OEP_FcstStartPeriod +PrefRang1-1)) 															
+															$prefMethod1Script
+														ELSEIF(( "OCF_Period Number"  > ("OCF_Period Number"->&amp;OEP_FcstStartPeriod +PrefRang1-1 )) AND ( "OCF_Period Number"  &lt;= ("OCF_Period Number"->&amp;OEP_FcstStartPeriod +PrefRang2-1))) 
+															$prefMethod2Script															
+														ELSEIF(( "OCF_Period Number"  > ("OCF_Period Number"->&amp;OEP_FcstStartPeriod +PrefRang2-1 )) AND ( "OCF_Period Number"  &lt;= ("OCF_Period Number"->&amp;OEP_FcstStartPeriod +PrefRang3-1))) 
+															$prefMethod3Script	
+														ENDIF;
+													ENDIF;
+												
+												);								
+								ENDFIX;
+						  $endFixScript;
+				
+				
+				"""
+			}	
+			return calcScript;
+		}
+	/***
+		 *  This method generates script that computes opening balance. THis rule will be called from every form context.
+		 * 	@param   Scenario ,version and Entity members from form context on addtional dimensions.
+		 * 	@return  - returns script that calcualtes opening balance.
+		 *  Additonal Notes :
+		 *   			1. Calculates opening balance of current period by summing opening balance of prior period, inflows and out flows.
+		 *   			2. Computes Opening balance of all periods except first period of rolling forecast as first period is loading from ERP/ integration system. 
+		 *   			3. Rolling forecast range falls in two years,sums up previous year last period opening balance, inflows and out flows
+		 *	 			4. Num of periods value determins whether rolling window in single year or multiple years. Logic branches accordingly.		
+		 **/	
+	String  calculateOpeningBalanceForOnsave(String numOfPeriods,String startPeriod,String endPeriod,String fcstMethod)
+	  {		
+		String 	calcString;
+		if (numOfPeriods=="2")
+		{
+				calcString= """							
+								    FIX("$fcstMethod")
+									 FIX(&amp;OEP_CurrYr)
+									   FIX(&amp;OEP_CurrYrPeriodRange)
+										   "OCF_Opening Balance" (
+											IF (NOT @ISMBR(&amp;OEP_FcstStartPeriod))
+												"OCF_Opening Balance"= @PRIOR("OCF_Opening Balance")+( @PRIOR("OCF_Operating Cash Inflow")+ @PRIOR("OCF_Financing Cash Inflows")+@PRIOR("OCF_Investing Cash Inflows"))-( @PRIOR("OCF_Operating Cash Outflow")+ @PRIOR("OCF_Financing Cash Outflows")+ @PRIOR("OCF_Investing Cash Outflows")+@PRIOR("OCF_Cash Outflows for Fixed Assets"));
+											ENDIF;
+											); 					
+											"OCF_Forecasted Net Cash Flow" (
+											"OCF_Forecasted Net Cash Flow"= @SUMRANGE("OCF_Total Cash",&amp;OEP_CurrYrPeriodRange) + @SUMRANGE("OCF_Total Cash",&amp;OEP_NextYrPeriodRange);								
+											);
+											"OCF_Forecasted Operating Cash Flow"(
+											"OCF_Forecasted Operating Cash Flow" = @SUMRANGE("OCF_Cash from Operating Activities",&amp;OEP_CurrYrPeriodRange) +@SUMRANGE("OCF_Cash from Operating Activities",&amp;OEP_NextYrPeriodRange);
+											);								
+											"OCF_Forecasted Non Operating Cash Flow"(
+											"OCF_Forecasted Non Operating Cash Flow"=@SUMRANGE("OCF_Cash from Investing Activities",&amp;OEP_CurrYrPeriodRange)+@SUMRANGE("OCF_Cash from Financing Activities",&amp;OEP_CurrYrPeriodRange) + @SUMRANGE("OCF_Cash from Investing Activities",&amp;OEP_NextYrPeriodRange)+@SUMRANGE("OCF_Cash from Financing Activities",&amp;OEP_NextYrPeriodRange);								
+											);
+											"OCF_Forecasted Cash Inflow"(
+											"OCF_Forecasted Cash Inflow"=(@SUMRANGE("OCF_Operating Cash Inflow",&amp;OEP_CurrYrPeriodRange)+@SUMRANGE("OCF_Financing Cash Inflows",&amp;OEP_CurrYrPeriodRange)+@SUMRANGE("OCF_Investing Cash Inflows",&amp;OEP_CurrYrPeriodRange)) +(@SUMRANGE("OCF_Operating Cash Inflow",&amp;OEP_NextYrPeriodRange)+@SUMRANGE("OCF_Financing Cash Inflows",&amp;OEP_NextYrPeriodRange)+@SUMRANGE("OCF_Investing Cash Inflows",&amp;OEP_NextYrPeriodRange));
+											);
+											"OCF_Forecasted Cash Outflow"(								
+											"OCF_Forecasted Cash Outflow"=(@SUMRANGE("OCF_Operating Cash Outflow",&amp;OEP_CurrYrPeriodRange)+@SUMRANGE("OCF_Financing Cash Outflows",&amp;OEP_CurrYrPeriodRange)+@SUMRANGE("OCF_Investing Cash Outflows",&amp;OEP_CurrYrPeriodRange)) +(@SUMRANGE("OCF_Operating Cash Outflow",&amp;OEP_NextYrPeriodRange)+@SUMRANGE("OCF_Financing Cash Outflows",&amp;OEP_NextYrPeriodRange)+@SUMRANGE("OCF_Investing Cash Outflows",&amp;OEP_NextYrPeriodRange)) ;								
+											);
+										ENDFIX;	
+									 ENDFIX;
+									 Datacopy  &amp;OEP_CurrYr->"OCF_Closing Balance"->"$endPeriod" to  &amp;OEP_NextYr->"OCF_Opening Balance"->"$startPeriod"; 
+									 FIX(&amp;OEP_NextYr,&amp;OEP_NextYrPeriodRange)
+										   "OCF_Opening Balance" (
+											IF (NOT @ISMBR("$startPeriod"))
+												"OCF_Opening Balance"= @PRIOR("OCF_Opening Balance")+( @PRIOR("OCF_Operating Cash Inflow")+ @PRIOR("OCF_Financing Cash Inflows")+@PRIOR("OCF_Investing Cash Inflows"))-( @PRIOR("OCF_Operating Cash Outflow")+ @PRIOR("OCF_Financing Cash Outflows")+ @PRIOR("OCF_Investing Cash Outflows")+@PRIOR("OCF_Cash Outflows for Fixed Assets"));
+											ELSE 
+												"OCF_Opening Balance"= "OCF_Opening Balance"->&amp;OEP_CurrYr->"$endPeriod"+( "OCF_Operating Cash Inflow"->&amp;OEP_CurrYr->"$endPeriod"+ "OCF_Financing Cash Inflows"->&amp;OEP_CurrYr->"$endPeriod"+"OCF_Investing Cash Inflows"->&amp;OEP_CurrYr->"$endPeriod")-( "OCF_Operating Cash Outflow"->&amp;OEP_CurrYr->"$endPeriod"+ "OCF_Financing Cash Outflows"->&amp;OEP_CurrYr->"$endPeriod"+ "OCF_Investing Cash Outflows"->&amp;OEP_CurrYr->"$endPeriod" + "OCF_Cash Outflows for Fixed Assets"->&amp;OEP_CurrYr->"$endPeriod");
+											ENDIF;
+											); 	
+									 ENDFIX	
+								   ENDFIX;							
+				     """						
+		}
+		else
+		{
+			 	calcString= """
+								FIX("$fcstMethod",&amp;OEP_CurrYr)
+									FIX (&amp;OEP_CurrYrPeriodRange)
+									   "OCF_Opening Balance" (
+										IF (NOT @ISMBR(&amp;OEP_FcstStartPeriod))
+											"OCF_Opening Balance"= @PRIOR("OCF_Opening Balance")+( @PRIOR("OCF_Operating Cash Inflow")+ @PRIOR("OCF_Financing Cash Inflows")+@PRIOR("OCF_Investing Cash Inflows"))-( @PRIOR("OCF_Operating Cash Outflow")+ @PRIOR("OCF_Financing Cash Outflows")+ @PRIOR("OCF_Investing Cash Outflows")+@PRIOR("OCF_Cash Outflows for Fixed Assets"));
+										ENDIF;
+										); 											
+									ENDFIX;
+									FIX(&amp;OEP_CurrPeriod)								
+										"OCF_Forecasted Net Cash Flow" (
+										"OCF_Forecasted Net Cash Flow"= @SUMRANGE("OCF_Total Cash",&amp;OEP_CurrYrPeriodRange);								
+										);
+										"OCF_Forecasted Operating Cash Flow"(
+										"OCF_Forecasted Operating Cash Flow" = @SUMRANGE("OCF_Cash from Operating Activities",&amp;OEP_CurrYrPeriodRange);
+										);								
+										"OCF_Forecasted Non Operating Cash Flow"(
+										"OCF_Forecasted Non Operating Cash Flow"=@SUMRANGE("OCF_Cash from Investing Activities",&amp;OEP_CurrYrPeriodRange)+@SUMRANGE("OCF_Cash from Financing Activities",&amp;OEP_CurrYrPeriodRange);								
+										);
+										"OCF_Forecasted Cash Inflow"(
+										"OCF_Forecasted Cash Inflow"=(@SUMRANGE("OCF_Operating Cash Inflow",&amp;OEP_CurrYrPeriodRange)+@SUMRANGE("OCF_Financing Cash Inflows",&amp;OEP_CurrYrPeriodRange)+@SUMRANGE("OCF_Investing Cash Inflows",&amp;OEP_CurrYrPeriodRange));
+										);
+										"OCF_Forecasted Cash Outflow"(								
+										"OCF_Forecasted Cash Outflow"=(@SUMRANGE("OCF_Operating Cash Outflow",&amp;OEP_CurrYrPeriodRange)+@SUMRANGE("OCF_Financing Cash Outflows",&amp;OEP_CurrYrPeriodRange)+@SUMRANGE("OCF_Investing Cash Outflows",&amp;OEP_CurrYrPeriodRange));								
+										);
+									ENDFIX;
+								  ENDFIX;	
+				     """	
+		}				
+			return calcString;	
+	  }
+	  
+	  
+	  /***
+		 *  This method generates script that computes opening balance first period of rolling forecast , it computes opening and closing balance for actuals, moves closing balance of actuals in to opening balance of Rolling forecast period.
+		 * 	@param   Scenario ,version and Entity members from form context on addtional dimensions.					 
+		 * 	@return  - returns script that calcualtes opening balance for first period.
+		 *  Additonal Notes :
+		 *   			1. Calculates opening balance of each period by summing opening balance of prior period, inflows and out flows for both actuals and forecast scenarios.
+		 *				2. Copies ERP/User loaded Target balance in to first period of rolling forecast.
+		 *				3. Computes first period opening balance by taking total bank value in to accoutn.its sum of target balances of all banks. 
+		 *   			4. Computes Opening balance of all periods including first period of rolling forecast. 
+		 *   			5. Rolling forecast range falls in two years,sums up previous year last period opening balance, inflows and out flows
+		 *	 			6. Num of periods value determins whether rolling window in single year or multiple years. Logic branches accordingly.
+		 **/
+	  String  calculateOpeningBalanceIncludingActuals(Cube cashFlowCube,String scenarioMember,String versionMember,String entityMember,String startPeriod,String endPeriod)
+	  {
+				List&lt;String> fixMembers = new ArrayList&lt;String>();
+				List&lt;String> noFixMembers = new ArrayList&lt;String>()
+				String fixMembersJoin;
+				String calcString;			;
+				String flexDim1Name = "flexDimension1";
+				String flexDim2Name = "flexDimension2";
+				String flexDim3Name = "flexDimension3";
+				String currencyDimName="Currency";
+				String partyDimName="Party";
+				String buDimName="Business Unit";
+				String prjDimName="Category"
+				String forecastMethodDimName = "Forecast Method";
+				String yearDimName="Years"
+				String lineItemDimName="Line Item"
+				String entityDimName = "Entity";
+				String bankDimName="Bank";	
+				String totalBank="OEP_Total " + bankDimName;
+				String noBankDimName="OEP_Any " + bankDimName;	
+				Application application = operation.application;					
+				if(application.hasDimension(flexDim1Name, cashFlowCube)) fixMembers.add('@Relative("Total '+ flexDim1Name +'",0)');
+				if(application.hasDimension(flexDim2Name, cashFlowCube)) fixMembers.add('@Relative("Total '+ flexDim2Name +'",0)');					
+				if(application.hasDimension(flexDim3Name, cashFlowCube)) fixMembers.add('@Relative("Total '+ flexDim3Name +'",0)');
+				if(application.hasDimension(partyDimName, cashFlowCube)) fixMembers.add('@Relative("OEP_Total '+ partyDimName +'",0)');					
+				if(application.hasDimension(buDimName, cashFlowCube)) fixMembers.add('@Relative("OEP_Total '+ buDimName +'",0)');
+				if(application.hasDimension(prjDimName, cashFlowCube)) fixMembers.add('@Relative("OEP_Total '+ prjDimName +'",0)')									
+				if(operation.application.getCurrencyMode().equals(CurrencyMode.SIMPLIFIED_MULTI_CURRENCY)) fixMembers.add('@Relative("Input Currencies",0)')
+				fixMembersJoin=fixMembers.join(",");
+				String numOfPeriods = getNumberOfYears(cashFlowCube)	
+			if (numOfPeriods=="2")
+				{
+				calcString= """					
+						 /* FIX( "OEP_ACTUAL","OCF_Smart Drivers",$startPeriod:&amp;OEP_ActPeriod,@Relative("$totalBank",0 ),&amp;OEP_ActPeriodYr)
+							   "OCF_Opening Balance" (
+							    IF ( @ISMBR("$startPeriod"))									
+									"OCF_Opening Balance"= "OCF_Opening Balance"->&amp;OEP_PriorYr->"$endPeriod"+( "OCF_Operating Cash Inflow"->&amp;OEP_PriorYr->"$endPeriod"+ "OCF_Financing Cash Inflows"->&amp;OEP_PriorYr->"$endPeriod"+"OCF_Investing Cash Inflows"->&amp;OEP_PriorYr->"$endPeriod")-( "OCF_Operating Cash Outflow"->&amp;OEP_PriorYr->"$endPeriod"+ "OCF_Financing Cash Outflows"->&amp;OEP_PriorYr->"$endPeriod"+ "OCF_Investing Cash Outflows"->&amp;OEP_PriorYr->"$endPeriod" + "OCF_Cash Outflows for Fixed Assets"->&amp;OEP_PriorYr->"$endPeriod");
+								ElSE
+									"OCF_Opening Balance"= @PRIOR("OCF_Opening Balance")+( @PRIOR("OCF_Operating Cash Inflow")+ @PRIOR("OCF_Financing Cash Inflows")+@PRIOR("OCF_Investing Cash Inflows"))-( @PRIOR("OCF_Operating Cash Outflow")+ @PRIOR("OCF_Financing Cash Outflows")+ @PRIOR("OCF_Investing Cash Outflows")+@PRIOR("OCF_Cash Outflows for Fixed Assets"));
+							    ENDIF;
+								); 						   
+						  ENDFIX;	*/
+						  FIX("OCF_Bank Balance",@Relative("$totalBank",0))
+									Datacopy "OEP_ACTUAL"->"OCF_Smart Drivers"->&amp;OEP_ActPeriod->&amp;OEP_ActPeriodYr  to "$scenarioMember"->"OCF_Forecasted"->&amp;OEP_CurrPeriod->&amp;OEP_CurrYr;									
+						  ENDFIX;
+						  FIX( "$scenarioMember",&amp;OEP_CurrPeriod,&amp;OEP_CurrYr)
+							FIX("OCF_Adjustments","OEP_Any $bankDimName")
+                               ClearData  "OCF_Opening Balance";
+                            ENDFIX;
+							FIX("OCF_Forecasted")
+							   "OCF_Opening Balance"(
+								@CALCMODE(BottomUp);
+									IF ( @ISMBR("$startPeriod"))									
+										"OCF_Opening Balance"->"$noBankDimName"="OCF_Bank Balance"->&amp;OEP_ActPeriod->&amp;OEP_ActPeriodYr->"OEP_ACTUAL"->"OCF_Smart Drivers"->"$totalBank";
+									ElSE
+										"OCF_Opening Balance"->"$noBankDimName"="OCF_Bank Balance"->&amp;OEP_ActPeriod->"OEP_ACTUAL"->"OCF_Smart Drivers"->"$totalBank";
+									ENDIF;	
+							   );
+						   ENDFIX
+						  ENDFIX;
+						  FIX( "$scenarioMember","OCF_Forecasted","OCF_Adjustments","$noBankDimName","OEP_What If")
+							  FIX(&amp;OEP_CurrPeriod:&amp;OEP_FcstStartPeriod,&amp;OEP_CurrYrPeriodRange,&amp;OEP_CurrYr)
+								   "OCF_Opening Balance" (
+									IF (NOT @ISMBR(&amp;OEP_CurrPeriod))
+										"OCF_Opening Balance"= @PRIOR("OCF_Opening Balance")+( @PRIOR("OCF_Operating Cash Inflow")+ @PRIOR("OCF_Financing Cash Inflows")+@PRIOR("OCF_Investing Cash Inflows"))-( @PRIOR("OCF_Operating Cash Outflow")+ @PRIOR("OCF_Financing Cash Outflows")+ @PRIOR("OCF_Investing Cash Outflows")+@PRIOR("OCF_Cash Outflows for Fixed Assets"));
+									ENDIF;
+									); 						   							  							
+									"OCF_Forecasted Net Cash Flow" (
+									"OCF_Forecasted Net Cash Flow"= @SUMRANGE("OCF_Total Cash",&amp;OEP_CurrYrPeriodRange) + @SUMRANGE("OCF_Total Cash",&amp;OEP_NextYrPeriodRange);								
+									);
+									"OCF_Forecasted Operating Cash Flow"(
+									"OCF_Forecasted Operating Cash Flow" = @SUMRANGE("OCF_Cash from Operating Activities",&amp;OEP_CurrYrPeriodRange) +@SUMRANGE("OCF_Cash from Operating Activities",&amp;OEP_NextYrPeriodRange);
+									);								
+									"OCF_Forecasted Non Operating Cash Flow"(
+									"OCF_Forecasted Non Operating Cash Flow"=@SUMRANGE("OCF_Cash from Investing Activities",&amp;OEP_CurrYrPeriodRange)+@SUMRANGE("OCF_Cash from Financing Activities",&amp;OEP_CurrYrPeriodRange) + @SUMRANGE("OCF_Cash from Investing Activities",&amp;OEP_NextYrPeriodRange)+@SUMRANGE("OCF_Cash from Financing Activities",&amp;OEP_NextYrPeriodRange);								
+									);
+									"OCF_Forecasted Cash Inflow"(
+									"OCF_Forecasted Cash Inflow"=(@SUMRANGE("OCF_Operating Cash Inflow",&amp;OEP_CurrYrPeriodRange)+@SUMRANGE("OCF_Financing Cash Inflows",&amp;OEP_CurrYrPeriodRange)+@SUMRANGE("OCF_Investing Cash Inflows",&amp;OEP_CurrYrPeriodRange)) +(@SUMRANGE("OCF_Operating Cash Inflow",&amp;OEP_NextYrPeriodRange)+@SUMRANGE("OCF_Financing Cash Inflows",&amp;OEP_NextYrPeriodRange)+@SUMRANGE("OCF_Investing Cash Inflows",&amp;OEP_NextYrPeriodRange));
+									);
+									"OCF_Forecasted Cash Outflow"(								
+									"OCF_Forecasted Cash Outflow"=(@SUMRANGE("OCF_Operating Cash Outflow",&amp;OEP_CurrYrPeriodRange)+@SUMRANGE("OCF_Financing Cash Outflows",&amp;OEP_CurrYrPeriodRange)+@SUMRANGE("OCF_Investing Cash Outflows",&amp;OEP_CurrYrPeriodRange)) +(@SUMRANGE("OCF_Operating Cash Outflow",&amp;OEP_NextYrPeriodRange)+@SUMRANGE("OCF_Financing Cash Outflows",&amp;OEP_NextYrPeriodRange)+@SUMRANGE("OCF_Investing Cash Outflows",&amp;OEP_NextYrPeriodRange)) ;								
+									);
+							  ENDFIX;	
+							  FIX("OCF_Opening Balance")
+										Datacopy "$endPeriod"->&amp;OEP_CurrYr  to  "$startPeriod"->&amp;OEP_NextYr;									
+							  ENDFIX;	
+							  FIX( &amp;OEP_NextYrPeriodRange,&amp;OEP_NextYr)
+							   "OCF_Opening Balance"(
+								@CALCMODE(BottomUp);
+									IF ( @ISMBR("$startPeriod"))									
+										"OCF_Opening Balance"= "OCF_Opening Balance"->&amp;OEP_CurrYr->"$endPeriod"+( "OCF_Operating Cash Inflow"->&amp;OEP_CurrYr->"$endPeriod"+ "OCF_Financing Cash Inflows"->&amp;OEP_CurrYr->"$endPeriod"+"OCF_Investing Cash Inflows"->&amp;OEP_CurrYr->"$endPeriod")-( "OCF_Operating Cash Outflow"->&amp;OEP_CurrYr->"$endPeriod"+ "OCF_Financing Cash Outflows"->&amp;OEP_CurrYr->"$endPeriod"+ "OCF_Investing Cash Outflows"->&amp;OEP_CurrYr->"$endPeriod"+ "OCF_Cash Outflows for Fixed Assets"->&amp;OEP_CurrYr->"$endPeriod");
+									else
+										"OCF_Opening Balance"= @PRIOR("OCF_Opening Balance")+( @PRIOR("OCF_Operating Cash Inflow")+ @PRIOR("OCF_Financing Cash Inflows")+@PRIOR("OCF_Investing Cash Inflows"))-( @PRIOR("OCF_Operating Cash Outflow")+ @PRIOR("OCF_Financing Cash Outflows")+ @PRIOR("OCF_Investing Cash Outflows")+@PRIOR("OCF_Cash Outflows for Fixed Assets"));
+									ENDIF;
+									); 						   
+							  ENDFIX;
+						ENDFIX;											
+				     """						
+				}
+		else
+			{
+			 	calcString= """					
+						 /*  FIX( "OEP_ACTUAL","OCF_Smart Drivers",$startPeriod:&amp;OEP_ActPeriod,@Relative("$totalBank",0 ),&amp;OEP_ActPeriodYr)
+							   "OCF_Opening Balance" (
+								IF ( @ISMBR("$startPeriod"))									
+									"OCF_Opening Balance"= "OCF_Opening Balance"->&amp;OEP_PriorYr->"$endPeriod"+( "OCF_Operating Cash Inflow"->&amp;OEP_PriorYr->"$endPeriod"+ "OCF_Financing Cash Inflows"->&amp;OEP_PriorYr->"$endPeriod"+"OCF_Investing Cash Inflows"->&amp;OEP_PriorYr->"$endPeriod")-( "OCF_Operating Cash Outflow"->&amp;OEP_PriorYr->"$endPeriod"+ "OCF_Financing Cash Outflows"->&amp;OEP_PriorYr->"$endPeriod"+ "OCF_Investing Cash Outflows"->&amp;OEP_PriorYr->"$endPeriod" + "OCF_Cash Outflows for Fixed Assets"->&amp;OEP_PriorYr->"$endPeriod");
+								ElSE
+									"OCF_Opening Balance"= @PRIOR("OCF_Opening Balance")+( @PRIOR("OCF_Operating Cash Inflow")+ @PRIOR("OCF_Financing Cash Inflows")+@PRIOR("OCF_Investing Cash Inflows"))-( @PRIOR("OCF_Operating Cash Outflow")+ @PRIOR("OCF_Financing Cash Outflows")+ @PRIOR("OCF_Investing Cash Outflows")+@PRIOR("OCF_Cash Outflows for Fixed Assets"));
+								ENDIF;	
+								); 						   
+						  ENDFIX;*/		
+						  FIX("OCF_Bank Balance",@Relative("$totalBank",0))
+									Datacopy "OEP_ACTUAL"->"OCF_Smart Drivers"->&amp;OEP_ActPeriod->&amp;OEP_ActPeriodYr  to "$scenarioMember"->"OCF_Forecasted"->&amp;OEP_CurrPeriod->&amp;OEP_CurrYr;
+						  ENDFIX;
+						  FIX( "$scenarioMember",&amp;OEP_CurrPeriod,"OCF_Forecasted",&amp;OEP_CurrYr)
+							FIX("OCF_Adjustments","OEP_Any $bankDimName")
+                               ClearData  "OCF_Opening Balance";
+                            ENDFIX;
+							FIX("OCF_Forecasted",@Relative("$totalBank",0))
+							   "OCF_Opening Balance"(
+								@CALCMODE(BottomUp);
+									IF ( @ISMBR("$startPeriod"))									
+										"OCF_Opening Balance"->"$noBankDimName"="OCF_Bank Balance"->&amp;OEP_ActPeriod->&amp;OEP_ActPeriodYr->"OEP_ACTUAL"->"OCF_Smart Drivers"->"$totalBank";
+									ElSE
+										"OCF_Opening Balance"->"$noBankDimName"="OCF_Bank Balance"->&amp;OEP_ActPeriod->"OEP_ACTUAL"->"OCF_Smart Drivers"->"$totalBank";
+									ENDIF;	
+							   );
+						   ENDFIX
+						  ENDFIX;
+						  FIX( "$scenarioMember","OCF_Forecasted","OCF_Adjustments","$noBankDimName","OEP_What If",&amp;OEP_CurrYr)
+							    FIX (&amp;OEP_CurrPeriod:&amp;OEP_FcstStartPeriod,&amp;OEP_CurrYrPeriodRange)		
+								   "OCF_Opening Balance" (
+									IF (NOT @ISMBR(&amp;OEP_CurrPeriod))
+										"OCF_Opening Balance"= @PRIOR("OCF_Opening Balance")+( @PRIOR("OCF_Operating Cash Inflow")+ @PRIOR("OCF_Financing Cash Inflows")+@PRIOR("OCF_Investing Cash Inflows"))-( @PRIOR("OCF_Operating Cash Outflow")+ @PRIOR("OCF_Financing Cash Outflows")+ @PRIOR("OCF_Investing Cash Outflows")+@PRIOR("OCF_Cash Outflows for Fixed Assets"));
+									ENDIF;
+									); 					
+									"OCF_Forecasted Net Cash Flow" (
+									"OCF_Forecasted Net Cash Flow"= @SUMRANGE("OCF_Total Cash",&amp;OEP_CurrYrPeriodRange);								
+									);
+									"OCF_Forecasted Operating Cash Flow"(
+									"OCF_Forecasted Operating Cash Flow" = @SUMRANGE("OCF_Cash from Operating Activities",&amp;OEP_CurrYrPeriodRange);
+									);								
+									"OCF_Forecasted Non Operating Cash Flow"(
+									"OCF_Forecasted Non Operating Cash Flow"=@SUMRANGE("OCF_Cash from Investing Activities",&amp;OEP_CurrYrPeriodRange)+@SUMRANGE("OCF_Cash from Financing Activities",&amp;OEP_CurrYrPeriodRange);								
+									);
+									"OCF_Forecasted Cash Inflow"(
+									"OCF_Forecasted Cash Inflow"=(@SUMRANGE("OCF_Operating Cash Inflow",&amp;OEP_CurrYrPeriodRange)+@SUMRANGE("OCF_Financing Cash Inflows",&amp;OEP_CurrYrPeriodRange)+@SUMRANGE("OCF_Investing Cash Inflows",&amp;OEP_CurrYrPeriodRange));
+									);
+									"OCF_Forecasted Cash Outflow"(								
+									"OCF_Forecasted Cash Outflow"=(@SUMRANGE("OCF_Operating Cash Outflow",&amp;OEP_CurrYrPeriodRange)+@SUMRANGE("OCF_Financing Cash Outflows",&amp;OEP_CurrYrPeriodRange)+@SUMRANGE("OCF_Investing Cash Outflows",&amp;OEP_CurrYrPeriodRange));								
+									);
+								ENDFIX;		
+						  ENDFIX;	
+				"""				
+				}
+				return calcString;
+		}	
+		/*
+			*  This method generates script to adjust numbers by customer and supplier. 
+		 * 	@param   Curreny ,version and Entity members from form context on addtional dimensions.					 
+		 * 	@return  - returns script that adjusts data by party - customer and supplier.
+		 *  Additonal Notes :
+		*/
+		String adjustmentByParty(Cube cashFlowCube ,String entityMember,String versionMemberName,String currencyMember,String startPeriod,String endPeriod )
+		{
+					StringBuilder cscript = new StringBuilder(); 
+					def calcString;
+					String flexDim1Name = "flexDimension1";
+					String flexDim2Name = "flexDimension2";
+					String flexDim3Name = "flexDimension3";
+					String partyDimName="Party";
+					String buDimName="Business Unit";
+					String prjDimName="Category"
+					String catFixDimName = '"OEP_Any '+ prjDimName +'"'
+					String cashElementDimName = "Forecast Method";
+					String bankDimName="Bank";
+					String noBankMember="OEP_Any "+  bankDimName;
+					String entityDimName = "Entity";					
+					List&lt;String> noFixMembers=[];
+					List&lt;String> versionList = new ArrayList&lt;String>();					
+					String noFixMembersStr;					
+					String numOfPeriods = getNumberOfYears(cashFlowCube);
+					String ListofYears =(numOfPeriods=="1") ? "&amp;OEP_CurrYr" : "&amp;OEP_CurrYr,&amp;OEP_NextYr"	
+					String versionMember																		
+					String currencyDimName="Currency";
+					String forecastMethodDimName = "Forecast Method";
+					String yearDimName="Years"
+					String lineItemDimName="Line Item"
+					Application application = operation.application;	
+					UserVariable uvVariableScenario=operation.application.getUserVariable("OEP_Scenario");
+                    String scenarioMember=uvVariableScenario.getValue();
+					String calcStrOpeningBalance=calculateOpeningBalanceForOnsave(numOfPeriods,startPeriod,endPeriod,"OCF_Adjustments");	
+					noFixMembers.add('"'+currencyMember+'"');
+					if(application.hasDimension(flexDim1Name, cashFlowCube)) 
+					{
+					  noFixMembers.add('"No '+ flexDim1Name +'"');  
+					}
+					if(operation.application.hasDimension(flexDim2Name, cashFlowCube))
+					{
+					  noFixMembers.add('"No '+ flexDim2Name +'"') ;  
+					}
+					if(operation.application.hasDimension(flexDim3Name, cashFlowCube))
+					{
+					  noFixMembers.add('"No '+ flexDim3Name +'"'); 
+					}					
+					if(operation.application.hasDimension(buDimName, cashFlowCube))
+					{
+					  noFixMembers.add('"OEP_Any '+ buDimName +'"'); 
+					}					
+					if(operation.application.hasDimension(bankDimName, cashFlowCube))
+					{
+					  noFixMembers.add('"OEP_Any '+ bankDimName +'"'); 
+					}
+					noFixMembersStr=noFixMembers.join(",");
+					calcString ="""
+									SET AGGMISSG ON;
+									FIX("$entityMember","$scenarioMember",$noFixMembersStr)
+										FIX($catFixDimName )
+								"""					
+					cscript.append(calcString);
+					def assumptionGridDefBuilderPovDims = ["Scenario",  bankDimName]
+					def assumptionGridDefBuilderPovSelection = [ ["OEP_Forecast"], [noBankMember] ]
+					def addPovSelectionForAssumptionGrid = { String dimName -> 
+						  if(application.hasDimension(dimName, cashFlowCube)) {
+							assumptionGridDefBuilderPovDims.add(dimName)
+							assumptionGridDefBuilderPovSelection &lt;&lt; ["Total $dimName".toString()]
+						  }
+						}   
+						addPovSelectionForAssumptionGrid.call(flexDim1Name)
+						addPovSelectionForAssumptionGrid.call(flexDim2Name)
+						addPovSelectionForAssumptionGrid.call(flexDim3Name)
+						def addPovSelectionForAssumptionGridwithPrefix = { String dimName -> 
+						if(application.hasDimension(dimName, cashFlowCube)) {
+							assumptionGridDefBuilderPovDims.add(dimName)
+							assumptionGridDefBuilderPovSelection &lt;&lt; ["OEP_Total $dimName".toString()]
+						  }
+						}     							
+						addPovSelectionForAssumptionGridwithPrefix.call(buDimName)
+						addPovSelectionForAssumptionGridwithPrefix.call(prjDimName)
+						
+						  if(operation.application.getCurrencyMode().equals(CurrencyMode.SIMPLIFIED_MULTI_CURRENCY))
+						  {
+							assumptionGridDefBuilderPovDims.add("Currency")
+							assumptionGridDefBuilderPovSelection &lt;&lt; [currencyMember]
+						  }
+						 assumptionGridDefBuilderPovDims.add("Version");  
+						 assumptionGridDefBuilderPovSelection.add([versionMemberName]);
+						 versionList.add('"'+versionMemberName+'"')						 
+						  assumptionGridDefBuilderPovDims.add(entityDimName)
+						  assumptionGridDefBuilderPovSelection.add([entityMember])
+						  operation.grid.dataCellIterator({DataCell cell -> cell.edited}).each { it ->					
+					  String yearMemberName=it.getYearName();
+					  String lineItemMemberName=it.getAccountName();
+					  String periodMemberName=it.getPeriodName();
+					  scenarioMember= it.getPeriodName();
+					  String partyDimMemberName= it.getMemberName(partyDimName); 
+					  noFixMembers.add('"'+ partyDimMemberName +'"');					  
+					  Double  amtBeforeAdjustment
+					  Double  amtAfterAdjustment =it.getData()
+					  assumptionGridDefBuilderPovDims.add("Period");  
+					  assumptionGridDefBuilderPovSelection.add([periodMemberName]);	
+					  assumptionGridDefBuilderPovDims.add("Line Item");  
+					  assumptionGridDefBuilderPovSelection.add([lineItemMemberName]);						  
+					  assumptionGridDefBuilderPovDims.add("Years");  
+					  assumptionGridDefBuilderPovSelection.add([yearMemberName]); 
+					  DataGridDefinitionBuilder assumptionRevenueGridDefBuilder = cashFlowCube.dataGridDefinitionBuilder();
+					  assumptionRevenueGridDefBuilder.addPov(assumptionGridDefBuilderPovDims, assumptionGridDefBuilderPovSelection);
+					  assumptionGridDefBuilderPovDims.remove("Period"); 
+					  assumptionGridDefBuilderPovSelection.remove([periodMemberName]);	
+					   assumptionGridDefBuilderPovDims.remove("Line Item"); 
+					  assumptionGridDefBuilderPovSelection.remove([lineItemMemberName]);		
+					  assumptionGridDefBuilderPovDims.remove("Years") ;
+					  assumptionGridDefBuilderPovSelection.remove([yearMemberName]);
+					  assumptionRevenueGridDefBuilder.addColumn(['Forecast Method'], [ ['"OCF_Forecasted"'] ]);
+					  assumptionRevenueGridDefBuilder.addRow([partyDimName], [ [partyDimMemberName] ]);
+					 cashFlowCube.loadGrid(assumptionRevenueGridDefBuilder.build(), false).withCloseable {itCalc ->
+					   itCalc.dataCellIterator.each { it2->
+							 amtBeforeAdjustment=it2.getData()      
+							}
+					   }
+					   Double adjustmentAmount=amtAfterAdjustment-amtBeforeAdjustment;					  
+						
+					                           
+						 calcString ="""
+										FIX("$versionMemberName","$yearMemberName",@RELATIVE("$lineItemMemberName",0),"$periodMemberName","$partyDimMemberName")
+                                         "OCF_Adjustments"(
+											  @CreateBlock("OCF_Adjustments");											
+                                              "OCF_Adjustments"=$adjustmentAmount;                                             
+                                             );
+										ENDFIX;
+										   """       
+                      
+                      	
+						cscript.append(calcString);
+					}
+					versionMember=versionList.unique().join(",")
+				calcString ="""
+								
+										FIX($versionMember)
+													$calcStrOpeningBalance
+										ENDFIX
+									ENDFIX;	
+										FIX($versionMember,$ListofYears,"$startPeriod":"$endPeriod")
+											@IANCESTOR($catFixDimName);	
+										ENDFIX;
+								ENDFIX;
+								"""
+				cscript.append(calcString);				
+					return cscript.toString();  
+		
+		}
+		
+		/*
+			*  This method generates script to adjust numbers by forecast method. 
+		 * 	@param   Curreny ,version and Entity members from form context on addtional dimensions.					 
+		 * 	@return  - returns script that adjusts data by forecast method.
+		*/				 
+		String adjustmentByForecastMethod(Cube cashFlowCube ,String entityMember,String versionMemberName,String currencyMember,String startPeriod,String endPeriod )
+		{
+					boolean bCheckEditedCells = false;
+                    StringBuilder cscript = new StringBuilder();
+                    StringBuilder calcStringTwo = new StringBuilder();					
+                    String calcString,calcStringOne,calcStringThree;   
+					String flexDim1Name = "flexDimension1";
+					String flexDim2Name = "flexDimension2";
+					String flexDim3Name = "flexDimension3";
+					String partyDimName="Party";
+					String buDimName="Business Unit";
+					String prjDimName="Category"
+					String catFixDimName = '"OEP_Any '+ prjDimName +'"'
+					String bankDimName="Bank";
+					String noBankMember="OEP_Any "+  bankDimName;
+					String entityDimName = "Entity";					
+					List&lt;String> noFixMembers=[];
+					List&lt;String> versionList = new ArrayList&lt;String>();					
+					String noFixMembersStr;					
+					String numOfPeriods = getNumberOfYears(cashFlowCube);
+					String ListofYears =(numOfPeriods=="1") ? "&amp;OEP_CurrYr" : "&amp;OEP_CurrYr,&amp;OEP_NextYr"	
+					String versionMember																		
+					String currencyDimName="Currency";					
+					String forecastMethodDimName = "Forecast Method";
+					String yearDimName="Years"
+					String lineItemDimName="Line Item"
+					Application application = operation.application;	
+					UserVariable uvVariableScenario=operation.application.getUserVariable("OEP_Scenario");
+                    String scenarioMember=uvVariableScenario.getValue();
+					noFixMembers.add('"'+currencyMember+'"');
+					if(application.hasDimension(flexDim1Name, cashFlowCube)) 
+					{
+					  noFixMembers.add('"No '+ flexDim1Name +'"');  
+					}					
+					if(operation.application.hasDimension(flexDim2Name, cashFlowCube))
+					{
+					  noFixMembers.add('"No '+ flexDim2Name +'"') ;  
+					}
+					if(operation.application.hasDimension(flexDim3Name, cashFlowCube))
+					{
+					  noFixMembers.add('"No '+ flexDim3Name +'"'); 
+					}					
+					if(operation.application.hasDimension(buDimName, cashFlowCube))
+					{
+					  noFixMembers.add('"OEP_Any '+ buDimName +'"'); 
+					}					
+					if(operation.application.hasDimension(bankDimName, cashFlowCube))
+					{
+					  noFixMembers.add('"OEP_Any '+ bankDimName +'"'); 
+					}
+					if(operation.application.hasDimension(partyDimName, cashFlowCube))
+					{
+					  noFixMembers.add('"OEP_Any '+ partyDimName +'"'); 
+					}		
+                    
+					noFixMembersStr=noFixMembers.join(",");
+						 calcStringOne =""" 	
+											SET AGGMISSG ON;
+											FIX("$entityMember","$scenarioMember",$noFixMembersStr)
+											FIX($catFixDimName)										
+										"""						 
+					operation.grid.dataCellIterator({DataCell cell -> cell.edited}).each { it ->	
+					  bCheckEditedCells = true;
+					  String yearMemberName=it.getYearName();
+					  String lineItemMemberName=it.getAccountName();
+					  String periodMemberName=it.getPeriodName();
+					  scenarioMember= it.getScenarioName();					  
+					  Double  amtBeforeAdjustment
+					  Double  Adjustment =it.getData() 
+					  versionMember=versionList.unique().join(",")					  
+						 calcString ="""
+											FIX("$versionMemberName","$yearMemberName",@RELATIVE("$lineItemMemberName",0),"$periodMemberName")
+											"OCF_Adjustments"(
+											 @CreateBlock("OCF_Adjustments");											
+                                             "OCF_Adjustments"=$Adjustment;                                             
+                                             );
+										ENDFIX;	 
+										   """                                                 	
+						calcStringTwo.append(calcString);
+					}
+						 calcStringThree =""" 									
+									ENDFIX;	
+										FIX($versionMemberName,$ListofYears,"$startPeriod":"$endPeriod")
+											@IANCESTOR($catFixDimName);	
+										ENDFIX;	
+								ENDFIX;										
+										   """ 										
+						if( bCheckEditedCells == true) 
+						{  
+						cscript.append(calcStringOne);
+						cscript.append(calcStringTwo);
+						cscript.append(calcStringThree);
+						}
+						  println("$cscript")                
+											return cscript.toString();  		
+								}
+		
+		/***
+		 * This methods generates clear script for clearing the ERP integration data . This  Method will be used by integration process.   .
+		 * @param cube,secenario,version, entity  will be passed from form context.
+		 * @return  - returns calculation script to clear data from current period to future periods in both Actuals and forecast scenarios.
+		 **/
+		String ClearIntegrationData(Cube cashFlowCube,String scenarioMember,String versionMember,List&lt;String> entityMembers,String periodRollup)
+		{
+				StringBuilder cscript = new StringBuilder();			
+				List&lt;String> fixMembers = new ArrayList&lt;String>();				
+				String calcString;	
+				String fixEntityMember = entityMembers.join('","');
+				String flexDim1Name = "flexDimension1";
+				String flexDim2Name = "flexDimension2";
+				String flexDim3Name = "flexDimension3";
+				String currencyDimName="Currency";
+				String partyDimName="Party";
+				String buDimName="Business Unit";
+				String prjDimName="Category";
+				String bankDimName="Bank";
+				String noBankMember="OEP_Any "+ bankDimName;
+				String allBankMember="OEP_All "+ bankDimName;				
+				List&lt;String> lstPeriods=operation.application.getDimension("Period",cashFlowCube).getEvaluatedMembers('ILvl0Descendants("'+periodRollup+'")',cashFlowCube).collect{it.toString()};	
+				String endPeriod=lstPeriods.last();	
+				String erpMembers = getValidERPLineItems(cashFlowCube) 
+				if(operation.application.hasDimension(flexDim1Name, cashFlowCube))  fixMembers.add('@Relative("Total '+ flexDim1Name +'",0)');
+				if(operation.application.hasDimension(flexDim2Name, cashFlowCube))  fixMembers.add('@Relative("Total '+ flexDim2Name +'",0)');
+				if(operation.application.hasDimension(flexDim3Name, cashFlowCube))  fixMembers.add('@Relative("Total '+ flexDim3Name +'",0)');
+				if(operation.application.hasDimension(partyDimName, cashFlowCube))  fixMembers.add('@Relative("OEP_Total '+ partyDimName +'",0)');
+				if(operation.application.hasDimension(buDimName, cashFlowCube))  fixMembers.add('@Relative("OEP_Total '+ buDimName +'",0)');
+				if(operation.application.hasDimension(prjDimName, cashFlowCube))  fixMembers.add('@Relative("OEP_Total '+ prjDimName +'",0)');
+				if(operation.application.getCurrencyMode().equals(CurrencyMode.SIMPLIFIED_MULTI_CURRENCY))  fixMembers.add('@Relative("Input Currencies",0)'); 
+				String fixMemberStr= fixMembers.join(",");				
+				calcString ="""
+										SET UPDATECALC OFF;
+										SET AGGMISSG ON;
+										FIX("$fixEntityMember",$fixMemberStr,"$versionMember" ,@Relative("OEP_Total $bankDimName",0))						
+										  FIX("$erpMembers")
+											 FIX("OEP_Actual",&amp;OEP_CurrPeriod:$endPeriod,&amp;OEP_PriorYr )
+														cleardata "OCF_Smart Drivers";
+											 ENDFIX
+											 FIX("OEP_Actual",@relative("$periodRollup",0),&amp;OEP_CurrYr )
+														cleardata "OCF_Smart Drivers";
+											 ENDFIX
+											 FIX("$scenarioMember", &amp;OEP_FcstStartPeriod:$endPeriod,&amp;OEP_CurrYr )
+														cleardata "OCF_Smart Drivers";
+											 ENDFIX;
+											 FIX("$scenarioMember", @relative("$periodRollup",0),&amp;OEP_NextYr )
+														cleardata "OCF_Smart Drivers";
+											 ENDFIX;
+										  ENDFIX;   
+									   ENDFIX;                     
+											
+							"""          
+						cscript.append(calcString);
+				return cscript.toString(); 				
+		}
+		
+		String rollupByEntity(Cube cashFlowCube,String scenarioMember,String versionMember,String currencyMember,String entityMember,String periodRollup)
+		{
+				StringBuilder cscript = new StringBuilder();			
+				List&lt;String> fixMembers = new ArrayList&lt;String>();				
+				String calcString;				
+				String flexDim1Name = "flexDimension1";
+				String flexDim2Name = "flexDimension2";
+				String flexDim3Name = "flexDimension3";
+				String currencyDimName="Currency";
+				String partyDimName="Party";
+				String buDimName="Business Unit";
+				String prjDimName="Category";
+				String bankDimName="Bank";
+				if(operation.application.hasDimension(flexDim1Name, cashFlowCube))  fixMembers.add('@Relative("Total '+ flexDim1Name +'",0)');
+				if(operation.application.hasDimension(flexDim2Name, cashFlowCube))  fixMembers.add('@Relative("Total '+ flexDim2Name +'",0)');
+				if(operation.application.hasDimension(flexDim3Name, cashFlowCube))  fixMembers.add('@Relative("Total '+ flexDim3Name +'",0)');
+				if(operation.application.hasDimension(partyDimName, cashFlowCube))  fixMembers.add('@Relative("OEP_Total '+ partyDimName +'",0)');
+				if(operation.application.hasDimension(buDimName, cashFlowCube))  fixMembers.add('@Relative("OEP_Total '+ buDimName +'",0)');							
+				if(operation.application.hasDimension(bankDimName, cashFlowCube))  fixMembers.add('@Relative("OEP_Total '+ bankDimName +'",0)');
+				String fixMemberStr= fixMembers.join(",");
+				String numOfPeriods = getNumberOfYears(cashFlowCube)	
+				if (numOfPeriods=="2")
+					{	
+						calcString ="""
+									   SET UPDATECALC OFF;
+									   SET AGGMISSG ON;		
+									   FIX("$scenarioMember",$fixMemberStr,"$versionMember",$currencyMember,@relative("OCF_Total Forecasted Cash",0),@relative("OCF_All Forecast Method",0),@relative("OCF_All Line Item",0),@relative("OCF_Cash Flow Metrics",0) )											 
+											 @IDESCENDANTS("OEP_Total $prjDimName");
+											 FIX(&amp;OEP_CurrYr,&amp;OEP_NextYr,@relative ("$periodRollup",0))
+														@IDESCENDANTS("$entityMember");
+											 ENDFIX
+									   ENDFIX;  
+							"""          
+					 }
+					 else
+					 {
+						calcString ="""
+									   SET UPDATECALC OFF;
+									   SET AGGMISSG ON;	
+									   FIX("$scenarioMember",$fixMemberStr,"$versionMember",$currencyMember,@relative("OCF_Total Forecasted Cash",0),@relative("OCF_All Forecast Method",0),@relative("OCF_All Line Item",0),@relative("OCF_Cash Flow Metrics",0) )
+											 @IDESCENDANTS("OEP_Total $prjDimName");
+											 FIX(&amp;OEP_CurrYr, @relative ("$periodRollup",0))
+														@IDESCENDANTS("$entityMember");
+											 ENDFIX
+									   ENDFIX;  
+							"""    
+					 }
+					cscript.append(calcString);	
+				return cscript.toString()
+		}
+				
+	</script><template_wizard/><template_prompts><restricted_prompt name="Application Type" type="Application Type" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Generic</property><property name="value">GENERAL</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PFP</property><property name="value">PROJECT</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PSB</property><property name="value">PSB</property></restricted_prompt_item></restricted_prompt><restricted_prompt name="Application" type="Application" isPrompt="no"><property name="is_system">true</property><value>Is Single Currency</value><restricted_prompt_item><property name="prompt">Is Multi Currency</property><property name="value">multi</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Single Currency</property><property name="value">single</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Simple Currency</property><property name="value">simple</property></restricted_prompt_item></restricted_prompt><template_slice_prompt name="UpperPOV" type="Member Range" isPrompt="false"><property name="is_system">true</property></template_slice_prompt><restricted_prompt name="Essbase Mode" type="Essbase Mode" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Hybrid</property><property name="value">Hybrid</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is NonHybrid</property><property name="value">NonHybrid</property></restricted_prompt_item></restricted_prompt></template_prompts></template></templates></HBRRepo>

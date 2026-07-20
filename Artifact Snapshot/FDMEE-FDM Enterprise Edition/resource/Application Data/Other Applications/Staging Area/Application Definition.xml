@@ -1,0 +1,104 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<TargetApplicationForLcmVO>
+   <TargetApplicationForLcmVORow>
+      <ApplicationName>Staging Area</ApplicationName>
+      <CreateDrillRegionFlag>N</CreateDrillRegionFlag>
+      <DataLoadMethod>ADAPTER</DataLoadMethod>
+      <DefaultLanguage>AMERICAN</DefaultLanguage>
+      <EssbaseDbName null="true"/>
+      <Intsystemkey>TARGET</Intsystemkey>
+      <MarkedForDeletion>N</MarkedForDeletion>
+      <MetadataLoadMethod>ADAPTER</MetadataLoadMethod>
+      <SelectedFlag>Y</SelectedFlag>
+      <TargetApplicationName>Staging Area</TargetApplicationName>
+      <TargetApplicationSubType>DATASTAGEEXPORT</TargetApplicationSubType>
+      <TargetApplicationType>DATASOURCE</TargetApplicationType>
+      <SourceSystemName>Data Source</SourceSystemName>
+      <TargetApplicationPropertiesForLcmVO>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>Adapter_LoadData</PropertyType>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>0</PropertyLevel>
+            <PropertyScope>SYSTEM</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>Adapter_jarfile</PropertyType>
+            <PropertyValue>FinancialDataQuality/lib/aif-file.jar</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>0</PropertyLevel>
+            <PropertyScope>SYSTEM</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>STAGE_TYPE</PropertyType>
+            <PropertyValue>DB</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <Condition>EQ</Condition>
+            <DisplayOrder>510</DisplayOrder>
+            <DisplayPrompt>Stage Type</DisplayPrompt>
+            <PropertyLevel>500</PropertyLevel>
+            <ValidationObject>STAGE_TYPE_LOV</ValidationObject>
+            <ValidationType>LOOKUP_VALIDATE</ValidationType>
+            <PropertyScope>TARGET</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>TARGET_DATASET_NAME</PropertyType>
+            <PropertyValueId>-1</PropertyValueId>
+            <Condition>EQ</Condition>
+            <DisplayOrder>1010</DisplayOrder>
+            <DisplayPrompt>Target Dataset Name</DisplayPrompt>
+            <PropertyLevel>1000</PropertyLevel>
+            <ValidationType>NONE</ValidationType>
+            <PropertyScope>TARGET</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>appcount</PropertyType>
+            <PropertyValue>SINGLE</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>0</PropertyLevel>
+            <PropertyScope>SYSTEM</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>code</PropertyType>
+            <PropertyValue>DATASTAGEEXPORT</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>0</PropertyLevel>
+            <PropertyScope>SYSTEM</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>name</PropertyType>
+            <PropertyValue>Data Source Stage Export</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>0</PropertyLevel>
+            <PropertyScope>SYSTEM</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>provider</PropertyType>
+            <PropertyValue>EPM</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>0</PropertyLevel>
+            <PropertyScope>SYSTEM</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>registrationfile</PropertyType>
+            <PropertyValue>FinancialDataQuality/database/adapters/plugin/DATASTAGEEXPORT.json</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>0</PropertyLevel>
+            <PropertyScope>SYSTEM</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>registrationtype</PropertyType>
+            <PropertyValue>JSON</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>0</PropertyLevel>
+            <PropertyScope>SYSTEM</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+         <TargetApplicationPropertiesForLcmVORow>
+            <PropertyType>usage</PropertyType>
+            <PropertyValue>TARGET</PropertyValue>
+            <PropertyValueId>-1</PropertyValueId>
+            <PropertyLevel>0</PropertyLevel>
+            <PropertyScope>SYSTEM</PropertyScope>
+         </TargetApplicationPropertiesForLcmVORow>
+      </TargetApplicationPropertiesForLcmVO>
+   </TargetApplicationForLcmVORow>
+</TargetApplicationForLcmVO>

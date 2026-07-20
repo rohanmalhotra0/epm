@@ -1,0 +1,118 @@
+﻿#!-- HEADERBLOCK DIMENSION XML
+<?xml version="1.0" encoding="UTF-8" ?>
+<DIMENSIONS>
+ <Dimension name="Party" EnabledForCellLevelSecurity="true" origname="Party" EnabledForApprovalGroups="true" DataId="2686954200778984" EnabledForValidIntersections="true" comment="" dimensionType="None" csversion="2.5" OldName="Party" density="Sparse" DimensionAlias="Party" dimensionName="Custom" UUID="72520b48-f33f-4733-99c4-0e72836d3d68" OldUniqueName="" >
+ <Plan1Density>Sparse</Plan1Density>
+ <OEP_RCSHDensity>Sparse</OEP_RCSHDensity>
+ <OEP_DCSHDensity>Sparse</OEP_DCSHDensity>
+ <OEP_PCSHDensity>Sparse</OEP_PCSHDensity>
+ <Plan5Density>Sparse</Plan5Density>
+ <Plan6Density>Sparse</Plan6Density>
+ <Plan7Density>Sparse</Plan7Density>
+ <Plan8Density>Sparse</Plan8Density>
+ <Plan9Density>Sparse</Plan9Density>
+ <Plan10Density>Sparse</Plan10Density>
+ <Plan11Density>Sparse</Plan11Density>
+ <Plan12Density>Sparse</Plan12Density>
+ <Plan13Density>Sparse</Plan13Density>
+ <Plan14Density>Sparse</Plan14Density>
+ <Plan15Density>Sparse</Plan15Density>
+ <EnumOrder1>0</EnumOrder1>
+ <EnumOrderOEP_RCSH>0</EnumOrderOEP_RCSH>
+ <EnumOrderOEP_DCSH>0</EnumOrderOEP_DCSH>
+ <EnumOrderOEP_PCSH>0</EnumOrderOEP_PCSH>
+ <EnumOrder5>0</EnumOrder5>
+ <EnumOrder6>0</EnumOrder6>
+ <EnumOrder7>0</EnumOrder7>
+ <EnumOrder8>0</EnumOrder8>
+ <EnumOrder9>0</EnumOrder9>
+ <EnumOrder10>0</EnumOrder10>
+ <EnumOrder11>0</EnumOrder11>
+ <EnumOrder12>0</EnumOrder12>
+ <EnumOrder13>0</EnumOrder13>
+ <EnumOrder14>0</EnumOrder14>
+ <EnumOrder15>0</EnumOrder15>
+ <Plan1PerfOrder>11</Plan1PerfOrder>
+ <OEP_RCSHPerfOrder>7</OEP_RCSHPerfOrder>
+ <OEP_DCSHPerfOrder>7</OEP_DCSHPerfOrder>
+ <OEP_PCSHPerfOrder>7</OEP_PCSHPerfOrder>
+ <Plan5PerfOrder>11</Plan5PerfOrder>
+ <Plan6PerfOrder>11</Plan6PerfOrder>
+ <Plan7PerfOrder>11</Plan7PerfOrder>
+ <Plan8PerfOrder>0</Plan8PerfOrder>
+ <Plan9PerfOrder>0</Plan9PerfOrder>
+ <Plan10PerfOrder>0</Plan10PerfOrder>
+ <Plan11PerfOrder>0</Plan11PerfOrder>
+ <Plan12PerfOrder>0</Plan12PerfOrder>
+ <Plan13PerfOrder>0</Plan13PerfOrder>
+ <Plan14PerfOrder>0</Plan14PerfOrder>
+ <Plan15PerfOrder>0</Plan15PerfOrder>
+ <ApplySecurity>N</ApplySecurity>
+ <PartialShare>N</PartialShare>
+ <UDA number="1" >HSP_UDF</UDA>
+ <DisplayOption>MEMBER_NAME</DisplayOption>
+ <Consolidation>NotUsed</Consolidation>
+ <ConsolidationOEP_RCSH>~</ConsolidationOEP_RCSH>
+ <ConsolidationOEP_DCSH>~</ConsolidationOEP_DCSH>
+ <ConsolidationOEP_PCSH>~</ConsolidationOEP_PCSH>
+ <ConsolidationWF>NotUsed</ConsolidationWF>
+ <ConsolidationCX>NotUsed</ConsolidationCX>
+ <Consolidation64>NotUsed</Consolidation64>
+ <Consolidation128>NotUsed</Consolidation128>
+ <Consolidation256>NotUsed</Consolidation256>
+ <Consolidation512>NotUsed</Consolidation512>
+ <Consolidation1024>NotUsed</Consolidation1024>
+ <Consolidation2048>NotUsed</Consolidation2048>
+ <Consolidation4096>NotUsed</Consolidation4096>
+ <Consolidation8192>NotUsed</Consolidation8192>
+ <Consolidation16384>NotUsed</Consolidation16384>
+ <ValidForPlan1>N</ValidForPlan1>
+ <ValidForOEP_RCSH>Y</ValidForOEP_RCSH>
+ <ValidForOEP_DCSH>Y</ValidForOEP_DCSH>
+ <ValidForOEP_PCSH>Y</ValidForOEP_PCSH>
+ <ValidForPlan5>N</ValidForPlan5>
+ <ValidForPlan6>N</ValidForPlan6>
+ <ValidForPlan7>N</ValidForPlan7>
+ <ValidForPlan8>N</ValidForPlan8>
+ <ValidForPlan9>N</ValidForPlan9>
+ <ValidForPlan10>N</ValidForPlan10>
+ <ValidForPlan11>N</ValidForPlan11>
+ <ValidForPlan12>N</ValidForPlan12>
+ <ValidForPlan13>N</ValidForPlan13>
+ <ValidForPlan14>N</ValidForPlan14>
+ <ValidForPlan15>N</ValidForPlan15>
+ <Alias table="Default" ></Alias>
+ <DataStorage>NeverShare</DataStorage>
+ <DataStorageOEP_RCSH>NeverShare</DataStorageOEP_RCSH>
+ <DataStorageOEP_DCSH>NeverShare</DataStorageOEP_DCSH>
+ <DataStorageOEP_PCSH>NeverShare</DataStorageOEP_PCSH>
+ <DataStorage16>NeverShare</DataStorage16>
+ <DataStorage32>NeverShare</DataStorage32>
+ <DataStorage64>NeverShare</DataStorage64>
+ <DataStorage128>NeverShare</DataStorage128>
+ <DataStorage256>NeverShare</DataStorage256>
+ <DataStorage512>NeverShare</DataStorage512>
+ <DataStorage1024>NeverShare</DataStorage1024>
+ <DataStorage2048>NeverShare</DataStorage2048>
+ <DataStorage4096>NeverShare</DataStorage4096>
+ <DataStorage8192>NeverShare</DataStorage8192>
+ <DataStorage16384>NeverShare</DataStorage16384>
+ <HierarchyType>None</HierarchyType>
+ <DataType>Unspecified</DataType>
+</Dimension>
+</DIMENSIONS>
+#--!
+Party, Parent, Alias: Default, Valid For Consolidations, Data Storage, Two Pass Calculation, Description, Formula, Formula Description, UDA, Smart List, Data Type, Hierarchy Type, Enable for Dynamic Children, Number of Possible Dynamic Children, Access Granted to Member Creator, Allow Upper Level Entity Input, Process Management Enabled, UUID, Data Id, Old Name, Old Unique Name, Plan Type (OEP_RCSH), Aggregation (OEP_RCSH), Data Storage (OEP_RCSH), Formula (OEP_RCSH), Solve Order (OEP_RCSH), Formula Description (OEP_RCSH), Plan Type (OEP_DCSH), Aggregation (OEP_DCSH), Data Storage (OEP_DCSH), Formula (OEP_DCSH), Solve Order (OEP_DCSH), Formula Description (OEP_DCSH), Plan Type (OEP_PCSH), Aggregation (OEP_PCSH), Data Storage (OEP_PCSH), Formula (OEP_PCSH), Solve Order (OEP_PCSH), Formula Description (OEP_PCSH), Operation
+No Party,Party,,,store,,,,,,,,,,,,,,17a626f6-46d8-4f48-93e3-807ad6db1a34,4067206585468518,No Party,<none>,,,,,,,,,,,,,,,,,,,reposition only
+OEP_Total Party,Party,,,dynamic calc,,,,,,,,,,,,,,5e690535-4184-4906-ab23-df7ab712c5f1,3655683794618737,OEP_Total Party,<none>,,,,,,,,,,,,,,,,,,,reposition only
+OEP_All Customers,OEP_Total Party,,,dynamic calc,,,,,,,,,,,,,,1aa10499-afa8-4174-bf8a-f128a675853f,4159786029303227,OEP_All Customers,<none>,,,,,,,,,,,,,,,,,,,reposition only
+OEP_Top Customers,OEP_All Customers,,,dynamic calc,,,,,,,,,,,,,,7726a92b-3427-496b-9266-658202b5d525,1733353795897302,OEP_Top Customers,<none>,,,,,,,,,,,,,,,,,,,reposition only
+CUST_0000,OEP_Top Customers,Top Customer 0,false,never share,false,Top Customer 0,<none>,<none>,,,unspecified,none,,,,false,true,49756d43-304d-4949-9853-ac179729169c,3727463196938060,CUST_0000,<none>,true,+,never share,<none>,0,,true,+,never share,<none>,0,,true,+,never share,<none>,0,,
+OEP_Total Other Customers,OEP_All Customers,,,dynamic calc,,,,,,,,,,,,,,bdf7dd58-889d-43ab-bc9b-2dbd835ea527,1904405136098887,OEP_Total Other Customers,<none>,,,,,,,,,,,,,,,,,,,reposition only
+CUST_OTHERS,OEP_Total Other Customers,Other Customers,false,never share,false,Other Customers,<none>,<none>,,,unspecified,none,,,,false,true,418e2d8a-1817-44cf-92ad-416a51092f3b,3015985104572108,CUST_OTHERS,<none>,true,+,never share,<none>,0,,true,+,never share,<none>,0,,true,+,never share,<none>,0,,
+OEP_All Suppliers,OEP_Total Party,,,dynamic calc,,,,,,,,,,,,,,4ad2fa54-33fa-4e1f-8cc0-e63d3fccc3ca,1989801258077613,OEP_All Suppliers,<none>,,,,,,,,,,,,,,,,,,,reposition only
+OEP_Top Suppliers,OEP_All Suppliers,,,dynamic calc,,,,,,,,,,,,,,e7c7ca19-8f6f-4b90-a315-8928bec176d3,2850343408451609,OEP_Top Suppliers,<none>,,,,,,,,,,,,,,,,,,,reposition only
+SUPP_0000,OEP_Top Suppliers,Top Supplier 0,false,never share,false,Top Supplier 0,<none>,<none>,,,unspecified,none,,,,false,true,9287f9b8-6183-4723-b38a-e2343f123c9e,3924603153763727,SUPP_0000,<none>,true,+,never share,<none>,0,,true,+,never share,<none>,0,,true,+,never share,<none>,0,,
+OEP_Total Other Suppliers,OEP_All Suppliers,,,dynamic calc,,,,,,,,,,,,,,e499659a-c2ee-4748-a847-c37d0841ad92,2707394802763153,OEP_Total Other Suppliers,<none>,,,,,,,,,,,,,,,,,,,reposition only
+SUPP_OTHERS,OEP_Total Other Suppliers,Other Suppliers,false,never share,false,Other Suppliers,<none>,<none>,,,unspecified,none,,,,false,true,695e9893-60a7-493f-8b7b-6dbfefb64fcb,890202983252370,SUPP_OTHERS,<none>,true,+,never share,<none>,0,,true,+,never share,<none>,0,,true,+,never share,<none>,0,,
+OEP_Any Party,OEP_Total Party,,,store,,,,,,,,,,,,,,13f49c0c-4632-4b15-b368-ca24bd91a02a,2844641411157471,OEP_Any Party,<none>,,,,,,,,,,,,,,,,,,,reposition only

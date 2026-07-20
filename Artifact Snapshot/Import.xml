@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package>
+   <LOCALE>en_US</LOCALE>
+   <User name="" password=""/>
+   <ExportedVersion>26.07.95</ExportedVersion>
+   <ExportedDateUTC>20260720</ExportedDateUTC>
+   <ExportedTimeUTC>12:56</ExportedTimeUTC>
+   <ExportedBy>epm_default_cloud_admin</ExportedBy>
+   <IDMDomain>mcw2027</IDMDomain>
+   <ServiceInstance>epmpcf-test</ServiceInstance>
+   <Task>
+      <Source type="FileSystem" filePath="/HSS-Shared Services"/>
+      <Target type="Application" product="HUB" project="Foundation" application="Shared Services"/>
+      <Artifact recursive="false" parentPath="/Native Directory" pattern="Groups"/>
+      <Artifact recursive="true" parentPath="/Native Directory/Assigned Roles" pattern="*"/>
+      <Artifact recursive="true" parentPath="/External Directory" pattern="*"/>
+      <Artifact recursive="false" parentPath="/Options" pattern="Options"/>
+   </Task>
+   <Task>
+      <Source type="FileSystem" filePath="/HP-MCW_PCF"/>
+      <Target type="Application" product="HP" project="Default Application Group" application="MCW_PCF"/>
+      <Artifact recursive="true" parentPath="/" pattern="*"/>
+   </Task>
+   <Task>
+      <Source type="FileSystem" filePath="/DOCREP-Document Repository"/>
+      <Target type="Application" product="DOCREP" project="Default Application Group" application="Document Repository"/>
+      <Artifact recursive="true" parentPath="/" pattern="*"/>
+   </Task>
+   <Task>
+      <Source type="FileSystem" filePath="/CALC-Calculation Manager"/>
+      <Target type="Application" product="CALC" project="Foundation" application="Calculation Manager"/>
+      <Artifact recursive="true" parentPath="/" pattern="*"/>
+   </Task>
+   <Task>
+      <Source type="FileSystem" filePath="/FDMEE-FDM Enterprise Edition"/>
+      <Target type="Application" product="AIF" project="FDM" application="FDM Enterprise Edition"/>
+      <Artifact recursive="true" parentPath="/" pattern="*"/>
+   </Task>
+</Package>

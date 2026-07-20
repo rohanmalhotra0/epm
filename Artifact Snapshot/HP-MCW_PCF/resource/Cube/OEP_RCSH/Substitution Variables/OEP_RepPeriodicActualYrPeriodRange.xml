@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <substitutionVariable>
+ <name>OEP_RepPeriodicActualYrPeriodRange</name>
+ <value>[Jan]:[Jun]</value>
+ <planType>OEP_RCSH</planType>
+</substitutionVariable>

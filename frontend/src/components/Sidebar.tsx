@@ -103,14 +103,16 @@ export function Sidebar() {
     const target = deleteTarget;
     if (!target) return;
     setDeleteTarget(null);
+    // If deleting the currently viewed chat, navigate away immediately to avoid
+    // showing stale content while the deletion completes.
+    if (id === target.id) {
+      const remaining = sorted.filter((c) => c.id !== target.id);
+      nav(remaining.length > 0 ? `/c/${remaining[0].id}` : "/", { replace: true });
+    }
     del
       .mutateAsync(target.id)
       .then(() => {
         toast.success("Conversation deleted", target.title);
-        if (id === target.id) {
-          const remaining = sorted.filter((c) => c.id !== target.id);
-          nav(remaining.length > 0 ? `/c/${remaining[0].id}` : "/");
-        }
       })
       .catch(() => {
         /* error toast raised by the hook */

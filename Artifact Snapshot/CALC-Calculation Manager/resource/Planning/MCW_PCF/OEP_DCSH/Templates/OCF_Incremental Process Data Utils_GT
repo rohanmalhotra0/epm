@@ -1,0 +1,180 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<HBRRepo><variables/><rulesets/><rules/><components/><deployobjects><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="1" obj_type="19" name="OCF_INCREMENTAL PROCESS DATA UTILS_GT"/></deployobjects><templates><template custom="yes" id="1" name="OCF_Incremental Process Data Utils_GT" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><property name="standAlone">false</property><script type="groovy">			/***
+			 Checks source line item exists in list of line itesms.
+			***/
+			  boolean checkLineItem(Set&lt;String> sourceFileLineItems,List&lt;String> applicationLineItems)
+               {
+			   boolean result=false;			   
+               	sourceFileLineItems.each()
+                {  
+                  it -> applicationLineItems.each ()
+                  { 
+                    it1 ->					
+                    if ( it.split('\\.')[1] == it1.split('\\.')[1]) 
+					{					
+					result=true;   
+					}             
+                  }
+                }				
+				return result; 
+               }
+			   
+			/**** Cconver Set to String. ****/ 
+			   String convertSettoString(Set&lt;String> memberSet)
+			   {
+			    String memberString= '"'+memberSet.join(('","'))+'"';
+			     return memberString;
+			   }
+			/ **** Cconver Set to String. ****/ 
+			   String convertSettoStringWithoutQuotes(Set&lt;String> memberSet)
+			   {
+			    String memberString= memberSet.join((','));
+			     return memberString;
+			   } 
+			 
+		  /***
+			 * Purpose : This method is used to generate business rule script for the intersections coming through data file. This rule will computes driver methods for specific intersections.
+			 *  Its common rule for all driver methods, Groovy scripts checks avaialblity of driver methods meembers and also checks if data file contains members assoicated to driver method then invokes corresponding business rule
+			 * @param cube,Period Rollup and Fix Parallel dimension.  			 * 
+			 * @return  - returns calculation script to compute Pay Terms, populate Pay Terms numbers to rollign forecast screen based on forecast method settings, and calulation logic to compute opening balance.
+			 **/
+			String incrementalProcessDriverData(Cube cashFlowCube,String periodRollup,String fixParallelDim)
+			{	
+				String entityMember,versionMember,scenarioMember,flexDim1Member,flexDim2Member,flexDim3Member,partyMember,buMember,prjMember,currencyMember,revenueTaxes,projectReciepts,dsoCalc,dpoCalc,expenseCalc,fixedAssetCalc,recurringtCalc,salCalc;
+				String projectPayments,directTaxCalc,indirectTax;
+				StringBuilder cscript = new StringBuilder();
+				Set&lt;String> entityMembers =[];
+				Set&lt;String> scenarioMembers=[];
+				Set&lt;String> versionMembers=[];
+				Set&lt;String> flexDim1Members =[];
+				Set&lt;String> flexDim2Members =[];
+				Set&lt;String> flexDim3Members =[];
+				Set&lt;String> partyDimMembers =[];
+				Set&lt;String> buDimMembers =[];
+				Set&lt;String> prjDimMembers =[]; 
+				Set&lt;String> currencyDimMembers =[] ;
+				Set&lt;String> lineItems =[];				
+				String lineItemDimName="Line Item";	
+				String flexDim1Name = "flexDimension1";
+				String flexDim2Name = "flexDimension2";
+				String flexDim3Name = "flexDimension3";
+				String currencyDimName="Currency";               
+				String partyDimName="Party";
+				String buDimName="Business Unit";
+				String bankDimName="Bank";
+				String prjDimName="Category" ;					
+				int driverMethodCount=0;
+				List&lt;String> lstPeriods=operation.application.getDimension("Period",cashFlowCube).getEvaluatedMembers('ILvl0Descendants("'+periodRollup+'")',cashFlowCube).collect{it.toString()};
+				String startPeriod=lstPeriods.first();	
+				String endPeriod=lstPeriods.last();						
+				int totalPeriods=lstPeriods.size();				 
+				List&lt;String> revenueList=operation.application.getDimension(lineItemDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("OCF_Total Revenue Receipts")',cashFlowCube).collect{it.toString()};
+                List&lt;String> projectRecieptsList=operation.application.getDimension(lineItemDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("OCF_Total Project Receipts")',cashFlowCube).collect{it.toString()};
+				List&lt;String> dsoList=operation.application.getDimension(lineItemDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("OCF_Total DSO")',cashFlowCube).collect{it.toString()};
+				List&lt;String> dpoList=operation.application.getDimension(lineItemDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("OCF_Total DPO")',cashFlowCube).collect{it.toString()};
+				List&lt;String> expenseList=operation.application.getDimension(lineItemDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("OCF_Total Expense Payments")',cashFlowCube).collect{it.toString()};
+				List&lt;String> fixedAssetList=operation.application.getDimension(lineItemDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("OCF_Total Fixed Asset Payments")',cashFlowCube).collect{it.toString()};
+				List&lt;String> recurringList=operation.application.getDimension(lineItemDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("OCF_Total Recurring Payments")',cashFlowCube).collect{it.toString()};
+				List&lt;String> salaryList=operation.application.getDimension(lineItemDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("OCF_Total Salary Payments")',cashFlowCube).collect{it.toString()};
+				List&lt;String> projectPaymentsList=operation.application.getDimension(lineItemDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("OCF_Total Project Payments")',cashFlowCube).collect{it.toString()};
+				List&lt;String> directList=operation.application.getDimension(lineItemDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("OCF_Total Direct Tax Payment")',cashFlowCube).collect{it.toString()};
+				List&lt;String> indirectList=operation.application.getDimension(lineItemDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("OCF_Total Indirect Tax Payment")',cashFlowCube).collect{it.toString()};
+				 if ( operation.hasDataValueProvider())                
+					{
+						  operation.dataValueProvider.dataValueIterator(MemberNameType.ESSBASE_NAME).each()
+							{								
+								scenarioMembers.add(it.scenarioName);
+								versionMembers.add(it.versionName);
+								entityMembers.add(it.entityName) ;                   	
+								if(operation.application.hasDimension(flexDim1Name, cashFlowCube)) flexDim1Members.add(it.getMemberName(flexDim1Name));
+								if(operation.application.hasDimension(flexDim2Name, cashFlowCube)) flexDim2Members.add(it.getMemberName(flexDim2Name));							
+								if(operation.application.hasDimension(flexDim3Name, cashFlowCube)) flexDim3Members.add(it.getMemberName(flexDim3Name));								
+								if(operation.application.hasDimension(partyDimName, cashFlowCube)) partyDimMembers.add(it.getMemberName(partyDimName));							
+								if(operation.application.hasDimension(buDimName, cashFlowCube)) buDimMembers.add(it.getMemberName(buDimName));
+								if(operation.application.hasDimension(prjDimName, cashFlowCube)) prjDimMembers.add(it.getMemberName(prjDimName));
+								if(operation.application.hasDimension(lineItemDimName, cashFlowCube))lineItems.add(it.getMemberName(lineItemDimName));							
+								currencyDimMembers.add(it.getMemberName(currencyDimName));
+							}
+					}
+					entityMember = convertSettoString(entityMembers);    
+                    versionMember = convertSettoStringWithoutQuotes(versionMembers);
+                    scenarioMember = convertSettoString(scenarioMembers); 
+                    flexDim1Member = convertSettoString(flexDim1Members);
+                    flexDim2Member =convertSettoString(flexDim2Members);
+                    flexDim3Member =convertSettoString(flexDim3Members);
+                    partyMember= convertSettoString(partyDimMembers);
+                    buMember=convertSettoString(buDimMembers);
+                    prjMember=convertSettoString(prjDimMembers);
+                    currencyMember=convertSettoString(currencyDimMembers);					
+					if (checkLineItem(lineItems,revenueList))
+					{
+					 	revenueTaxes=calculateRevenueReciepts(cashFlowCube,scenarioMember,versionMember,entityMember,startPeriod,endPeriod,fixParallelDim,totalPeriods,periodRollup,flexDim1Member,flexDim2Member,flexDim3Member,partyMember,buMember,prjMember,currencyMember);
+						cscript.append(revenueTaxes)
+						driverMethodCount++;
+					}
+				   	if (checkLineItem(lineItems,projectRecieptsList))
+					{
+						projectReciepts=calculateProjectReciepts(cashFlowCube,scenarioMember,versionMember,entityMember, startPeriod,endPeriod,fixParallelDim,totalPeriods,periodRollup,flexDim1Member,flexDim2Member,flexDim3Member,partyMember,buMember,prjMember,currencyMember);
+						cscript.append(projectReciepts);
+						driverMethodCount++;	
+					}
+					if (checkLineItem(lineItems,dsoList))
+					{
+						dsoCalc=calculateDSO(cashFlowCube,scenarioMember,versionMember,entityMember, startPeriod,endPeriod,fixParallelDim,totalPeriods,periodRollup,flexDim1Member,flexDim2Member,flexDim3Member,partyMember,buMember,prjMember,currencyMember);
+						cscript.append(dsoCalc);	
+						driverMethodCount++;	
+					}
+					if (checkLineItem(lineItems,dpoList))
+					{
+						dpoCalc=calculateDPO(cashFlowCube,scenarioMember,versionMember,entityMember, startPeriod,endPeriod,fixParallelDim,totalPeriods,periodRollup,flexDim1Member,flexDim2Member,flexDim3Member,partyMember,buMember,prjMember,currencyMember);
+						cscript.append(dpoCalc);
+						driverMethodCount++;	
+					}
+					if (checkLineItem(lineItems,expenseList))
+					{
+						expenseCalc=calculateExpensePayments(cashFlowCube,scenarioMember,versionMember,entityMember, startPeriod,endPeriod,fixParallelDim,totalPeriods,periodRollup,flexDim1Member,flexDim2Member,flexDim3Member,partyMember,buMember,prjMember,currencyMember);
+						cscript.append(expenseCalc);
+						driverMethodCount++;	
+					}
+					if (checkLineItem(lineItems,fixedAssetList))
+					{
+						fixedAssetCalc=calculateFixedAssetPayments(cashFlowCube,scenarioMember,versionMember,entityMember, startPeriod,endPeriod,fixParallelDim,totalPeriods,periodRollup,flexDim1Member,flexDim2Member,flexDim3Member,partyMember,buMember,prjMember,currencyMember);
+						cscript.append(fixedAssetCalc);
+						driverMethodCount++;	
+					}
+					if (checkLineItem(lineItems,recurringList))
+					{
+						recurringtCalc=calculateRecurringPayments(cashFlowCube,scenarioMember,versionMember,entityMember, startPeriod,endPeriod,fixParallelDim,totalPeriods,periodRollup,flexDim1Member,flexDim2Member,flexDim3Member,partyMember,buMember,prjMember,currencyMember);
+						cscript.append(recurringtCalc);	
+						driverMethodCount++;	
+					}
+					if (checkLineItem(lineItems,salaryList))
+					{
+						String mbrSalaryBasis=(periodRollup=="OEP_Daily YearTotal") ? "OCF_Daily Salary Basis" : "OCF_Periodic Salary Basis";						
+						salCalc=calculateSalarayPayments(cashFlowCube,scenarioMember,versionMember,entityMember, startPeriod,endPeriod,fixParallelDim,totalPeriods,periodRollup,mbrSalaryBasis,flexDim1Member,flexDim2Member,flexDim3Member,partyMember,buMember,prjMember,currencyMember);
+						cscript.append(salCalc);
+						driverMethodCount++;	
+					}
+					if (checkLineItem(lineItems,projectPaymentsList))
+					{
+						projectPayments=calculateProjectPayments(cashFlowCube,scenarioMember,versionMember,entityMember, startPeriod,endPeriod,fixParallelDim,totalPeriods,periodRollup,flexDim1Member,flexDim2Member,flexDim3Member,partyMember,buMember,prjMember,currencyMember);
+						cscript.append(projectPayments);
+						driverMethodCount++;	
+					}
+					if (checkLineItem(lineItems,directList))
+					{
+						directTaxCalc=calculateDirectTaxes(cashFlowCube,scenarioMember,versionMember,entityMember,startPeriod,endPeriod,fixParallelDim,flexDim1Member,flexDim2Member,flexDim3Member,partyMember,buMember,prjMember,currencyMember);
+						cscript.append(directTaxCalc);					
+						driverMethodCount++;
+					}
+					if (checkLineItem(lineItems,indirectList))
+					{
+						indirectTax=calculateIndirectTaxes(cashFlowCube,scenarioMember,versionMember,entityMember, startPeriod,endPeriod,fixParallelDim,totalPeriods,periodRollup,flexDim1Member,flexDim2Member,flexDim3Member,partyMember,buMember,prjMember,currencyMember);
+						cscript.append(indirectTax);
+						driverMethodCount++;	
+					}
+					if (driverMethodCount>1) throwVetoException("Only one driver method data can be loaded in single data file ");				  
+				  return cscript.toString();
+							
+			}
+		</script><template_wizard/><template_prompts><restricted_prompt name="Application Type" type="Application Type" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Generic</property><property name="value">GENERAL</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PFP</property><property name="value">PROJECT</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PSB</property><property name="value">PSB</property></restricted_prompt_item></restricted_prompt><restricted_prompt name="Application" type="Application" isPrompt="no"><property name="is_system">true</property><value>Is Single Currency</value><restricted_prompt_item><property name="prompt">Is Multi Currency</property><property name="value">multi</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Single Currency</property><property name="value">single</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Simple Currency</property><property name="value">simple</property></restricted_prompt_item></restricted_prompt><template_slice_prompt name="UpperPOV" type="Member Range" isPrompt="false"><property name="is_system">true</property></template_slice_prompt><restricted_prompt name="Essbase Mode" type="Essbase Mode" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Hybrid</property><property name="value">Hybrid</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is NonHybrid</property><property name="value">NonHybrid</property></restricted_prompt_item></restricted_prompt></template_prompts></template></templates></HBRRepo>

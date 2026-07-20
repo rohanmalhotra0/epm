@@ -1,0 +1,213 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<HBRRepo><variables/><rulesets/><rules/><components/><deployobjects><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="1" obj_type="19" name="OCF_FIXED ASSET PAYMENTS_GT"/></deployobjects><templates><template custom="yes" id="1" name="OCF_Fixed Asset Payments_GT" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><property name="standAlone">false</property><script type="groovy">	    /***
+		 * Calculate Fixed Asset Payments using pay term percentages.
+		 * @param cube, scenario, version, entity will be passed from form context.
+		 * @param  startperiod  and end periods, Daily, weekly and Monthly first and last period of corresponding period dimension.
+		 * @param fixParallelDim  - name of the dimension on which fix parallel to be applied.
+		 * @return  - returns calculation script to compute Pay Terms, populate Pay Terms numbers to rolling forecast screen based on forecast method settings, and calculation logic to compute opening balance.
+		 * Additional Notes:
+		 *			1. Identifies if rule is invoked from on the save form or rules card, or incremental rule then generates fix statements for calculation.
+		 *			2. Fetch NumberOfYears sub variable value to identify rolling forecast range falls in single year or two years
+		 *			3. Invokes Paytermcalculation method according to rolling forecast range.
+		 *			4. Prepares final calculation script depending on fix parallel setting.		
+		 **/
+		String calculateFixedAssetPayments(Cube cashFlowCube,String scenarioMember,String versionMember,String entityMember,String startPeriod,String endPeriod,String fixParallelDim, int totalPeriods, String periodRollup,String flexDim1Member,String flexDim2Member,String flexDim3Member,String partyMember,String buMember,String prjMember,String currencyMember)
+		{
+				boolean chkEntityIsFixParallel=false,chkCategoryFixParallel=false;
+				StringBuilder cscript = new StringBuilder(); // The variable that contains the actual script that will be returned at the end.
+				def calcString;				
+				String fixParalleFixStmt,calcCopyString,calcOpenBal;
+				String yearOne,yearTwo,yearThree,NoflexDim,yearOneFinalCalc,yearTwoFinalCalc,catStartFix,catEndFix;
+				String noFixMembersJoinStr,fixMembersJoin,entityBeginStr,entityEndStr;
+				String payTermCalculationStrForYearOneandTwo,payTermCalculationStrForYearTwoandThree;
+				String fixCategory,aggCategory;
+				String flexDim1Name = "flexDimension1";
+				String flexDim2Name = "flexDimension2";
+				String flexDim3Name = "flexDimension3";
+				String currencyDimName="Currency";
+				String partyDimName="Party";
+				String buDimName="Business Unit";
+				String bankDimName="Bank";
+				String prjDimName="Category"
+				String forecastMethodDimName = "Forecast Method";
+				String yearDimName="Years";			
+				String entityDimName = "Entity";
+				String variableDeclaration=""; 
+				String variableDeclarationForFixPrarallel=""
+				String startFixParallel ="";
+				String endFixParallel ="";
+				def isflexDim1Enabled = "NoFixedAssetsflexdim1" == "No flexDimension1"			
+				def isflexDim2Enabled = "NoFixedAssetsflexdim2" == "No flexDimension2"				
+				def isflexDim3Enabled = "NoFixedAssetsflexdim3" == "No flexDimension3"
+				def isPartyEnabled = "No Party" == "No Party"
+				def isBuEnabled = "No Business Unit" == "No Business Unit"
+				def isPrjEnabled = "No Category" == "No Category"
+				List&lt;String> noFixMembers=[];
+				List&lt;String> fixMembers=[];
+				Application application = operation.application;				
+				List&lt;String> payTerms=application.getDimension(forecastMethodDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("OCF_Total Cashflow")',cashFlowCube).collect{it.toString()};
+				List&lt;String> lstYears=application.getDimension(yearDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("All Years")',cashFlowCube).collect{it.toString()};
+				String numOfPeriods = getNumberOfYears(cashFlowCube);
+				String currYear=getCurrentYear(cashFlowCube);	
+				String nextPeriod=getFirstForecastPeriod(cashFlowCube);
+				yearOne=currYear;
+				yearTwo=nextYear(yearOne,lstYears);
+				yearThree=nextYear(yearTwo,lstYears);
+				calcCopyString= populateFinalForecastMethod(cashFlowCube,scenarioMember,versionMember,entityMember,"OCF_Total Fixed Asset Payments",fixMembers);
+				calcOpenBal=calculateOpeningBalanceForOnsave(numOfPeriods,startPeriod,endPeriod,"OCF_Forecasted");	
+				String variableString=getPreferedRangeVarialbeDeclaration();
+				String varialStringForFixParallel=getPreferedRangeFixParllelVarialbeDeclaration();
+				fixParalleFixStmt='FIXPARALLEL (4,@RELATIVE("'+fixParallelDim+'",0))';
+				if ( operation.hasGrid() ) fixParallelDim ="none";
+				if (fixParallelDim==entityDimName) chkEntityIsFixParallel=true;
+				if (fixParallelDim==prjDimName) chkCategoryFixParallel=true;
+				if (fixParallelDim==partyDimName)  partyDimName="NoDimension";
+				if (fixParallelDim==flexDim1Name)  flexDim1Name="NoDimension";
+				if (fixParallelDim==flexDim2Name) flexDim2Name="NoDimension";				
+				if (fixParallelDim==flexDim3Name) flexDim3Name="NoDimension";
+				populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim1Name,flexDim1Member,isflexDim1Enabled,fixMembers);
+				populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim2Name,flexDim2Member,isflexDim2Enabled,fixMembers);
+				populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim3Name,flexDim3Member,isflexDim3Enabled,fixMembers);
+				populateFixMembersPostDimCheckForStdDim(cashFlowCube,partyDimName,partyMember,isPartyEnabled,fixMembers);
+				populateFixMembersPostDimCheckForStdDim(cashFlowCube,buDimName,buMember,isBuEnabled,fixMembers);
+				fixCategory=getFixOfCategoryDimension(cashFlowCube,prjDimName,prjMember,isPrjEnabled)
+				aggCategory=getAggOfCategoryDimension(cashFlowCube,prjDimName,prjMember,isPrjEnabled)
+				catStartFix= """ FIX($fixCategory) """
+				catEndFix =""" ENDFIX """
+				addCurrency(fixMembers,currencyMember);
+				addNoCurrency(noFixMembers);	
+				if(operation.application.hasDimension(bankDimName, cashFlowCube))
+				{
+					noFixMembers.add('"OEP_Any '+bankDimName +'"');	
+					fixMembers.add('"OEP_Any ' + bankDimName +'"');
+				}
+				noFixMembers.add('"No Year"');	
+				noFixMembersJoinStr=noFixMembers.join("->");
+				String noFixMembersStr=noFixMembers.join(",");
+				fixMembersJoin=fixMembers.join(",");
+				if(chkEntityIsFixParallel == true)
+				{
+				variableDeclarationForFixPrarallel="""							
+							$varialStringForFixParallel
+				"""
+				}
+				else
+                {
+						if (!operation.application.hasDimension(fixParallelDim, cashFlowCube) )
+						{	
+							variableDeclaration="""							
+										$variableString
+							"""
+						}				
+                }	
+				entityBeginStr =(chkEntityIsFixParallel==true) ? fixParalleFixStmt : "FIX($entityMember)"
+				entityEndStr =(chkEntityIsFixParallel==true) ? "ENDFIXPARALLEL" : "ENDFIX"
+				payTermCalculationStrForYearOneandTwo=payTermCalculation(yearOne,yearTwo,noFixMembersJoinStr,payTerms,nextPeriod,"$startPeriod","$endPeriod","OCF_Cash Drivers",totalPeriods).toString()
+				payTermCalculationStrForYearTwoandThree=payTermCalculation(yearTwo,yearThree,noFixMembersJoinStr,payTerms,"$startPeriod","$startPeriod","$endPeriod","OCF_Cash Drivers",totalPeriods).toString();
+				if(operation.application.hasDimension(fixParallelDim, cashFlowCube) &amp;&amp; chkEntityIsFixParallel==false )				  {
+					 if (chkCategoryFixParallel==true)
+					 {
+						catStartFix="""$fixParalleFixStmt					 										
+										$varialStringForFixParallel	
+								      """	
+						 catEndFix = """ ENDFIXPARALLEL """
+					 }
+					 else
+					 {
+						 startFixParallel="""$fixParalleFixStmt										
+										$varialStringForFixParallel	
+								      """	
+						 endFixParallel=""" ENDFIXPARALLEL;   """
+					}														
+				  }
+				
+					yearOneFinalCalc= """
+								   "OCF_Cash Drivers"(
+											@CALCMODE(BOTTOMUP);
+												IF (@ISMBR("OCF_Cash Drivers"))
+													  $payTermCalculationStrForYearOneandTwo
+												ENDIF;
+											)                  
+					   """
+					yearTwoFinalCalc= """
+								   "OCF_Cash Drivers"(
+											@CALCMODE(BOTTOMUP);
+												IF (@ISMBR("OCF_Cash Drivers"))
+													  $payTermCalculationStrForYearTwoandThree
+												ENDIF;  
+											)                  
+					   """ 			
+				 
+				  if (numOfPeriods=="2")
+				  {
+				   calcString="""
+							SET UPDATECALC OFF;
+							SET AGGMISSG ON;
+							$variableDeclaration	 
+						    $entityBeginStr	
+							$variableDeclarationForFixPrarallel
+							  FIX( $scenarioMember,$fixMembersJoin) 
+								$startFixParallel
+								$catStartFix
+									FIX("$yearOne", @Relative("OCF_Total Cashflow",0),@Relative("OCF_Total Fixed Asset Payments",0),&amp;OEP_FcstStartPeriod:$endPeriod)
+										 ClearData $versionMember;
+									ENDFIX
+									FIX("$yearTwo", @Relative("OCF_Total Cashflow",0),@Relative("OCF_Total Fixed Asset Payments",0),&amp;OEP_NextYrPeriodRange)
+										 ClearData $versionMember;
+									ENDFIX
+									FIX("$versionMember")	
+										FIX("$yearOne",@Relative("$periodRollup",0),@Relative("OCF_Total Fixed Asset Payments",0))
+											 $yearOneFinalCalc
+										ENDFIX					
+										FIX("$yearTwo",@Relative("$periodRollup",0),@Relative("OCF_Total Fixed Asset Payments",0))
+											 $yearTwoFinalCalc
+										ENDFIX
+									ENDFIX
+									$calcCopyString
+									$calcOpenBal
+								$catEndFix	
+								FIX("$versionMember","$yearOne","$yearTwo",@Relative("OCF_Total Fixed Asset Payments",0),@Relative("$periodRollup",0),"OCF_Opening Balance",@Relative("OCF_Cash Flow Metrics",0),@Relative("OCF_All Forecast Method",0),@Relative("OCF_Total Forecasted Cash",0))	
+									$aggCategory
+								ENDFIX	
+								$endFixParallel
+							  ENDFIX
+						   $entityEndStr   
+					 """ 
+					 cscript.append(calcString);
+				  }
+				  else
+				  {
+				  calcString="""
+						    SET UPDATECALC OFF;
+							SET AGGMISSG ON;
+							$variableDeclaration	 
+						    $entityBeginStr	
+							$variableDeclarationForFixPrarallel
+							FIX($scenarioMember,$fixMembersJoin)
+								$startFixParallel
+								$catStartFix
+									FIX("$yearOne", @Relative("OCF_Total Cashflow",0),@Relative("OCF_Total Fixed Asset Payments",0),&amp;OEP_FcstStartPeriod:$endPeriod)
+									  ClearData "$versionMember";
+									ENDFIX 
+									FIX("$versionMember")	
+										FIX("$yearOne",$versionMember,@Relative("OCF_Total Fixed Asset Payments",0),@Relative("$periodRollup",0))
+											  $yearOneFinalCalc
+										ENDFIX
+										$calcCopyString
+										$calcOpenBal
+									ENDFIX	
+								$catEndFix
+								FIX("$versionMember","$yearOne",@Relative("OCF_Total Fixed Asset Payments",0),@Relative("$periodRollup",0),"OCF_Opening Balance",@Relative("OCF_Cash Flow Metrics",0),@Relative("OCF_All Forecast Method",0),@Relative("OCF_Total Forecasted Cash",0))	
+									$aggCategory
+								ENDFIX
+								$endFixParallel
+							ENDFIX  
+						   $entityEndStr   
+					 """ 
+						cscript.append(calcString)  
+				  }				  							
+				return cscript.toString();
+	}
+
+	
+</script><template_wizard/><template_prompts><restricted_prompt name="Application Type" type="Application Type" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Generic</property><property name="value">GENERAL</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PFP</property><property name="value">PROJECT</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PSB</property><property name="value">PSB</property></restricted_prompt_item></restricted_prompt><restricted_prompt name="Application" type="Application" isPrompt="no"><property name="is_system">true</property><value>Is Single Currency</value><restricted_prompt_item><property name="prompt">Is Multi Currency</property><property name="value">multi</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Single Currency</property><property name="value">single</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Simple Currency</property><property name="value">simple</property></restricted_prompt_item></restricted_prompt><template_slice_prompt name="UpperPOV" type="Member Range" isPrompt="false"><property name="is_system">true</property></template_slice_prompt><restricted_prompt name="Essbase Mode" type="Essbase Mode" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Hybrid</property><property name="value">Hybrid</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is NonHybrid</property><property name="value">NonHybrid</property></restricted_prompt_item></restricted_prompt></template_prompts></template></templates></HBRRepo>

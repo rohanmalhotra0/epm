@@ -1,0 +1,285 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<HBRRepo><variables/><rulesets/><rules/><components/><deployobjects><deployobject product="2" application="mcw_pcf" plantype="oep_dcsh" obj_id="1" obj_type="19" name="OCF_PROJECT RECEIPTS_GT"/></deployobjects><templates><template custom="yes" id="1" name="OCF_Project Receipts_GT" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_DCSH</property><property name="seeded">true</property><property name="standAlone">false</property><script type="groovy">	   /***
+		 * Calculate Project Reciepts Payments using mile stone dates and pay term percentages.
+		 * @param cube, scenario, version, entity will be passed from form context.
+		 * @param  startperiod  and end periods, Daily , weekly and Monthly first and last period of corresponding period dimension.
+		 * @param fixParallelDim  - name of the dimension on which fix parallel to be applied.
+		 * @return  - returns calculation script to compute Pay Terms, populate Pay Terms numbers to rolling forecast screen based on forecast method settings, and calculation logic to compute opening balance.
+		 * Additional Notes:
+		 *			1. Groovy script checks if request is made from onsave of the form, rules card, or data management, depending on the request, generates outer fix for the calculation.
+		 *			2. Groovy script also generates fix parallel script based on the dimension picked for fix parallel in FIX_Parall_GT script.
+		 *	 		3. Generates clear script to clear off previously calculated data.
+		 *			4. Generates Milestone calculation script for all milestone
+		 *			5. Generates Payterms calculation script for each milestone
+		 *			6. Ensures that existing payterm value gets added for newly generated pay term.
+		 **/
+	  String calculateProjectReciepts(Cube cashFlowCube,String scenarioMember,String versionMember,String entityMember,String startPeriod,String endPeriod,String fixParallelDim, int totalPeriods, String periodRollup,String flexDim1Member,String flexDim2Member,String flexDim3Member,String partyMember,String buMember,String prjMember,String currencyMember)
+		{
+			String fixParalleFixStmt,calcCopyString,calcOpenBal,catStartFix,catEndFix;
+	  	    boolean chkEntityIsFixParallel=false;
+			boolean chkProjectIsFixParallel=false;
+			String  lineItemsMemberGroup='ILvl0Descendants("OCF_Total Project Receipts")';			
+			String yearOne,yearTwo,yearThree,noFixMembersJoinStr,fixMembersJoin,noFixMembersJoinStrWithNoEntity,calcMilestonesFirstYear,calcMilestonesSecondYear,calcMilestonesCreateBlockForSecondYear;
+			String entityBeginStr,entityEndStr,calcMilestonesPayTermsForFirstTwoYears,calcMilestonesPayTermsForNextTwoYears,nofixMembersJoin;
+			String calcClrMilestonesFirstYear,calcClrMilestonesCreateBlockForSecondYear,calcClrMilestonesPayTermsForFirstTwoYears,calcClrMilestonesPayTermsForNextTwoYears,calcClrMilestonesSecondYear
+			StringBuilder cscript = new StringBuilder(); 					
+			def calcString;
+			String fixCategory,aggCategory;
+			String flexDim1Name = "flexDimension1";
+			String flexDim2Name = "flexDimension2";
+			String flexDim3Name = "flexDimension3";
+			String currencyDimName="Currency";
+			String partyDimName="Party";
+			String bankDimName="Bank";
+			String buDimName="Business Unit";
+			String prjDimName="Category"
+			String forecastMethodDimName = "Forecast Method";
+			String yearDimName="Years"
+			String lineItemDimName="Line Item"
+			String entityDimName = "Entity";
+			def isflexDim1Enabled = "NoProjectReceiptsflexdim1" == "No flexDimension1"			
+			def isflexDim2Enabled = "NoProjectReceiptsflexdim2" == "No flexDimension2"				
+			def isflexDim3Enabled = "NoProjectReceiptsflexdim3" == "No flexDimension3"
+			def isPartyEnabled = "No Party" == "No Party"
+			def isBuEnabled = "No Business Unit" == "No Business Unit"
+			def isPrjEnabled = "NoProjectReceiptsdimProject" == "No Category"
+			List&lt;String> noFixMembers=[];			
+			List&lt;String> fixMembers=[];
+			List&lt;String> projectList=[];			
+			String payTermVariablesCalcScriptStr;			
+			Application application = operation.application;			
+			/*UserVariable uvVariable=application.getUserVariable("OCF_Project");
+			String projectMember=uvVariable.getValue();			*/
+			List&lt;String> payTerms=application.getDimension(forecastMethodDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("OCF_Total Cashflow")',cashFlowCube).collect{it.toString()};
+			List&lt;String> mileStones=application.getDimension(forecastMethodDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("OCF_Total Project Milestones")',cashFlowCube).collect{it.toString()};
+			List&lt;String> lstYears=application.getDimension(yearDimName,cashFlowCube).getEvaluatedMembers('ILvl0Descendants("All Years")',cashFlowCube).collect{it.toString()};
+			String nextPeriod=getFirstForecastPeriod(cashFlowCube);
+            String variableDeclarationForFixPrarallel ="";
+            String variableDeclaration ="";
+			String startFixParallel ="";
+			String endFixParallel ="";				
+			String numOfPeriods = getNumberOfYears(cashFlowCube);
+			String currYear=getCurrentYear(cashFlowCube);	
+			yearOne=currYear;
+			yearTwo=nextYear(yearOne,lstYears);
+			yearThree=nextYear(yearTwo,lstYears);
+			calcCopyString= populateFinalForecastMethod(cashFlowCube,scenarioMember,versionMember,entityMember,"OCF_Total Project Receipts",fixMembers);
+			calcOpenBal=calculateOpeningBalanceForOnsave(numOfPeriods,startPeriod,endPeriod,"OCF_Forecasted");	
+			String variableString=getPreferedRangeVarialbeDeclaration();
+			String varialStringForFixParallel=getPreferedRangeFixParllelVarialbeDeclaration();
+			fixParalleFixStmt='FIXPARALLEL (4,@RELATIVE("'+fixParallelDim+'",0))';
+			if ( operation.hasGrid() ) fixParallelDim ="none";
+			if (fixParallelDim==entityDimName) chkEntityIsFixParallel=true;
+			if (fixParallelDim==partyDimName)  partyDimName="NoDimension";
+			if (fixParallelDim==flexDim1Name )  flexDim1Name="NoDimension";
+			if (fixParallelDim==flexDim2Name )  flexDim2Name="NoDimension";
+			if (fixParallelDim==flexDim3Name )  flexDim3Name="NoDimension";
+			if (prjDimName==flexDim1Name ) flexDim1Name="NoDimension";
+			if (prjDimName==flexDim2Name ) flexDim2Name="NoDimension";
+			if (prjDimName==flexDim2Name ) flexDim2Name="NoDimension";			
+			if (fixParallelDim==prjDimName)
+			{	
+				chkProjectIsFixParallel=true;
+				if (prjMember!="None")
+					{
+						
+					fixParalleFixStmt='''FIXPARALLEL(4,$prjMember)''';
+					
+					}	
+					else
+					{	
+						fixParalleFixStmt='''FIXPARALLEL(4,@relative("OEP_All Project",0))''';
+					}
+			}  	
+			else
+			{
+				if (operation.application.hasDimension(fixParallelDim, cashFlowCube)) noFixMembers.add('"No '+ fixParallelDim +'"') ;				
+				if (operation.hasGrid())
+				  {				 
+					operation.grid.dataCellIterator({DataCell cell -> cell.edited}, MemberNameType.ESSBASE_NAME).each{DataCell cell ->
+							projectList.add('"'+cell.getMemberName(prjDimName)+'"')
+						}							
+				  }	
+				  else
+				  {	
+					if (prjMember!="None")
+					{
+						projectList.add(prjMember) 
+					}
+					else
+					{
+						projectList.add('@Relative("OEP_All Project",0)') 
+					}
+				  }
+			}
+			populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim1Name,flexDim1Member,isflexDim1Enabled,fixMembers);
+			populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim2Name,flexDim2Member,isflexDim2Enabled,fixMembers);
+			populateFixMembersPostDimCheckForFlexDim(cashFlowCube,flexDim3Name,flexDim3Member,isflexDim3Enabled,fixMembers);
+			populateFixMembersPostDimCheckForStdDim(cashFlowCube,partyDimName,partyMember,isPartyEnabled,fixMembers);
+			populateFixMembersPostDimCheckForStdDim(cashFlowCube,buDimName,buMember,isBuEnabled,fixMembers);			
+			if (operation.hasGrid())
+			{		
+				UserVariable uvVariable=application.getUserVariable("OEP_Currency")	;
+				fixMembers.add(uvVariable.value.name);
+			}
+			 else
+			{			 
+				addCurrency(fixMembers,currencyMember);	
+			}
+			addNoCurrency(noFixMembers);			
+			if(operation.application.hasDimension(bankDimName, cashFlowCube))
+			{
+				 fixMembers.add('"OEP_Any '+ bankDimName +'"')
+			}
+			entityBeginStr =(chkEntityIsFixParallel==true) ? fixParalleFixStmt : "FIX($entityMember)"
+			entityEndStr =(chkEntityIsFixParallel==true) ? "ENDFIXPARALLEL" : "ENDFIX"	
+			noFixMembers.add('"No Year"');	
+			noFixMembersJoinStr=noFixMembers.join("->");			
+			fixMembersJoin=fixMembers.join(",");
+			fixCategory=	projectList.join(",")
+			nofixMembersJoin=noFixMembers.join(",")
+			catStartFix= """ FIX($fixCategory) """
+			catEndFix =""" ENDFIX """			
+				if(chkEntityIsFixParallel == true)
+				{
+				variableDeclarationForFixPrarallel="""
+							ThreadVar CurrentYearDate;
+							ThreadVar NextYearDate;
+							$varialStringForFixParallel
+				"""
+				}
+				else
+                {
+					if (!operation.application.hasDimension(fixParallelDim, cashFlowCube) )
+					{	
+					variableDeclaration="""
+								Var CurrentYearDate;
+								Var NextYearDate;
+								$variableString
+					"""
+					}
+                }
+				if(operation.application.hasDimension(fixParallelDim, cashFlowCube) &amp;&amp; chkEntityIsFixParallel==false )		  
+				{
+				 if (chkProjectIsFixParallel==true)
+					 {
+						catStartFix="""$fixParalleFixStmt
+										ThreadVar CurrentYearDate;
+										ThreadVar NextYearDate;		
+										$varialStringForFixParallel	
+								      """	
+						 catEndFix = """ ENDFIXPARALLEL """
+					 }
+					 else
+					 {
+						 startFixParallel="""$fixParalleFixStmt	
+										ThreadVar CurrentYearDate;
+										ThreadVar NextYearDate;		
+										$varialStringForFixParallel	
+								      """	
+						 endFixParallel=""" ENDFIXPARALLEL;   """
+					}
+				}		
+			
+					if (numOfPeriods=="2")
+					  {
+					  calcMilestonesCreateBlockForSecondYear=mileStoneCalcToCreateBlockForSecondYear(yearOne,yearTwo,noFixMembersJoinStr,mileStones)
+					  calcMilestonesPayTermsForFirstTwoYears=milestonesPayTerms(yearOne,yearTwo,noFixMembersJoinStr,payTerms,mileStones,nextPeriod,startPeriod,endPeriod,totalPeriods)
+					  calcMilestonesPayTermsForNextTwoYears=milestonesPayTerms(yearTwo,yearThree,noFixMembersJoinStr,payTerms,mileStones,startPeriod,startPeriod,endPeriod,totalPeriods)
+					  calcMilestonesSecondYear=milestoneCalcForSecondYear(yearOne,noFixMembersJoinStr,mileStones)
+						  calcString="""
+					   SET UPDATECALC OFF;
+						SET AGGMISSG ON;
+					   $variableDeclaration			
+					   $entityBeginStr	
+					   $variableDeclarationForFixPrarallel               
+								  FIX($scenarioMember,$fixMembersJoin)
+									$startFixParallel
+									$catStartFix
+										FIX("$yearOne",@Relative("OCF_Total Project Milestones",0), @Relative("OCF_Total Cashflow",0),@Relative("OCF_Total Project Receipts",0),&amp;OEP_FcstStartPeriod:$endPeriod)
+												ClearData "$versionMember";
+										ENDFIX
+										FIX("$yearTwo",@Relative("OCF_Total Project Milestones",0), @Relative("OCF_Total Cashflow",0),@Relative("OCF_Total Project Receipts",0),$startPeriod:$endPeriod)
+												ClearData "$versionMember";
+										ENDFIX 	
+										FIX("$versionMember")	
+											FIX("$yearOne",@Relative("$periodRollup",0),@Relative("OCF_Total Project Receipts",0))
+												 "OCF_Cash Drivers"(
+																@CALCMODE(BOTTOMUP);
+																$calcMilestonesCreateBlockForSecondYear
+															)
+												   $calcMilestonesPayTermsForFirstTwoYears		
+											ENDFIX;								
+											FIX("$yearTwo",@Relative("$periodRollup",0),@Relative("OCF_Total Project Receipts",0))											
+												$calcMilestonesSecondYear											
+												$calcMilestonesPayTermsForNextTwoYears											
+											ENDFIX;	
+											$calcCopyString
+											$calcOpenBal
+										ENDFIX
+									$catEndFix	
+									FIX("$versionMember","$yearOne","$yearTwo",@Relative("$periodRollup",0),@Relative("OCF_Total Project Receipts",0),"OCF_Opening Balance",@Relative("OCF_Cash Flow Metrics",0),@Relative("OCF_Project Milestone Assumptions",0),@Relative("OCF_All Forecast Method",0),@Relative("OCF_Total Forecasted Cash",0))
+										@IDESCENDANTS("OEP_Total $prjDimName");
+									ENDFIX;	
+									$endFixParallel	
+								  ENDFIX 
+								 
+							   $entityEndStr   
+						 """ 
+					  }
+					  else
+					  {
+					  	calcMilestonesFirstYear=mileStoneCalcForOneYear(yearOne,noFixMembersJoinStr,mileStones)			
+						calcMilestonesPayTermsForFirstTwoYears=milestonesPayTerms(yearOne,yearTwo,noFixMembersJoinStr,payTerms,mileStones,nextPeriod,startPeriod,endPeriod,totalPeriods)
+						calcString="""	
+					   SET UPDATECALC OFF;
+						SET AGGMISSG ON;
+					   $variableDeclaration			
+					   $entityBeginStr	
+					   $variableDeclarationForFixPrarallel                 
+								  FIX($scenarioMember,$fixMembersJoin)
+									$startFixParallel
+									$catStartFix
+										FIX("$yearOne")
+											FIX( @Relative("OCF_Total Project Milestones",0), @Relative("OCF_Total Cashflow",0),@Relative("OCF_Total Project Receipts",0),&amp;OEP_FcstStartPeriod:$endPeriod)
+												ClearData "$versionMember";
+											ENDFIX     										
+											FIX("$versionMember",@Relative("$periodRollup",0),@Relative("OCF_Total Project Receipts",0))	
+												   "OCF_Cash Drivers"(
+																	@CALCMODE(BOTTOMUP);
+																	$calcMilestonesFirstYear
+																)											
+													 $calcMilestonesPayTermsForFirstTwoYears
+											ENDFIX											
+										ENDFIX;
+										FIX("$versionMember")	
+											$calcCopyString
+											$calcOpenBal
+										ENDFIX
+									$catEndFix	
+									FIX("$versionMember","$yearOne",@Relative("$periodRollup",0),@Relative("OCF_Total Project Receipts",0),"OCF_Opening Balance",@Relative("OCF_Cash Flow Metrics",0),@Relative("OCF_All Forecast Method",0),@Relative("OCF_Project Milestone Assumptions",0),@Relative("OCF_Total Forecasted Cash",0))
+										@IDESCENDANTS("OEP_Total $prjDimName");
+									ENDFIX;
+									$endFixParallel
+								  ENDFIX                          
+							   $entityEndStr   
+						 """ 
+					  }			 
+			 
+			
+			if (operation.hasGrid())
+				  {
+					if (projectList.size()>0)
+					{
+						cscript.append(calcString)			
+					}
+				  }
+				else
+				 {
+						cscript.append(calcString) 			
+					
+				  }			  
+			return cscript.toString() 
+		}
+		
+</script><template_wizard/><template_prompts><restricted_prompt name="Application Type" type="Application Type" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Generic</property><property name="value">GENERAL</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PFP</property><property name="value">PROJECT</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is PSB</property><property name="value">PSB</property></restricted_prompt_item></restricted_prompt><restricted_prompt name="Application" type="Application" isPrompt="no"><property name="is_system">true</property><value>Is Single Currency</value><restricted_prompt_item><property name="prompt">Is Multi Currency</property><property name="value">multi</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Single Currency</property><property name="value">single</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is Simple Currency</property><property name="value">simple</property></restricted_prompt_item></restricted_prompt><template_slice_prompt name="UpperPOV" type="Member Range" isPrompt="false"><property name="is_system">true</property></template_slice_prompt><restricted_prompt name="Essbase Mode" type="Essbase Mode" isPrompt="no"><property name="is_system">true</property><restricted_prompt_item><property name="prompt">Is Hybrid</property><property name="value">Hybrid</property></restricted_prompt_item><restricted_prompt_item><property name="prompt">Is NonHybrid</property><property name="value">NonHybrid</property></restricted_prompt_item></restricted_prompt></template_prompts></template></templates></HBRRepo>

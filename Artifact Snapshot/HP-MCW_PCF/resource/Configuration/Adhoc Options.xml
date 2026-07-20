@@ -1,0 +1,37 @@
+<AdHocOptions>
+ <AdHocOption type="user" >
+<MemberInclusion>
+ <IncludeSelection>true</IncludeSelection>
+ <WithinSelectedGroup>false</WithinSelectedGroup>
+ <RemoveUnselectedGroup>false</RemoveUnselectedGroup>
+</MemberInclusion>
+ <AdHocDisplay>Member Name</AdHocDisplay>
+ <ZoomInLevels>Next Level</ZoomInLevels>
+ <Indentation>Subitem</Indentation>
+ <AncestorPosition>Bottom</AncestorPosition>
+ <NavigateWithData>true</NavigateWithData>
+<SuppressOptions>
+ <MissingRows>false</MissingRows>
+ <MissingColumns>false</MissingColumns>
+ <ZeroRows>false</ZeroRows>
+ <ZeroColumns>false</ZeroColumns>
+ <RepeatMembers>false</RepeatMembers>
+ <MissingBlocks>false</MissingBlocks>
+ <SuppressNoAccessRows>false</SuppressNoAccessRows>
+ <SuppressNoAccessCols>false</SuppressNoAccessCols>
+</SuppressOptions>
+<Precision>
+ <CurrencyMinVal>0</CurrencyMinVal>
+ <CurrencyMaxVal>-1</CurrencyMaxVal>
+ <NonCurrencyMinVal>0</NonCurrencyMinVal>
+ <NonCurrencyMaxVal>-1</NonCurrencyMaxVal>
+ <PercentageMinVal>0</PercentageMinVal>
+ <PercentageMaxVal>-1</PercentageMaxVal>
+</Precision>
+<Replacement>
+ <MissingLabel>#missing</MissingLabel>
+ <NoAccessLabel>#noaccess</NoAccessLabel>
+ <SubmitZeros>false</SubmitZeros>
+</Replacement>
+</AdHocOption>
+</AdHocOptions>

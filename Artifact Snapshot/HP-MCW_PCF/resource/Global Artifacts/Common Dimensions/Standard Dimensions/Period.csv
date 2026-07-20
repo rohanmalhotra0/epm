@@ -1,0 +1,132 @@
+﻿#!-- HEADERBLOCK DIMENSION XML
+<?xml version="1.0" encoding="UTF-8" ?>
+<DIMENSIONS>
+ <Dimension name="Period" EnabledForCellLevelSecurity="true" origname="Period" EnabledForApprovalGroups="true" DataId="1312128769737577" EnabledForValidIntersections="true" comment="" dimensionType="Time" csversion="2.5" OldName="Period" density="Dense" DimensionAlias="Period" dimensionName="TimePeriod" UUID="c6bf6450-b9c8-4991-a811-ef28f255ca9a" OldUniqueName="" >
+ <Plan1Density>Dense</Plan1Density>
+ <OEP_RCSHDensity>Dense</OEP_RCSHDensity>
+ <OEP_DCSHDensity>Dense</OEP_DCSHDensity>
+ <OEP_PCSHDensity>Dense</OEP_PCSHDensity>
+ <Plan5Density>Dense</Plan5Density>
+ <Plan6Density>Dense</Plan6Density>
+ <Plan7Density>Dense</Plan7Density>
+ <Plan8Density>Dense</Plan8Density>
+ <Plan9Density>Dense</Plan9Density>
+ <Plan10Density>Dense</Plan10Density>
+ <Plan11Density>Dense</Plan11Density>
+ <Plan12Density>Dense</Plan12Density>
+ <Plan13Density>Dense</Plan13Density>
+ <Plan14Density>Dense</Plan14Density>
+ <Plan15Density>Dense</Plan15Density>
+ <EnumOrder1>0</EnumOrder1>
+ <EnumOrderOEP_RCSH>1</EnumOrderOEP_RCSH>
+ <EnumOrderOEP_DCSH>1</EnumOrderOEP_DCSH>
+ <EnumOrderOEP_PCSH>1</EnumOrderOEP_PCSH>
+ <EnumOrder5>0</EnumOrder5>
+ <EnumOrder6>0</EnumOrder6>
+ <EnumOrder7>0</EnumOrder7>
+ <EnumOrder8>0</EnumOrder8>
+ <EnumOrder9>0</EnumOrder9>
+ <EnumOrder10>0</EnumOrder10>
+ <EnumOrder11>0</EnumOrder11>
+ <EnumOrder12>0</EnumOrder12>
+ <EnumOrder13>0</EnumOrder13>
+ <EnumOrder14>0</EnumOrder14>
+ <EnumOrder15>0</EnumOrder15>
+ <Plan1PerfOrder>1</Plan1PerfOrder>
+ <OEP_RCSHPerfOrder>1</OEP_RCSHPerfOrder>
+ <OEP_DCSHPerfOrder>1</OEP_DCSHPerfOrder>
+ <OEP_PCSHPerfOrder>1</OEP_PCSHPerfOrder>
+ <Plan5PerfOrder>2</Plan5PerfOrder>
+ <Plan6PerfOrder>2</Plan6PerfOrder>
+ <Plan7PerfOrder>2</Plan7PerfOrder>
+ <Plan8PerfOrder>2</Plan8PerfOrder>
+ <Plan9PerfOrder>2</Plan9PerfOrder>
+ <Plan10PerfOrder>2</Plan10PerfOrder>
+ <Plan11PerfOrder>2</Plan11PerfOrder>
+ <Plan12PerfOrder>2</Plan12PerfOrder>
+ <Plan13PerfOrder>2</Plan13PerfOrder>
+ <Plan14PerfOrder>2</Plan14PerfOrder>
+ <Plan15PerfOrder>2</Plan15PerfOrder>
+ <ApplySecurity>N</ApplySecurity>
+ <PartialShare>N</PartialShare>
+ <DisplayOption>MEMBER_NAME</DisplayOption>
+ <Consolidation>~</Consolidation>
+ <ConsolidationOEP_RCSH>~</ConsolidationOEP_RCSH>
+ <ConsolidationOEP_DCSH>~</ConsolidationOEP_DCSH>
+ <ConsolidationOEP_PCSH>~</ConsolidationOEP_PCSH>
+ <ConsolidationWF>NotUsed</ConsolidationWF>
+ <ConsolidationCX>NotUsed</ConsolidationCX>
+ <Consolidation64>NotUsed</Consolidation64>
+ <Consolidation128>NotUsed</Consolidation128>
+ <Consolidation256>NotUsed</Consolidation256>
+ <Consolidation512>NotUsed</Consolidation512>
+ <Consolidation1024>NotUsed</Consolidation1024>
+ <Consolidation2048>NotUsed</Consolidation2048>
+ <Consolidation4096>NotUsed</Consolidation4096>
+ <Consolidation8192>NotUsed</Consolidation8192>
+ <Consolidation16384>NotUsed</Consolidation16384>
+ <ValidForPlan1>Y</ValidForPlan1>
+ <ValidForOEP_RCSH>Y</ValidForOEP_RCSH>
+ <ValidForOEP_DCSH>Y</ValidForOEP_DCSH>
+ <ValidForOEP_PCSH>Y</ValidForOEP_PCSH>
+ <ValidForPlan5>N</ValidForPlan5>
+ <ValidForPlan6>N</ValidForPlan6>
+ <ValidForPlan7>N</ValidForPlan7>
+ <ValidForPlan8>N</ValidForPlan8>
+ <ValidForPlan9>N</ValidForPlan9>
+ <ValidForPlan10>N</ValidForPlan10>
+ <ValidForPlan11>N</ValidForPlan11>
+ <ValidForPlan12>N</ValidForPlan12>
+ <ValidForPlan13>N</ValidForPlan13>
+ <ValidForPlan14>N</ValidForPlan14>
+ <ValidForPlan15>N</ValidForPlan15>
+ <Alias table="Default" ></Alias>
+ <DataStorage>NeverShare</DataStorage>
+ <DataStorageOEP_RCSH>NeverShare</DataStorageOEP_RCSH>
+ <DataStorageOEP_DCSH>NeverShare</DataStorageOEP_DCSH>
+ <DataStorageOEP_PCSH>NeverShare</DataStorageOEP_PCSH>
+ <DataStorage16>NeverShare</DataStorage16>
+ <DataStorage32>NeverShare</DataStorage32>
+ <DataStorage64>NeverShare</DataStorage64>
+ <DataStorage128>NeverShare</DataStorage128>
+ <DataStorage256>NeverShare</DataStorage256>
+ <DataStorage512>NeverShare</DataStorage512>
+ <DataStorage1024>NeverShare</DataStorage1024>
+ <DataStorage2048>NeverShare</DataStorage2048>
+ <DataStorage4096>NeverShare</DataStorage4096>
+ <DataStorage8192>NeverShare</DataStorage8192>
+ <DataStorage16384>NeverShare</DataStorage16384>
+ <HierarchyType>None</HierarchyType>
+ <DataType>Unspecified</DataType>
+ <currentYear>FY25</currentYear>
+ <currentTimePeriod>YearTotal</currentTimePeriod>
+</Dimension>
+</DIMENSIONS>
+#--!
+Period, Parent, Alias: Default, Data Storage, Two Pass Calculation, Description, Formula, Formula Description, UDA, Smart List, Data Type, Hierarchy Type, Allow Upper Level Entity Input, Process Management Enabled, UUID, Data Id, Old Name, Old Unique Name, Type, Start Period, End Period, DTS Generation, Plan Type (CFREP), Aggregation (CFREP), Data Storage (CFREP), Formula (CFREP), Solve Order (CFREP), Formula Description (CFREP), Plan Type (OEP_RCSH), Aggregation (OEP_RCSH), Data Storage (OEP_RCSH), Formula (OEP_RCSH), Solve Order (OEP_RCSH), Formula Description (OEP_RCSH), Plan Type (OEP_DCSH), Aggregation (OEP_DCSH), Data Storage (OEP_DCSH), Formula (OEP_DCSH), Solve Order (OEP_DCSH), Formula Description (OEP_DCSH), Plan Type (OEP_PCSH), Aggregation (OEP_PCSH), Data Storage (OEP_PCSH), Formula (OEP_PCSH), Solve Order (OEP_PCSH), Formula Description (OEP_PCSH), Operation
+Y-T-D,Period,,dynamic calc and store,false,,<none>,<none>,,,unspecified,none,false,true,1acbea25-dd85-4477-9f35-665af9973def,923884275453313,Y-T-D,<none>,dts,,,0,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,
+H-T-D,Period,,dynamic calc and store,false,,<none>,<none>,,,unspecified,none,false,true,952223ed-43a1-4e89-8e14-f9db9b5121e6,4453139139938338,H-T-D,<none>,dts,,,0,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,
+S-T-D,Period,,dynamic calc and store,false,,<none>,<none>,,,unspecified,none,false,true,e1949050-5d85-46cc-995c-b5b3b372f054,314251695115997,S-T-D,<none>,dts,,,0,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,
+Q-T-D,Period,,dynamic calc and store,false,,<none>,<none>,,,unspecified,none,false,true,8147db09-5c65-4b80-bf1a-17fa25a12370,3515101159965718,Q-T-D,<none>,dts,,,0,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,
+P-T-D,Period,,dynamic calc and store,false,,<none>,<none>,,,unspecified,none,false,true,724c032e-4a1b-4eca-97cf-02c76fe38066,2174843591409807,P-T-D,<none>,dts,,,0,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,
+M-T-D,Period,,dynamic calc and store,false,,<none>,<none>,,,unspecified,none,false,true,20ad6e2e-0c71-4c0b-8275-613a0d9a8d8f,442379790271344,M-T-D,<none>,dts,,,0,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,
+W-T-D,Period,,dynamic calc and store,false,,<none>,<none>,,,unspecified,none,false,true,5130ef83-66a8-4356-8072-678463c71ee0,3433012747782982,W-T-D,<none>,dts,,,0,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,
+D-T-D,Period,,dynamic calc and store,false,,<none>,<none>,,,unspecified,none,false,true,4f0bf740-691f-4b46-85ba-4f1124922a40,3325822758504633,D-T-D,<none>,dts,,,0,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,true,+,dynamic calc and store,<none>,0,,
+BegBalance,Period,Assumptions,store,false,,<none>,<none>,,,unspecified,stored,false,true,fc0d2a9c-054a-41d9-9f3e-2378a5f7f048,2213205191248227,BegBalance,<none>,base,,,,true,~,store,<none>,0,,true,~,store,<none>,0,,true,~,store,<none>,0,,true,~,store,<none>,0,,
+YearTotal,Period,,dynamic calc,false,,<none>,<none>,,,unspecified,none,false,true,c26e99a9-a1b7-4f3d-8893-eba50623d95f,409019078756889,YearTotal,<none>,year,,,,true,+,dynamic calc,<none>,0,,true,+,dynamic calc,<none>,0,,false,+,dynamic calc,<none>,0,,true,+,dynamic calc,<none>,0,,
+Q1,YearTotal,,dynamic calc,false,,<none>,<none>,,,unspecified,none,false,true,233fbcb6-aeb4-4d0f-8fbd-e540a36d8c11,3322790236998948,Q1,<none>,rollup,Jan,Mar,,true,+,dynamic calc,<none>,0,,true,+,dynamic calc,<none>,0,,false,+,dynamic calc,<none>,0,,true,+,dynamic calc,<none>,0,,
+Jan,Q1,,store,false,,<none>,<none>,,,unspecified,none,false,true,6b4f64f1-0a10-49ff-9e91-d41dfea289b5,2540628202373465,Jan,<none>,base,,,,true,+,store,<none>,0,,true,+,store,<none>,0,,false,+,store,<none>,0,,true,+,store,<none>,0,,
+Feb,Q1,,store,false,,<none>,<none>,,,unspecified,none,false,true,b1a24661-1701-4462-99b7-d3b49c7dd90a,1676092464385543,Feb,<none>,base,,,,true,+,store,<none>,0,,true,+,store,<none>,0,,false,+,store,<none>,0,,true,+,store,<none>,0,,
+Mar,Q1,,store,false,,<none>,<none>,,,unspecified,none,false,true,0c658e46-3f28-44a2-9ecc-1816d2b54044,1199066204816562,Mar,<none>,base,,,,true,+,store,<none>,0,,true,+,store,<none>,0,,false,+,store,<none>,0,,true,+,store,<none>,0,,
+Q2,YearTotal,,dynamic calc,false,,<none>,<none>,,,unspecified,none,false,true,c56f4af9-a840-484c-bf8d-494489da44bb,3373909540816310,Q2,<none>,rollup,Apr,Jun,,true,+,dynamic calc,<none>,0,,true,+,dynamic calc,<none>,0,,false,+,dynamic calc,<none>,0,,true,+,dynamic calc,<none>,0,,
+Apr,Q2,,store,false,,<none>,<none>,,,unspecified,none,false,true,da3d7fe8-124c-467f-842d-83f9ce1c0bfc,2864613494312034,Apr,<none>,base,,,,true,+,store,<none>,0,,true,+,store,<none>,0,,false,+,store,<none>,0,,true,+,store,<none>,0,,
+May,Q2,,store,false,,<none>,<none>,,,unspecified,none,false,true,7132ad7b-0afd-4704-8f3a-3496ecf9efb5,1143337397011877,May,<none>,base,,,,true,+,store,<none>,0,,true,+,store,<none>,0,,false,+,store,<none>,0,,true,+,store,<none>,0,,
+Jun,Q2,,store,false,,<none>,<none>,,,unspecified,none,false,true,d583a660-ea15-4f35-b8bb-add6438af942,3530050886190427,Jun,<none>,base,,,,true,+,store,<none>,0,,true,+,store,<none>,0,,false,+,store,<none>,0,,true,+,store,<none>,0,,
+Q3,YearTotal,,dynamic calc,false,,<none>,<none>,,,unspecified,none,false,true,dee21daf-870e-4cd1-ad92-5bdbce396616,1468338648926194,Q3,<none>,rollup,Jul,Sep,,true,+,dynamic calc,<none>,0,,true,+,dynamic calc,<none>,0,,false,+,dynamic calc,<none>,0,,true,+,dynamic calc,<none>,0,,
+Jul,Q3,,store,false,,<none>,<none>,,,unspecified,none,false,true,0b51d122-375a-47a3-9a67-af20d0a15056,3104285876961744,Jul,<none>,base,,,,true,+,store,<none>,0,,true,+,store,<none>,0,,false,+,store,<none>,0,,true,+,store,<none>,0,,
+Aug,Q3,,store,false,,<none>,<none>,,,unspecified,none,false,true,09db513d-caa5-4bf5-9e4c-30a688b3681b,1908317564716759,Aug,<none>,base,,,,true,+,store,<none>,0,,true,+,store,<none>,0,,false,+,store,<none>,0,,true,+,store,<none>,0,,
+Sep,Q3,,store,false,,<none>,<none>,,,unspecified,none,false,true,98eb8bfd-6de3-436f-a158-b91292976387,4412033312770601,Sep,<none>,base,,,,true,+,store,<none>,0,,true,+,store,<none>,0,,false,+,store,<none>,0,,true,+,store,<none>,0,,
+Q4,YearTotal,,dynamic calc,false,,<none>,<none>,,,unspecified,none,false,true,b3b11f90-34fb-4edb-9c44-c60a3a3dfe3c,4233444200958368,Q4,<none>,rollup,Oct,Dec,,true,+,dynamic calc,<none>,0,,true,+,dynamic calc,<none>,0,,false,+,dynamic calc,<none>,0,,true,+,dynamic calc,<none>,0,,
+Oct,Q4,,store,false,,<none>,<none>,,,unspecified,none,false,true,55ff51e1-b037-4115-b874-de97ca7d46ab,1514551414835760,Oct,<none>,base,,,,true,+,store,<none>,0,,true,+,store,<none>,0,,false,+,store,<none>,0,,true,+,store,<none>,0,,
+Nov,Q4,,store,false,,<none>,<none>,,,unspecified,none,false,true,2ae46645-6193-4360-a6a5-5dbb459982ba,2098509488735761,Nov,<none>,base,,,,true,+,store,<none>,0,,true,+,store,<none>,0,,false,+,store,<none>,0,,true,+,store,<none>,0,,
+Dec,Q4,,store,false,,<none>,<none>,,,unspecified,none,false,true,8644e4d8-97f7-4e55-b840-f8d79c1d6002,2472279303799364,Dec,<none>,base,,,,true,+,store,<none>,0,,true,+,store,<none>,0,,false,+,store,<none>,0,,true,+,store,<none>,0,,

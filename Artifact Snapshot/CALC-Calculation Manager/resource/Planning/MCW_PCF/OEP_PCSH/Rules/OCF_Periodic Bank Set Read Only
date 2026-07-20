@@ -1,0 +1,11 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<HBRRepo><variables/><rulesets/><rules><rule id="1" name="OCF_Periodic Bank Set Read Only" product="Planning"><property name="application">MCW_PCF</property><property name="plantype">OEP_PCSH</property><property name="seeded">true</property><script type="groovy">			    /*
+				* Purpose: Makes OCF_Bank Balance and Begbalance Cells to read only in bank by forecast form. This rule is invoked during the load of the form
+				*/
+					operation.grid.dataCellIterator("OCF_Bank Balance","BegBalance").each {
+						it.setForceReadOnly(true);
+					}
+					operation.grid.dataCellIterator("OCF_Bank Alloc Method").each {				
+    				 if (it.getMemberName("Period")!="BegBalance")	it.setForceReadOnly(true);
+					}	
+	</script></rule></rules><components/><deployobjects><deployobject product="2" application="mcw_pcf" plantype="oep_pcsh" obj_id="1" obj_type="1" name="OCF_PERIODIC BANK SET READ ONLY"/></deployobjects></HBRRepo>
