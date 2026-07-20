@@ -31,3 +31,24 @@ output "gpu_training_ip" {
   description = "Private IP of the GPU training instance (null unless enable_gpu_training = true)."
   value       = try(ibm_is_instance.gpu_training[0].primary_network_interface[0].primary_ip[0].address, null)
 }
+
+output "app_id_tenant_id" {
+  description = "App ID tenant GUID (null unless enable_app_id). Used by ../configure-app-id.sh."
+  value       = try(ibm_resource_instance.app_id[0].guid, null)
+}
+
+output "app_id_issuer_url" {
+  description = "OIDC issuer for oauth2-proxy: OAUTH2_PROXY_OIDC_ISSUER_URL."
+  value       = var.enable_app_id ? "https://${var.region}.appid.cloud.ibm.com/oauth/v4/${ibm_resource_instance.app_id[0].guid}" : null
+}
+
+output "app_id_client_id" {
+  description = "OIDC client id for the epmw-appid Code Engine secret."
+  value       = try(ibm_appid_application.web[0].client_id, null)
+}
+
+output "app_id_client_secret" {
+  description = "OIDC client secret for the epmw-appid Code Engine secret."
+  value       = try(ibm_appid_application.web[0].secret, null)
+  sensitive   = true
+}

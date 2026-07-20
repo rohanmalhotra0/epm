@@ -118,6 +118,7 @@ export type ChatBlockType =
   "confirmation" |
   "spreadsheetPreview" |
   "snapshotSummary" |
+  "groundingSources" |
   "downloadableFile" |
   "errorDiagnostics" |
   "connectionStatus" |
@@ -577,6 +578,17 @@ export interface GenerationMetadata {
   generatedAt?: string | null;
   conversationId?: string | null;
   messageId?: string | null;
+}
+
+export interface GroundingChunk {
+  kind: string;
+  name: string;
+  cube?: string | null;
+  dimension?: string | null;
+  snippet: string;
+  score: number;
+  method: string;
+  contextVersion?: string | null;
 }
 
 export interface HierarchyNode {

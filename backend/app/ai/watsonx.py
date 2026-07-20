@@ -36,7 +36,9 @@ from .base import (
 DEFAULT_BASE = "https://us-south.ml.cloud.ibm.com"
 DEFAULT_IAM_URL = "https://iam.cloud.ibm.com/identity/token"
 DEFAULT_MODEL = "ibm/granite-3-8b-instruct"
+DEFAULT_EMBEDDINGS_MODEL = "ibm/slate-125m-english-rtrvr"
 API_VERSION = "2024-05-31"  # watsonx.ai REST `version` date parameter
+_EMBED_BATCH = 100  # watsonx.ai caps embedding inputs per request
 # Finite streaming timeout so a stalled upstream errors instead of hanging forever.
 _STREAM_TIMEOUT = httpx.Timeout(connect=10.0, read=60.0, write=10.0, pool=10.0)
 _TOKEN_SAFETY_WINDOW = 60.0  # refresh the IAM token this many seconds early
@@ -44,7 +46,7 @@ _TOKEN_SAFETY_WINDOW = 60.0  # refresh the IAM token this many seconds early
 
 class WatsonxProvider(AIProvider):
     capabilities = {"streaming": True, "tools": True, "structured": True,
-                    "attachments": False, "contextWindow": 128_000}
+                    "attachments": False, "contextWindow": 128_000, "embeddings": True}
 
     def __init__(self, config: ProviderConfig) -> None:
         super().__init__(config)
@@ -84,6 +86,16 @@ class WatsonxProvider(AIProvider):
         self._token_expires_at = time.monotonic() + float(payload.get("expires_in", 3600))
         return self._token
 
+    @property
+    def embeddings_model(self) -> str:
+        # Precise RAG cache keying: vectors are re-embedded when this changes.
+        return os.environ.get("WATSONX_EMBEDDINGS_MODEL_ID") or DEFAULT_EMBEDDINGS_MODEL
+
+    def _chat_model(self, model: str | None) -> str:
+        """explicit arg -> provider profile -> WATSONX_CHAT_MODEL_ID env -> built-in."""
+        return (model or self.config.default_model
+                or os.environ.get("WATSONX_CHAT_MODEL_ID") or DEFAULT_MODEL)
+
     def _scope(self) -> dict:
         if self.project_id:
             return {"project_id": self.project_id}
@@ -114,12 +126,45 @@ class WatsonxProvider(AIProvider):
         self._scope()  # fail fast in the connection test if no project is configured
         return {"ok": True, "provider": "watsonx", "models": models[:20]}
 
+    async def embed(self, texts: list[str], *, model: str | None = None) -> list[list[float]]:
+        """Embed texts via /ml/v1/text/embeddings (used for RAG grounding).
+
+        Model resolution: explicit argument -> WATSONX_EMBEDDINGS_MODEL_ID env
+        var -> the slate retriever default. Inputs are batched (the API caps
+        inputs per request); result vectors are concatenated in input order.
+        """
+        model_id = model or os.environ.get("WATSONX_EMBEDDINGS_MODEL_ID") or DEFAULT_EMBEDDINGS_MODEL
+        url = f"{self.base_url}/ml/v1/text/embeddings"
+        vectors: list[list[float]] = []
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                token = await self._bearer_token(client)
+                for start in range(0, len(texts), _EMBED_BATCH):
+                    batch = texts[start:start + _EMBED_BATCH]
+                    resp = await client.post(
+                        url,
+                        params={"version": API_VERSION},
+                        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                        json={"model_id": model_id, "inputs": batch, **self._scope()},
+                    )
+                    if resp.status_code >= 400:
+                        detail = resp.text[:300]
+                        raise ProviderError(
+                            f"watsonx.ai embeddings error {resp.status_code}: {detail}",
+                            category="authentication" if resp.status_code in (401, 403) else "aiProvider",
+                            retryable=resp.status_code == 429,
+                        )
+                    vectors.extend(r["embedding"] for r in resp.json().get("results", []))
+        except httpx.HTTPError as exc:
+            raise ProviderError(f"watsonx.ai embeddings failed: {exc}", retryable=True) from exc
+        return vectors
+
     async def stream(
         self, messages: list[AIMessage], *, system: str | None = None, model: str | None = None,
         temperature: float = 0.2, max_tokens: int = 1024, cancel=None,
     ) -> AsyncIterator[StreamChunk]:
         body = {
-            "model_id": model or self.config.default_model or DEFAULT_MODEL,
+            "model_id": self._chat_model(model),
             **self._scope(),
             "messages": _to_chat_messages(messages, system),
             "temperature": temperature,

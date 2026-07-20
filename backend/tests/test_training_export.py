@@ -61,3 +61,34 @@ def test_export_dedupes(tmp_path, session):
     second = export(out2, project_id=project_id, session=session)
     assert first["examples"] == second["examples"]
     assert second["duplicatesDropped"] == 0
+
+
+def test_export_includes_active_context_rule_bodies(tmp_path, session):
+    from app.services import context_store
+
+    project_id = _seed(session)
+    body = "/*RTPS: {OCF_Entity} */\nStringBuilder s = new StringBuilder();\nreturn s;"
+    records = [
+        {"kind": "rule", "name": "OCF_Daily Manual Input", "dimension": None, "cube": "OEP_DCSH",
+         "alias": None, "parent": None, "application": "MCW_PCF",
+         "search_text": "ocf_daily manual input",
+         "data": {"name": "OCF_Daily Manual Input", "cube": "OEP_DCSH", "scriptType": "groovy",
+                  "runtimePrompts": ["OCF_Entity"], "body": body, "source": "snapshot"}},
+        {"kind": "rule", "name": "Tiny", "dimension": None, "cube": "OEP_DCSH",
+         "alias": None, "parent": None, "application": "MCW_PCF", "search_text": "tiny",
+         "data": {"name": "Tiny", "body": "AGG();", "source": "snapshot"}},  # below min length
+    ]
+    context_store.persist_context(session, project_id, "MCW_PCF", "snapshot", "MCW_PCF_snapshot_1",
+                                  {}, {"rules": 2}, records)
+    session.flush()
+
+    out = tmp_path / "corpus.jsonl"
+    summary = export(out, fmt="watsonx", project_id=project_id, session=session)
+    lines = [json.loads(line) for line in out.read_text().splitlines()]
+
+    assert summary["fromContextRules"] == 1  # the tiny body is skipped
+    rule_lines = [r for r in lines if "OCF_Daily Manual Input" in r["input"]]
+    assert len(rule_lines) == 1
+    assert rule_lines[0]["input"].startswith("Write the Oracle Planning Groovy business rule")
+    assert "OEP_DCSH" in rule_lines[0]["input"] and "OCF_Entity" in rule_lines[0]["input"]
+    assert "StringBuilder" in rule_lines[0]["output"]

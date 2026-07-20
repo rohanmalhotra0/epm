@@ -18,6 +18,7 @@ still works unchanged). This is the hosted topology for teams.
 |---|---|---|
 | AI inference | **watsonx.ai** (IBM Granite models) | `backend/app/ai/watsonx.py` — a first-class provider, selectable in Settings like any other |
 | AI training on EPM data | **watsonx.ai Tuning Studio**, or **GPU-as-a-Service** (VPC GPU profiles) for full fine-tunes | `backend/scripts/export_training_data.py` produces the corpus |
+| Embeddings (RAG) | **watsonx.ai** embeddings (IBM Slate retriever models) | `backend/app/ai/watsonx.py` `embed()` + `backend/app/rag/` — grounds `/forms` and `/rules` on the active context; falls back to offline lexical retrieval when no embeddings provider is configured |
 | Site hosting | **Code Engine** (serverless containers) — the existing frontend + backend images run as-is | `deploy/ibm-cloud/` |
 | Container images | **Container Registry (ICR)** | `deploy/ibm-cloud/deploy-code-engine.sh` |
 | Private access (optional) | **Client-to-Site VPN for VPC** (OpenVPN-based) — off by default, see §5 | `deploy/ibm-cloud/terraform/` (`enable_vpn`) |
@@ -53,6 +54,11 @@ still works unchanged). This is the hosted topology for teams.
                  watsonx.ai inference      Oracle EPM Cloud
                  (Granite / tuned model)   (Planning REST + EPM Automate,
                   WATSONX_PROJECT_ID        via the connector boundary)
+                            ▲
+                            │ embeddings (RAG retrieval)
+                 RAG index on /data volume
+                 (lexical BM25 offline; hybrid with
+                  watsonx.ai text/embeddings when configured)
 ```
 
 The diagram above shows the **VPN topology** (`enable_vpn = true`): Code
@@ -79,9 +85,13 @@ VPN client and no admin rights needs only a browser and the App ID invite.
 ### 3.1 Build the corpus (local, redacted)
 
 The exporter turns what the team has already done in EPM Wizard —
-conversations, plus validated `FormSpecification` / `RuleSpecification`
-artifacts — into instruction/response pairs. Every string passes through the
-central redactor, so pasted credentials never enter the corpus.
+conversations, validated `FormSpecification` / `RuleSpecification` artifacts,
+**and the Calculation Manager rule/template bodies carried by the active
+context version** (uploaded LCM snapshots) — into instruction/response pairs.
+The snapshot-derived pairs are the strongest "EPM expert" signal: real
+production calc-script/Groovy from your own application, phrased as
+"write this rule" instructions. Every string passes through the central
+redactor, so pasted credentials never enter the corpus.
 
 ```bash
 cd backend
@@ -132,10 +142,42 @@ In **Settings → AI Providers** add a provider of type `watsonx`:
 - **API key** — an IBM Cloud API key (exchanged automatically for an IAM token)
 - **Base URL** — your regional endpoint, e.g. `https://us-south.ml.cloud.ibm.com`
   (optionally `?project_id=<id>` appended)
-- **Default model** — `ibm/granite-3-8b-instruct`, or your tuned model id
+- **Default model** — `meta-llama/llama-3-3-70b-instruct` (recommended:
+  token-billed, 131k context, strong structured JSON and rule-script drafting
+  at ~$0.00075/1k tokens), `ibm/granite-3-8b-instruct` for the lightest
+  footprint, or your tuned model id. Prefer the shared token-billed catalog
+  over deploy-on-demand — dedicated hourly deployments only pay off under
+  sustained load.
 
 Environment-variable fallbacks (see `.env.example`): `WATSONX_API_KEY`,
-`WATSONX_URL`, `WATSONX_PROJECT_ID` / `WATSONX_SPACE_ID`.
+`WATSONX_URL`, `WATSONX_PROJECT_ID` / `WATSONX_SPACE_ID`,
+`WATSONX_CHAT_MODEL_ID` (used when the provider profile sets no default
+model; the Code Engine deploy script pins it to
+`meta-llama/llama-3-3-70b-instruct`).
+
+### 3.5 Retrieval-augmented generation (RAG)
+
+When a user asks EPM Wizard to create a form or business rule, the agent
+retrieves the most relevant artifacts from the **active context version** —
+including snapshot-derived Calculation Manager rule bodies, templates, forms,
+per-dimension member-naming digests and substitution variables — shows them in
+a visible "Grounded on" block, and uses them to ground generation
+(`backend/app/rag/`).
+
+- **Offline by default** — retrieval is pure-Python lexical BM25, fully
+  deterministic, no network and no extra service. This is what Demo Mode and
+  the Mock provider use.
+- **watsonx.ai upgrade** — when the active provider supports embeddings
+  (watsonx.ai first-class, via `POST /ml/v1/text/embeddings`), scoring becomes
+  hybrid lexical + cosine similarity. The embedding model resolves from
+  `WATSONX_EMBEDDINGS_MODEL_ID` (default `ibm/slate-125m-english-rtrvr`); the
+  deploy script injects it into the backend app. Embedding failures fall back
+  silently to lexical — grounding never breaks form/rule creation.
+- **Storage** — the index is a per-context-version JSON cache under the
+  app's `/data` volume (`<EPMW_DATA_DIR>/rag/`), rebuilt automatically when
+  missing; no additional IBM Cloud service is required. A future option is
+  moving vectors into IBM Cloud Databases for PostgreSQL with pgvector once
+  contexts outgrow the file cache.
 
 ---
 
@@ -178,6 +220,27 @@ HTTPS endpoint with **App ID (OIDC)** in front. Onboarding is just the App ID
 email invite — nothing to install, which is what a locked-down corporate
 laptop needs. See `docs/TRAINING.md` §7 for the user-facing notes (including
 verifying SSE streaming through corporate proxies).
+
+The App ID front door is fully scripted and needs **zero app-code changes**
+(EPM Wizard itself stays local-first with no auth layer):
+
+1. `terraform apply` — provisions the App ID instance (`enable_app_id = true`
+   by default, `graduated-tier`: free for roughly the first 1,000 monthly
+   active users) and an OIDC application, and exports `app_id_issuer_url`,
+   `app_id_client_id`, `app_id_client_secret`, `app_id_tenant_id`.
+2. Create the `epmw-appid` Code Engine secret from those outputs plus a random
+   cookie secret (exact command in `deploy-code-engine.sh`'s comments).
+3. `./deploy-code-engine.sh` — when the secret exists it deploys **oauth2-proxy**
+   (`epmw-auth`) as the ONLY public app, flips the frontend to project-only
+   visibility behind it, and prints the login-gated URL. Without the secret the
+   frontend stays public with no login (dev/demo mode) and the script says so.
+4. `./configure-app-id.sh` — one-time: registers the generated
+   `/oauth2/callback` URL in App ID's redirect allowlist.
+5. Invite users in **App ID → Cloud Directory → Users** (or federate your IdP
+   in App ID — SAML/enterprise — with no change to the deployment).
+
+`OAUTH2_PROXY_FLUSH_INTERVAL=1s` is set so chat SSE streams through the proxy
+unbuffered.
 
 **Optional VPN topology (`terraform apply -var enable_vpn=true`, plus the two
 Secrets Manager certificate CRNs):** on top of the base VPC and private

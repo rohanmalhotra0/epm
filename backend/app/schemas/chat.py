@@ -33,6 +33,7 @@ class ChatBlockType(str, Enum):
     confirmation = "confirmation"
     spreadsheet_preview = "spreadsheetPreview"
     snapshot_summary = "snapshotSummary"
+    grounding_sources = "groundingSources"
     downloadable_file = "downloadableFile"
     error_diagnostics = "errorDiagnostics"
     connection_status = "connectionStatus"

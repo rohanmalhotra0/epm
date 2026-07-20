@@ -200,3 +200,34 @@ resource "ibm_is_instance" "gpu_training" {
     security_groups = [ibm_is_security_group.app.id]
   }
 }
+
+# ---- App ID (managed OAuth/OIDC front door; docs/IBM_CLOUD.md §5) -----------
+# The default access design: an oauth2-proxy Code Engine app (created by
+# ../deploy-code-engine.sh) sits in front of the frontend and authenticates
+# against this App ID instance. Users are invited in the App ID dashboard
+# (Cloud Directory) or via an identity federation you configure there.
+
+resource "ibm_resource_instance" "app_id" {
+  count             = var.enable_app_id ? 1 : 0
+  name              = "${var.prefix}-appid"
+  service           = "appid"
+  plan              = var.app_id_plan
+  location          = var.region
+  resource_group_id = ibm_resource_group.epmw.id
+}
+
+resource "ibm_appid_application" "web" {
+  count     = var.enable_app_id ? 1 : 0
+  tenant_id = ibm_resource_instance.app_id[0].guid
+  name      = "${var.prefix}-web"
+  type      = "regularwebapp"
+}
+
+# The oauth2-proxy callback URL is only known after the first Code Engine
+# deploy (its URL is generated). Run ../configure-app-id.sh after deploying
+# to register it, or re-apply with auth_redirect_urls set explicitly.
+resource "ibm_appid_redirect_urls" "web" {
+  count     = var.enable_app_id && length(var.auth_redirect_urls) > 0 ? 1 : 0
+  tenant_id = ibm_resource_instance.app_id[0].guid
+  urls      = var.auth_redirect_urls
+}

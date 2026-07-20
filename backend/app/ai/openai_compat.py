@@ -4,6 +4,7 @@ OpenAI-compatible endpoint (spec section 11)."""
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import AsyncIterator
 
 import httpx
@@ -31,7 +32,7 @@ _STREAM_TIMEOUT = httpx.Timeout(connect=10.0, read=60.0, write=10.0, pool=10.0)
 
 class OpenAICompatibleProvider(AIProvider):
     capabilities = {"streaming": True, "tools": True, "structured": True,
-                    "attachments": False, "contextWindow": 128_000}
+                    "attachments": False, "contextWindow": 128_000, "embeddings": True}
 
     def __init__(self, config: ProviderConfig) -> None:
         super().__init__(config)
@@ -58,6 +59,38 @@ class OpenAICompatibleProvider(AIProvider):
     async def test_connection(self) -> dict:
         models = await self.list_models()
         return {"ok": True, "provider": self.config.provider_type, "models": models[:20]}
+
+    @property
+    def embeddings_model(self) -> str:
+        # Precise RAG cache keying: vectors are re-embedded when this changes.
+        return os.environ.get("OPENAI_EMBEDDINGS_MODEL", "text-embedding-3-small")
+
+    async def embed(self, texts: list[str], *, model: str | None = None) -> list[list[float]]:
+        """Embed texts via the OpenAI-compatible /embeddings endpoint (RAG grounding).
+
+        Model resolution: explicit argument -> OPENAI_EMBEDDINGS_MODEL env var
+        -> "text-embedding-3-small". Batched (<=100 inputs per request — large
+        RAG corpora would otherwise exceed the API's per-request input limits);
+        vectors are returned in input order.
+        """
+        model_id = model or os.environ.get("OPENAI_EMBEDDINGS_MODEL", "text-embedding-3-small")
+        vectors: list[list[float]] = []
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                for start in range(0, len(texts), 100):
+                    body = {"model": model_id, "input": texts[start:start + 100]}
+                    resp = await client.post(f"{self.base_url}/embeddings",
+                                             headers=self._headers(), json=body)
+                    if resp.status_code >= 400:
+                        detail = resp.text[:300]
+                        raise ProviderError(f"Provider embeddings error {resp.status_code}: {detail}",
+                                            category="authentication" if resp.status_code == 401 else "aiProvider",
+                                            retryable=resp.status_code == 429)
+                    data = sorted(resp.json().get("data", []), key=lambda item: item.get("index", 0))
+                    vectors.extend(item["embedding"] for item in data)
+            return vectors
+        except httpx.HTTPError as exc:
+            raise ProviderError(f"Embeddings request failed: {exc}", retryable=True) from exc
 
     async def stream(
         self, messages: list[AIMessage], *, system: str | None = None, model: str | None = None,

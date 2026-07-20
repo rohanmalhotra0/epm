@@ -13,7 +13,9 @@ deploy/ibm-cloud/
 │   ├── main.tf              project, optional VPN, optional GPU training instance
 │   ├── variables.tf         toggles: enable_vpn (default false), enable_gpu_training
 │   └── outputs.tf
-├── deploy-code-engine.sh    build → push to ICR → create/update the two apps
+├── deploy-code-engine.sh    build → push to ICR → create/update the apps
+│                            (+ the epmw-auth App ID login gate when configured)
+├── configure-app-id.sh      one-time: register the oauth2 callback in App ID
 ├── upload_corpus.sh         create the COS bucket + upload training JSONL files
 └── training/                GPU (Path B) QLoRA kit — runs on the VSI, not the app
 ```
@@ -56,9 +58,17 @@ REGION=us-south ICR_NAMESPACE=epmw CE_PROJECT=epmw-project \
   ./deploy-code-engine.sh
 ```
 
-Re-run the script to roll out a new image; it updates in place. The frontend
-deploys with a public endpoint by default (App ID in front); set
-`FRONTEND_VISIBILITY=private` for the VPN topology.
+Re-run the script to roll out a new image; it updates in place.
+
+**App ID login gate (recommended before sharing the URL):** terraform already
+provisioned App ID (`enable_app_id=true` default). Create the `epmw-appid`
+secret from the terraform outputs (exact command in the comments of
+`deploy-code-engine.sh`), re-run the deploy script — it deploys the
+`epmw-auth` oauth2-proxy app as the only public endpoint and flips the
+frontend to project visibility — then run `./configure-app-id.sh` once to
+register the callback URL. Without the secret the frontend stays public with
+no login (fine for a quick demo, not for real data). Set
+`FRONTEND_VISIBILITY=private` for the VPN topology instead.
 
 **Optional managed database**: with `terraform apply -var enable_postgres=true`
 (outputs `postgres_host`/`postgres_port`), create a service key for the

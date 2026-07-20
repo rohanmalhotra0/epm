@@ -43,6 +43,8 @@ To use a real AI model or a real Oracle environment, open **Settings** in the UI
 - `Run the IR rule`
 - Attach an LCM **Artifact Snapshot** zip to layer rule bodies, full hierarchies
   and variables on top of the live context (`/context merge snapshot`)
+- `Create a business rule that copies Working to Final` — drafted grounded on
+  the real rules in your context, with a visible "Grounded on" block
 - `/help`
 
 ---
@@ -94,7 +96,8 @@ Pydantic models  →  JSON Schema  →  TypeScript interfaces  →  Zod schemas
 | Connector boundary | `app/connector` | The one authoritative EPM boundary: Demo, Oracle REST, and a restricted EPM Automate runner (allowlist, no shell) |
 | Artifact engine | `app/artifacts` | Member resolution, validation, preview, deterministic XML render + round-trip parse, reproducible packaging |
 | Context engine | `app/context` | Quick/deep context, local retrieval, portable `.epwcontext` packages, LCM snapshot-zip upload layered onto the live context |
-| AI layer | `app/ai` | Provider-independent: deterministic **Mock** + IBM watsonx.ai / Anthropic / OpenAI-compatible / Gemini adapters |
+| AI layer | `app/ai` | Provider-independent: deterministic **Mock** + IBM watsonx.ai / Anthropic / OpenAI-compatible / Gemini adapters; embeddings for RAG (watsonx, OpenAI-compatible, Mock) |
+| RAG grounding | `app/rag` | `/forms` and `/rules` ground generation on the active context (snapshot rule bodies, templates, naming digests) — offline BM25 by default, hybrid with embeddings when configured |
 | Agent | `app/agent` | Intent router, tool framework, skills, streaming orchestrator |
 | Cube visualizer | `app/architecture` | Deterministic Cube Architecture, coverage, cell intersection, comparison, sizing, hierarchy |
 | API | `app/api` | FastAPI routes incl. SSE streaming chat |

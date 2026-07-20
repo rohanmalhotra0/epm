@@ -400,6 +400,7 @@
         "confirmation",
         "spreadsheetPreview",
         "snapshotSummary",
+        "groundingSources",
         "downloadableFile",
         "errorDiagnostics",
         "connectionStatus",
@@ -2791,6 +2792,76 @@
         }
       },
       "title": "GenerationMetadata",
+      "type": "object"
+    },
+    "GroundingChunk": {
+      "additionalProperties": false,
+      "properties": {
+        "contextVersion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Contextversion"
+        },
+        "cube": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cube"
+        },
+        "dimension": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dimension"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        },
+        "snippet": {
+          "title": "Snippet",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "snippet",
+        "score",
+        "method"
+      ],
+      "title": "GroundingChunk",
       "type": "object"
     },
     "HierarchyNode": {
