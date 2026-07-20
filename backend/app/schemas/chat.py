@@ -32,6 +32,7 @@ class ChatBlockType(str, Enum):
     diff = "diff"
     confirmation = "confirmation"
     spreadsheet_preview = "spreadsheetPreview"
+    snapshot_summary = "snapshotSummary"
     downloadable_file = "downloadableFile"
     error_diagnostics = "errorDiagnostics"
     connection_status = "connectionStatus"

@@ -24,6 +24,14 @@ _KIND_FILE = {
     "form": "forms.json",
     "rule": "rules.json",
     "variable": "variables.json",
+    # Snapshot-derived kinds — without these, exporting a hybrid/snapshot
+    # context would silently drop them while the manifest still counts them.
+    "template": "templates.json",
+    "integration": "integrations.json",
+    "securityGroup": "securityGroups.json",
+    "smartList": "smartLists.json",
+    "dataMap": "dataMaps.json",
+    "validIntersection": "validIntersections.json",
 }
 _FORBIDDEN_KEYS = {"password", "token", "apikey", "api_key", "secret", "cookie", "authorization"}
 

@@ -41,6 +41,8 @@ To use a real AI model or a real Oracle environment, open **Settings** in the UI
 - `Visualize OEP_DCSH` — the Cube Architecture & Dimensionality Visualizer
 - `What cubes and dimensions exist?`
 - `Run the IR rule`
+- Attach an LCM **Artifact Snapshot** zip to layer rule bodies, full hierarchies
+  and variables on top of the live context (`/context merge snapshot`)
 - `/help`
 
 ---
@@ -91,7 +93,7 @@ Pydantic models  →  JSON Schema  →  TypeScript interfaces  →  Zod schemas
 | Persistence | `app/db`, `app/services` | SQLite + Alembic migrations; projects, conversations, artifacts, contexts, deployments, audit |
 | Connector boundary | `app/connector` | The one authoritative EPM boundary: Demo, Oracle REST, and a restricted EPM Automate runner (allowlist, no shell) |
 | Artifact engine | `app/artifacts` | Member resolution, validation, preview, deterministic XML render + round-trip parse, reproducible packaging |
-| Context engine | `app/context` | Quick/deep context, local retrieval, portable `.epwcontext` packages |
+| Context engine | `app/context` | Quick/deep context, local retrieval, portable `.epwcontext` packages, LCM snapshot-zip upload layered onto the live context |
 | AI layer | `app/ai` | Provider-independent: deterministic **Mock** + IBM watsonx.ai / Anthropic / OpenAI-compatible / Gemini adapters |
 | Agent | `app/agent` | Intent router, tool framework, skills, streaming orchestrator |
 | Cube visualizer | `app/architecture` | Deterministic Cube Architecture, coverage, cell intersection, comparison, sizing, hierarchy |

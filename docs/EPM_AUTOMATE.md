@@ -43,7 +43,8 @@ The runner (`app/connector/epm_automate.py`) is deliberately restricted:
 
 - **Command allowlist** — only a fixed set of EPM Automate commands may run
   (`login`, `logout`, `listfiles`, `uploadfile`, `downloadfile`, `importsnapshot`,
-  `exportsnapshot`, `runbusinessrule`, `getsubstvar`, `feedback`, `version`).
+  `exportsnapshot`, `exportmetadata`, `runbusinessrule`, `getsubstvar`, `feedback`,
+  `version`).
 - **Argument arrays only** — never `shell=True`, never string interpolation.
 - Fixed working directory, execution timeouts, and **output redaction**.
 - No public network listener, no generic shell access.

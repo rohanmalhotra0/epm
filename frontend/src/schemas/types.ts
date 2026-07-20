@@ -117,6 +117,7 @@ export type ChatBlockType =
   "diff" |
   "confirmation" |
   "spreadsheetPreview" |
+  "snapshotSummary" |
   "downloadableFile" |
   "errorDiagnostics" |
   "connectionStatus" |
@@ -204,7 +205,9 @@ export interface ContextManifest {
 export type ContextMode =
   "quick" |
   "deep" |
-  "imported";
+  "imported" |
+  "snapshot" |
+  "hybrid";
 
 export interface ContextSectionStatus {
   name: string;
@@ -1003,6 +1006,33 @@ export interface SmartFormat {
   /** Trailing symbol, e.g. % */
   suffix?: string;
   conditionalRules: Array<ConditionalRule>;
+}
+
+export interface SnapshotAnalysis {
+  filename?: string | null;
+  application?: string | null;
+  applications: Array<string>;
+  provenance?: SnapshotProvenance | null;
+  components: Array<SnapshotComponent>;
+  cubes: Array<string>;
+  dimensions: Array<string>;
+  counts: Record<string, number>;
+  issues: Array<string>;
+}
+
+export interface SnapshotComponent {
+  key: string;
+  product: string;
+  application: string;
+  artifactCount?: number;
+}
+
+export interface SnapshotProvenance {
+  exportedBy?: string | null;
+  exportedAt?: string | null;
+  serviceInstance?: string | null;
+  domain?: string | null;
+  exportedVersion?: string | null;
 }
 
 export interface StreamEvent {

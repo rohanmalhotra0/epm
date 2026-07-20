@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./client";
-import { uploadProjectImport } from "./data";
+import { uploadContextSnapshot, uploadProjectImport } from "./data";
 import { toast } from "../store/toast";
 import type {
   ArtifactOut,
@@ -212,6 +212,19 @@ export function useBuildContext(projectId: string | undefined) {
       );
     },
     onError: (e: Error) => toast.error("Context build failed", e.message),
+  });
+}
+
+export function useImportContextSnapshot(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ file, standalone = false }: { file: File; standalone?: boolean }) =>
+      uploadContextSnapshot(projectId!, file, standalone),
+    onSuccess: (cv) => {
+      qc.invalidateQueries({ queryKey: ["contexts", projectId] });
+      toast.success("Snapshot imported — context updated", cv?.label);
+    },
+    onError: (e: Error) => toast.error("Snapshot import failed", e.message),
   });
 }
 

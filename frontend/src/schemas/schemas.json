@@ -399,6 +399,7 @@
         "diff",
         "confirmation",
         "spreadsheetPreview",
+        "snapshotSummary",
         "downloadableFile",
         "errorDiagnostics",
         "connectionStatus",
@@ -750,7 +751,9 @@
       "enum": [
         "quick",
         "deep",
-        "imported"
+        "imported",
+        "snapshot",
+        "hybrid"
       ],
       "title": "ContextMode",
       "type": "string"
@@ -4958,6 +4961,189 @@
         }
       },
       "title": "SmartFormat",
+      "type": "object"
+    },
+    "SnapshotAnalysis": {
+      "additionalProperties": false,
+      "description": "Deterministic inventory of an LCM application-snapshot zip.",
+      "properties": {
+        "application": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Application"
+        },
+        "applications": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Applications",
+          "type": "array"
+        },
+        "components": {
+          "items": {
+            "$ref": "#/$defs/SnapshotComponent"
+          },
+          "title": "Components",
+          "type": "array"
+        },
+        "counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Counts",
+          "type": "object"
+        },
+        "cubes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Cubes",
+          "type": "array"
+        },
+        "dimensions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dimensions",
+          "type": "array"
+        },
+        "filename": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Filename"
+        },
+        "issues": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SnapshotProvenance"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "SnapshotAnalysis",
+      "type": "object"
+    },
+    "SnapshotComponent": {
+      "additionalProperties": false,
+      "description": "One top-level LCM component folder (``<PRODUCT>-<Application>/``).",
+      "properties": {
+        "application": {
+          "title": "Application",
+          "type": "string"
+        },
+        "artifactCount": {
+          "default": 0,
+          "title": "Artifactcount",
+          "type": "integer"
+        },
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "product": {
+          "title": "Product",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "product",
+        "application"
+      ],
+      "title": "SnapshotComponent",
+      "type": "object"
+    },
+    "SnapshotProvenance": {
+      "additionalProperties": false,
+      "description": "Who/when/where a snapshot was exported (from the LCM Import.xml).",
+      "properties": {
+        "domain": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Domain"
+        },
+        "exportedAt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exportedat"
+        },
+        "exportedBy": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exportedby"
+        },
+        "exportedVersion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exportedversion"
+        },
+        "serviceInstance": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Serviceinstance"
+        }
+      },
+      "title": "SnapshotProvenance",
       "type": "object"
     },
     "StreamEvent": {

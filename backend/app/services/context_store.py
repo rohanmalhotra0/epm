@@ -101,27 +101,28 @@ def get_records(session: Session, context_version_id: str, kind: str | None = No
     return q.all()
 
 
+def _validate_known(model_cls, data: dict):
+    # Snapshot-derived records carry provenance keys ("source", "referencedOnly",
+    # rule bodies…) that the strict record models forbid; keep only known fields.
+    fields = model_cls.model_fields
+    allowed = set(fields) | {f.alias for f in fields.values() if f.alias}
+    return model_cls.model_validate({k: v for k, v in data.items() if k in allowed})
+
+
 def build_tenant_metadata(session: Session, context_version_id: str) -> TenantMetadata:
     """Reconstruct TenantMetadata from persisted records (for the artifact engine)."""
     cv = session.get(ContextVersion, context_version_id)
     application = cv.application if cv else ""
     records = get_records(session, context_version_id)
-    cubes, dims, members, variables, forms, rules = [], [], [], [], [], []
+    kinds = {"cube": (CubeRecord, []), "dimension": (DimensionRecord, []),
+             "member": (MemberRecord, []), "variable": (VariableRecord, []),
+             "form": (FormRecord, []), "rule": (RuleRecord, [])}
     for r in records:
-        data = r.data or {}
-        if r.kind == "cube":
-            cubes.append(CubeRecord.model_validate(data))
-        elif r.kind == "dimension":
-            dims.append(DimensionRecord.model_validate(data))
-        elif r.kind == "member":
-            members.append(MemberRecord.model_validate(data))
-        elif r.kind == "variable":
-            variables.append(VariableRecord.model_validate(data))
-        elif r.kind == "form":
-            forms.append(FormRecord.model_validate(data))
-        elif r.kind == "rule":
-            rules.append(RuleRecord.model_validate(data))
-    return build_metadata(application, cubes, dims, members, variables, forms, rules)
+        entry = kinds.get(r.kind)
+        if entry is not None:
+            entry[1].append(_validate_known(entry[0], r.data or {}))
+    return build_metadata(application, kinds["cube"][1], kinds["dimension"][1], kinds["member"][1],
+                          kinds["variable"][1], kinds["form"][1], kinds["rule"][1])
 
 
 def delete_context(session: Session, context_version_id: str) -> None:

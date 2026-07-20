@@ -77,6 +77,9 @@ from .context import (
     MemberMatch,
     MemberRecord,
     RuleRecord,
+    SnapshotAnalysis,
+    SnapshotComponent,
+    SnapshotProvenance,
     VariableRecord,
 )
 from .deployment import (
@@ -138,6 +141,9 @@ CANONICAL_MODELS: dict[str, type[BaseModel]] = {
     "RuleRecord": RuleRecord,
     "VariableRecord": VariableRecord,
     "MemberMatch": MemberMatch,
+    "SnapshotProvenance": SnapshotProvenance,
+    "SnapshotComponent": SnapshotComponent,
+    "SnapshotAnalysis": SnapshotAnalysis,
     "ValidationReport": ValidationReport,
     "ValidationIssue": ValidationIssue,
     "SizeEstimate": SizeEstimate,
@@ -257,6 +263,9 @@ __all__ = [
     "RuleRecord",
     "VariableRecord",
     "MemberMatch",
+    "SnapshotProvenance",
+    "SnapshotComponent",
+    "SnapshotAnalysis",
     # validation
     "ValidationReport",
     "ValidationIssue",

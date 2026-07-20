@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Types, ZoomIn, ZoomOut, Search, ChevronDown } from "@carbon/icons-react";
+import { Types, ZoomIn, ZoomOut, Search } from "@carbon/icons-react";
 import type { CubeArchitecture, DimensionNode } from "../schemas/types";
 
 const STATUS_COLOR: Record<string, string> = {
@@ -230,7 +230,7 @@ function CubeCard({
   );
 }
 
-export function CubeArchitectureBlock({ data, onAction }: { data: CubeArchitecture; onAction: (v: string) => void }) {
+export function CubeArchitectureBlock({ data }: { data: CubeArchitecture; onAction: (v: string) => void }) {
   const [showTable, setShowTable] = useState(true);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [expandedNode, setExpandedNode] = useState<string | null>(null);

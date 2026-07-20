@@ -76,6 +76,18 @@ persisted for **identifier-first** local retrieval (exact → case-insensitive �
 alias → prefix → substring), each carrying full provenance. Portable
 `.epwcontext` packages (ZIP with manifest + checksums, no secrets) for sharing.
 
+**Application snapshot upload** (`app/context/snapshot.py`): an LCM/Migration
+snapshot zip (what `exportSnapshot` + `downloadFile` produce) can be uploaded in
+chat or on the Context tab. It is parsed deterministically and in-memory only —
+application, cubes and dimensions are discovered from the zip's own `Export.xml`
+and folder manifest, never assumed — extracting what the REST/EPM Automate
+interfaces cannot supply: full member hierarchies with formulas, Calculation
+Manager rule bodies and runtime prompts, substitution/user variables,
+form/dashboard references, FDMEE inventory. The result is layered **on top of**
+the connector-built context as a new provenance-tracked version
+(`mode: hybrid`, or `snapshot` when standalone); every snapshot-derived record
+carries `source: "snapshot"`, and prior versions are never mutated.
+
 ### AI layer (`app/ai`)
 
 Provider-independent interface: model listing, connection test, streaming, tool
