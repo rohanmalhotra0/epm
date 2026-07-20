@@ -1,12 +1,16 @@
 """Export local EPM Wizard data as a fine-tuning corpus (JSONL).
 
-Builds instruction/response pairs from two local sources:
+Builds instruction/response pairs from three local sources:
 
 1. **Conversations** — every active user → assistant turn pair.
 2. **Artifacts** — the user request that produced a validated FormSpecification /
    RuleSpecification, paired with the spec JSON itself. These are the highest
    value examples: the output side is deterministic, Pydantic-validated EPM
    structure, not free prose.
+3. **Context rule bodies** — Calculation Manager rules and templates carried by
+   the active context version (LCM snapshot upload), turned into "write this
+   rule" instruction pairs. This is real production calc-script/Groovy from the
+   customer's own application — the strongest "EPM expert" signal available.
 
 Every string passes through the central redactor before it is written, so
 credentials never leave the machine. Output formats:
@@ -32,7 +36,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from app.db.base import get_sessionmaker
-from app.db.models import Artifact, Conversation, Message
+from app.db.models import Artifact, ContextRecord, ContextVersion, Conversation, Message
 from app.security.redaction import redact_text
 
 # Artifact kinds whose payload is a spec worth learning to produce.
@@ -78,6 +82,38 @@ def _pairs_from_artifacts(session: Session, project_id: str | None) -> list[tupl
     return pairs
 
 
+_MIN_RULE_BODY_CHARS = 40
+
+
+def _pairs_from_context_rules(session: Session, project_id: str | None) -> list[tuple[str, str]]:
+    """Rule/template bodies from ACTIVE context versions → instruction pairs.
+
+    Only active versions are read so retired context generations don't flood
+    the corpus; the cross-source dedupe still drops any survivors.
+    """
+    query = session.query(ContextRecord).join(
+        ContextVersion, ContextRecord.context_version_id == ContextVersion.id
+    ).filter(ContextVersion.active.is_(True), ContextRecord.kind.in_(("rule", "template")))
+    if project_id:
+        query = query.filter(ContextRecord.project_id == project_id)
+    pairs: list[tuple[str, str]] = []
+    for record in query.all():
+        data = record.data or {}
+        body = (data.get("body") or "").strip()
+        if len(body) < _MIN_RULE_BODY_CHARS or data.get("bodyTruncated"):
+            continue
+        kind = "Calculation Manager template" if record.kind == "template" else "business rule"
+        script = {"groovy": "Groovy", "calcscript": "calc script"}.get(data.get("scriptType"), "calc script")
+        prompt = f"Write the Oracle Planning {script} {kind} '{record.name}'"
+        if record.cube:
+            prompt += f" for cube {record.cube}"
+        prompts = data.get("runtimePrompts") or []
+        if prompts:
+            prompt += f", using runtime prompts {', '.join(prompts)}"
+        pairs.append((prompt + ".", body))
+    return pairs
+
+
 def _to_record(prompt: str, completion: str, fmt: str) -> dict:
     prompt, completion = redact_text(prompt), redact_text(completion)
     if fmt == "chat":
@@ -98,13 +134,14 @@ def export(out_path: Path, fmt: str = "watsonx", project_id: str | None = None,
     try:
         conv_pairs = _pairs_from_conversations(session, project_id)
         artifact_pairs = _pairs_from_artifacts(session, project_id)
+        rule_pairs = _pairs_from_context_rules(session, project_id)
     finally:
         if owns_session:
             session.close()
 
     seen: set[str] = set()
     records: list[dict] = []
-    for prompt, completion in conv_pairs + artifact_pairs:
+    for prompt, completion in conv_pairs + artifact_pairs + rule_pairs:
         digest = hashlib.sha256(f"{prompt}\x00{completion}".encode()).hexdigest()
         if digest in seen:
             continue
@@ -120,7 +157,8 @@ def export(out_path: Path, fmt: str = "watsonx", project_id: str | None = None,
         "examples": len(records),
         "fromConversations": len(conv_pairs),
         "fromArtifacts": len(artifact_pairs),
-        "duplicatesDropped": len(conv_pairs) + len(artifact_pairs) - len(records),
+        "fromContextRules": len(rule_pairs),
+        "duplicatesDropped": len(conv_pairs) + len(artifact_pairs) + len(rule_pairs) - len(records),
         "path": str(out_path),
         "format": fmt,
     }

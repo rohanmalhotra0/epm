@@ -8,6 +8,8 @@ free-chat fallback. Given the same input it returns the same output.
 
 from __future__ import annotations
 
+import hashlib
+import math
 from collections.abc import AsyncIterator
 
 from .base import AIMessage, AIProvider, ProviderConfig, StreamChunk, StreamDone, TextDelta, Usage
@@ -17,12 +19,27 @@ def _estimate_tokens(text: str) -> int:
     return max(1, len(text) // 4)
 
 
+EMBEDDING_DIM = 64
+
+
+def _hash_embedding(text: str) -> list[float]:
+    """Deterministic 64-dim unit vector from sha256 — a pure function of the
+    text, so identical inputs always embed identically (no network, no model)."""
+    raw: list[float] = []
+    for block in range(EMBEDDING_DIM // 32):
+        digest = hashlib.sha256(f"{block}:{text}".encode()).digest()  # 32 bytes
+        raw.extend(b / 127.5 - 1.0 for b in digest)
+    norm = math.sqrt(sum(v * v for v in raw)) or 1.0
+    return [v / norm for v in raw]
+
+
 class MockProvider(AIProvider):
     capabilities = {
         "streaming": True,
         "tools": True,  # handled deterministically by the orchestrator
         "structured": True,
         "attachments": False,
+        "embeddings": True,  # deterministic local hash embeddings
         "contextWindow": 200_000,
     }
 
@@ -35,6 +52,9 @@ class MockProvider(AIProvider):
     async def test_connection(self) -> dict:
         return {"ok": True, "provider": "mock", "models": await self.list_models(),
                 "message": "Local deterministic provider — always available, no network."}
+
+    async def embed(self, texts: list[str], *, model: str | None = None) -> list[list[float]]:
+        return [_hash_embedding(t) for t in texts]
 
     def _respond(self, messages: list[AIMessage], system: str | None) -> str:
         # A canned-but-contextual answer. If the orchestrator asked for a specific

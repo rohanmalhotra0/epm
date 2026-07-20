@@ -4,6 +4,7 @@ import { FormPreviewBlock } from "./FormPreviewBlock";
 import { ArtifactBlock } from "../artifacts/blocks";
 import { CubeArchitectureBlock } from "./CubeArchitectureBlock";
 import { DeploymentPlanBlock, DeploymentProgressBlock, DeploymentResultBlock } from "./DeploymentBlocks";
+import { GroundingSourcesBlock } from "./GroundingSourcesBlock";
 import { SnapshotSummaryBlock } from "./SnapshotSummaryBlock";
 import { SpreadsheetBlock } from "./SpreadsheetBlock";
 import {
@@ -100,6 +101,8 @@ export function BlockRenderer({ block, onAction }: { block: ChatBlockT; onAction
       return <DimensionHierarchyBlock data={d} onAction={onAction} />;
     case "snapshotSummary":
       return <SnapshotSummaryBlock data={d} />;
+    case "groundingSources":
+      return <GroundingSourcesBlock data={d} />;
     case "spreadsheetPreview":
       return <SpreadsheetBlock data={d} />;
     default:

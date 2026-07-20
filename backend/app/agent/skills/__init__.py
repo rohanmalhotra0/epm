@@ -39,7 +39,7 @@ SKILLS: dict[str, Skill] = {
 ARCH_KEYWORDS = ("architecture", "dimension", "cube-map", "cube map", "intersection",
                  "visualize", "dimensionality", "one cell", "data cell")
 
-WORKFLOW_SKILLS = {"forms", "reports", "spreadsheet"}  # skills that own a resumable workflow
+WORKFLOW_SKILLS = {"forms", "reports", "rules", "spreadsheet"}  # skills that own a resumable workflow
 
 
 def get_skill(name: str) -> Skill:

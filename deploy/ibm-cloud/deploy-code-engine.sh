@@ -70,19 +70,59 @@ echo "==> Deploying backend"
 deploy_app epmw-backend "${BACKEND_IMAGE}" 8000 \
   --visibility project \
   --env EPMW_DATA_DIR=/data --env EPMW_LOG_JSON=true \
+  --env WATSONX_CHAT_MODEL_ID="${WATSONX_CHAT_MODEL_ID:-meta-llama/llama-3-3-70b-instruct}" \
+  --env WATSONX_EMBEDDINGS_MODEL_ID="${WATSONX_EMBEDDINGS_MODEL_ID:-ibm/slate-125m-english-rtrvr}" \
   --env-from-secret epmw-secrets \
   ${DB_ARGS[@]+"${DB_ARGS[@]}"} \
   --mount-data-store /data=epmw-data
 
-# Frontend: public HTTPS endpoint by default, with App ID (OIDC) as the
-# security boundary — matches the terraform default enable_vpn=false and needs
-# nothing installed on the user's machine. Set FRONTEND_VISIBILITY=private for
-# the VPN topology (enable_vpn=true), where it is reachable only over the
-# client-to-site VPN.
+# App ID front door (docs/IBM_CLOUD.md §5): when the epmw-appid secret exists,
+# an oauth2-proxy app becomes the ONLY public endpoint and the frontend is
+# flipped to project visibility behind it. Create the secret once from the
+# terraform outputs (app_id_issuer_url / client id / client secret):
+#   ibmcloud ce secret create --name epmw-appid \
+#     --from-literal OAUTH2_PROXY_OIDC_ISSUER_URL="$(terraform output -raw app_id_issuer_url)" \
+#     --from-literal OAUTH2_PROXY_CLIENT_ID="$(terraform output -raw app_id_client_id)" \
+#     --from-literal OAUTH2_PROXY_CLIENT_SECRET="$(terraform output -raw app_id_client_secret)" \
+#     --from-literal OAUTH2_PROXY_COOKIE_SECRET="$(python3 -c 'import os,base64;print(base64.urlsafe_b64encode(os.urandom(32)).decode())')"
+# Then run ../configure-app-id.sh once to register the callback URL in App ID.
+AUTH_SECRET="${AUTH_SECRET:-epmw-appid}"
+AUTH_IMAGE="${AUTH_IMAGE:-quay.io/oauth2-proxy/oauth2-proxy:v7.6.0}"
+PROJECT_NAME="$(ibmcloud ce project current --output json | grep -o '"name": *"[^"]*"' | head -1 | sed 's/.*: *"//;s/"//')"
+
+FRONTEND_VISIBILITY_DEFAULT=public
+if ibmcloud ce secret get --name "${AUTH_SECRET}" >/dev/null 2>&1; then
+  FRONTEND_VISIBILITY_DEFAULT=project
+fi
+
 echo "==> Deploying frontend"
 deploy_app epmw-frontend "${FRONTEND_IMAGE}" 3000 \
-  --visibility "${FRONTEND_VISIBILITY:-public}" \
-  --env BACKEND_URL="http://epmw-backend.$(ibmcloud ce project current --output json | grep -o '"name": *"[^"]*"' | head -1 | sed 's/.*: *"//;s/"//')"
+  --visibility "${FRONTEND_VISIBILITY:-${FRONTEND_VISIBILITY_DEFAULT}}" \
+  --env BACKEND_URL="http://epmw-backend.${PROJECT_NAME}"
+
+if ibmcloud ce secret get --name "${AUTH_SECRET}" >/dev/null 2>&1; then
+  echo "==> ${AUTH_SECRET} secret found — deploying App ID login gate (oauth2-proxy)"
+  deploy_app epmw-auth "${AUTH_IMAGE}" 4180 \
+    --visibility public \
+    --env OAUTH2_PROXY_PROVIDER=oidc \
+    --env OAUTH2_PROXY_HTTP_ADDRESS=0.0.0.0:4180 \
+    --env OAUTH2_PROXY_UPSTREAMS="http://epmw-frontend.${PROJECT_NAME}" \
+    --env OAUTH2_PROXY_EMAIL_DOMAINS='*' \
+    --env OAUTH2_PROXY_COOKIE_SECURE=true \
+    --env OAUTH2_PROXY_FLUSH_INTERVAL=1s \
+    --env-from-secret "${AUTH_SECRET}"
+  # The redirect URL is this app's own generated URL — set it now that it exists.
+  AUTH_URL="$(ibmcloud ce app get --name epmw-auth --output json | grep -o '"url": *"https[^"]*"' | head -1 | sed 's/.*: *"//;s/"//')"
+  if [ -n "${AUTH_URL}" ]; then
+    ibmcloud ce app update --name epmw-auth --env OAUTH2_PROXY_REDIRECT_URL="${AUTH_URL}/oauth2/callback" >/dev/null
+    echo "==> Login gate: ${AUTH_URL}"
+    echo "    Register the callback in App ID (once): ../configure-app-id.sh, or add"
+    echo "    ${AUTH_URL}/oauth2/callback to the App ID redirect URLs manually."
+  fi
+else
+  echo "==> No ${AUTH_SECRET} secret — frontend stays PUBLIC with no login."
+  echo "    For the App ID front door, create the secret (see comment above) and re-run."
+fi
 
 echo "==> Done"
 ibmcloud ce app list

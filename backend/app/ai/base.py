@@ -67,6 +67,7 @@ class AIProvider(ABC):
         "tools": False,
         "structured": False,
         "attachments": False,
+        "embeddings": False,
         "contextWindow": None,
     }
 
@@ -96,6 +97,12 @@ class AIProvider(ABC):
     ) -> AsyncIterator[StreamChunk]:
         raise NotImplementedError
         yield  # pragma: no cover
+
+    async def embed(self, texts: list[str], *, model: str | None = None) -> list[list[float]]:
+        """Return one embedding vector per input text (used by the RAG core for
+        hybrid retrieval). Providers that support embeddings override this and
+        set ``capabilities["embeddings"] = True``; the default reports the gap."""
+        raise ProviderError("this provider does not support embeddings")
 
     async def complete(
         self, messages: list[AIMessage], *, system: str | None = None, model: str | None = None,

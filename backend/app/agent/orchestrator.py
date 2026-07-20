@@ -106,7 +106,10 @@ def _route(
             active_wf.active = False
         return "spreadsheet", None
     if active_wf and active_wf.skill in WORKFLOW_SKILLS:
-        if intent.is_slash and intent.skill not in WORKFLOW_SKILLS:
+        # An explicit slash command to another skill is always a switch — with
+        # "rules" now a workflow skill, the old not-in-WORKFLOW_SKILLS test made
+        # an active forms workflow swallow /run-rule and /rules outright.
+        if intent.is_slash and intent.skill != active_wf.skill:
             active_wf.active = False
             return intent.skill, None
         if not intent.is_slash:

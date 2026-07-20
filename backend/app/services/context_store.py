@@ -129,3 +129,5 @@ def delete_context(session: Session, context_version_id: str) -> None:
     cv = session.get(ContextVersion, context_version_id)
     if cv is not None:
         session.delete(cv)
+        from ..rag import invalidate_rag_index  # runtime import: rag depends on this module
+        invalidate_rag_index(context_version_id)

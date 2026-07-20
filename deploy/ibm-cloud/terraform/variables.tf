@@ -69,3 +69,21 @@ variable "ssh_key_name" {
   type        = string
   default     = ""
 }
+
+variable "enable_app_id" {
+  description = "Provision App ID (managed OAuth/OIDC) as the public front door. The recommended default."
+  type        = bool
+  default     = true
+}
+
+variable "app_id_plan" {
+  description = "App ID plan: graduated-tier (free for the first ~1,000 monthly active users) or lite where still available."
+  type        = string
+  default     = "graduated-tier"
+}
+
+variable "auth_redirect_urls" {
+  description = "OIDC redirect URLs for the oauth2-proxy app, e.g. [\"https://epmw-auth.....codeengine.appdomain.cloud/oauth2/callback\"]. Usually registered post-deploy by ../configure-app-id.sh instead."
+  type        = list(string)
+  default     = []
+}

@@ -83,7 +83,7 @@ export const ChatBlockSchema = z.lazy(() => z.object({
   data: z.record(z.string(), z.unknown()).optional(),
 }));
 
-export const ChatBlockTypeSchema = z.enum(["markdown", "code", "formPreview", "formSpecification", "reportPreview", "reportSpecification", "rulePreview", "runtimePromptForm", "memberSearchResults", "contextSummary", "validationReport", "deploymentPlan", "deploymentProgress", "deploymentResult", "diff", "confirmation", "spreadsheetPreview", "snapshotSummary", "downloadableFile", "errorDiagnostics", "connectionStatus", "toolInvocation", "processSteps", "cubeArchitecture", "cellIntersection", "cubeComparison", "dimensionCoverage", "dimensionHierarchy"]);
+export const ChatBlockTypeSchema = z.enum(["markdown", "code", "formPreview", "formSpecification", "reportPreview", "reportSpecification", "rulePreview", "runtimePromptForm", "memberSearchResults", "contextSummary", "validationReport", "deploymentPlan", "deploymentProgress", "deploymentResult", "diff", "confirmation", "spreadsheetPreview", "snapshotSummary", "groundingSources", "downloadableFile", "errorDiagnostics", "connectionStatus", "toolInvocation", "processSteps", "cubeArchitecture", "cellIntersection", "cubeComparison", "dimensionCoverage", "dimensionHierarchy"]);
 
 export const ComparatorSchema = z.enum(["lt", "le", "gt", "ge", "eq", "ne"]);
 
@@ -475,6 +475,17 @@ export const GenerationMetadataSchema = z.lazy(() => z.object({
   generatedAt: z.string().nullable().optional(),
   conversationId: z.string().nullable().optional(),
   messageId: z.string().nullable().optional(),
+}));
+
+export const GroundingChunkSchema = z.lazy(() => z.object({
+  kind: z.string(),
+  name: z.string(),
+  cube: z.string().nullable().optional(),
+  dimension: z.string().nullable().optional(),
+  snippet: z.string(),
+  score: z.number(),
+  method: z.string(),
+  contextVersion: z.string().nullable().optional(),
 }));
 
 export const HierarchyNodeSchema = z.lazy(() => z.object({

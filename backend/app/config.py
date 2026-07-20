@@ -126,6 +126,11 @@ class Settings(BaseSettings):
     def tmp_dir(self) -> Path:
         return self.data_dir / "tmp"
 
+    @property
+    def rag_dir(self) -> Path:
+        """JSON retrieval-index cache, one file per immutable context version."""
+        return self.data_dir / "rag"
+
     def ensure_dirs(self) -> None:
         for p in (
             self.data_dir,
@@ -135,6 +140,7 @@ class Settings(BaseSettings):
             self.runner_dir,
             self.tmp_dir,
             self.backups_dir,
+            self.rag_dir,
         ):
             p.mkdir(parents=True, exist_ok=True)
         # Lock down the secrets directory where the OS supports it.

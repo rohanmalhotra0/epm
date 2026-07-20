@@ -170,4 +170,37 @@ describe("inline blocks", () => {
     expect(screen.getByText("Snapshot")).toBeInTheDocument();
     expect(screen.getByText("No snapshot details available.")).toBeInTheDocument();
   });
+
+  it("renders grounding sources with kind tags, method badges and snippets", () => {
+    renderBlock("groundingSources", {
+      query: "create a rule that copies working to final",
+      purpose: "rule",
+      chunks: [
+        {
+          kind: "rule",
+          name: "Copy Working to Final",
+          cube: "OEP_FS",
+          snippet: 'FIX("Working") DATACOPY "Working" TO "Final"; ENDFIX',
+          score: 0.91,
+          method: "hybrid",
+          contextVersion: "MCWPCF_2026-07-01",
+        },
+        { kind: "variable", name: "CurrYr", snippet: "CurrYr=FY26", score: 0.4, method: "lexical" },
+      ],
+    });
+    expect(screen.getByText(/Grounded on 2 artifacts/)).toBeInTheDocument();
+    expect(screen.getByText("Copy Working to Final")).toBeInTheDocument();
+    expect(screen.getByText("(OEP_FS)")).toBeInTheDocument();
+    expect(screen.getByText("hybrid · 0.91")).toBeInTheDocument();
+    expect(screen.getByText(/DATACOPY/)).toBeInTheDocument();
+    expect(screen.getByText("CurrYr")).toBeInTheDocument();
+    expect(screen.getByText("lexical · 0.40")).toBeInTheDocument();
+    expect(screen.getByText(/create a rule that copies working to final/)).toBeInTheDocument();
+  });
+
+  it("grounding sources survives empty data", () => {
+    renderBlock("groundingSources", {});
+    expect(screen.getByText("Grounding")).toBeInTheDocument();
+    expect(screen.getByText("No grounding sources.")).toBeInTheDocument();
+  });
 });

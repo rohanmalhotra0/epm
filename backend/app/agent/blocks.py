@@ -116,6 +116,11 @@ def rule_preview(data: dict) -> ChatBlock:
     return _block(ChatBlockType.rule_preview, data)
 
 
+def grounding_sources(data: dict) -> ChatBlock:
+    """RAG provenance: {"query", "purpose", "chunks": [GroundingChunk dumps]}."""
+    return _block(ChatBlockType.grounding_sources, data)
+
+
 def steps(*labels: str) -> list[ProcessStep]:
     return [ProcessStep(key=f"s{i}", label=label) for i, label in enumerate(labels)]
 

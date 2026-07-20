@@ -66,7 +66,7 @@ class FormsSkill(Skill):
     # --- phases -------------------------------------------------------------
 
     async def _start(self, ctx: SkillContext, emit: Emitter, md, text: str) -> SkillResult:
-        emit.set_steps(blocks.steps("Understanding request", "Searching EPM context",
+        emit.set_steps(blocks.steps("Understanding request", "Searching EPM context", "Retrieving grounding",
                                     "Resolving members", "Validating form", "Generating preview"))
         await emit.step_running(0)
         spec, inferences, questions = build_initial_spec(text, md, ctx.application)
@@ -74,13 +74,18 @@ class FormsSkill(Skill):
         await emit.step_running(1)
         await emit.step_done(1)
         await emit.step_running(2)
+        grounding = await _retrieve_grounding(ctx, kinds=["form", "rule", "member", "variable"], k=5)
         await emit.step_done(2)
+        await emit.step_running(3)
+        await emit.step_done(3)
 
         if inferences:
             await emit.prose("Here's what I inferred from your request and the existing application:\n\n"
                              + "\n".join(f"- {i}" for i in inferences) + "\n\n")
         await self._emit_questions(emit, questions)
-        await self._emit_preview(ctx, emit, md, spec, steps_from=3)
+        if (grounding_block := _grounding_block(ctx.user_text, "form", grounding)) is not None:
+            await emit.block(grounding_block)
+        await self._emit_preview(ctx, emit, md, spec, steps_from=4)
         return _persist(spec, "preview", FormWorkflowState.preview_ready)
 
     async def _edit(self, ctx: SkillContext, emit: Emitter, md, spec: FormSpecification, text: str) -> SkillResult:
@@ -227,6 +232,36 @@ class FormsSkill(Skill):
 def _ct(name: str):
     from ...schemas.chat import ChatBlockType
     return ChatBlockType(name)
+
+
+async def _retrieve_grounding(ctx: SkillContext, *, kinds: list[str], k: int) -> list[dict]:
+    """Best-effort RAG grounding chunks for the current request (spec: RAG feature).
+
+    Retrieval is a garnish on artifact creation, never a gate: no active context
+    version means no grounding, and any retrieval failure (module not deployed,
+    index rebuild error, provider hiccup) silently yields no chunks rather than
+    breaking the creation flow.
+    """
+    if not ctx.context_version_id:
+        return []
+    try:
+        from ...rag import retrieve_grounding
+        chunks = await retrieve_grounding(ctx.session, ctx.context_version_id, ctx.user_text,
+                                          kinds=kinds, k=k, provider=ctx.provider)
+        return [c.model_dump(by_alias=True) for c in chunks]
+    except Exception:
+        return []
+
+
+def _grounding_block(query: str, purpose: str, chunks: list[dict]):
+    """``groundingSources`` block, or None when there is nothing worth showing.
+    Defensive for the same reason as :func:`_retrieve_grounding`."""
+    if not chunks:
+        return None
+    try:
+        return blocks.grounding_sources({"query": query, "purpose": purpose, "chunks": chunks})
+    except Exception:
+        return None
 
 
 def _load_spec(wf) -> FormSpecification | None:

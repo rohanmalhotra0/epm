@@ -101,6 +101,7 @@ from .form_spec import (
     PromptMapping,
     ReferenceTemplate,
 )
+from .rag import GroundingChunk
 from .report_preview import (
     ReportCell,
     ReportGridPreview,
@@ -141,6 +142,7 @@ CANONICAL_MODELS: dict[str, type[BaseModel]] = {
     "RuleRecord": RuleRecord,
     "VariableRecord": VariableRecord,
     "MemberMatch": MemberMatch,
+    "GroundingChunk": GroundingChunk,
     "SnapshotProvenance": SnapshotProvenance,
     "SnapshotComponent": SnapshotComponent,
     "SnapshotAnalysis": SnapshotAnalysis,
@@ -266,6 +268,8 @@ __all__ = [
     "SnapshotProvenance",
     "SnapshotComponent",
     "SnapshotAnalysis",
+    # rag
+    "GroundingChunk",
     # validation
     "ValidationReport",
     "ValidationIssue",
