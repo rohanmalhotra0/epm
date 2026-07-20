@@ -18,6 +18,15 @@ const attachment = {
   kindGuess: "chartOfAccounts",
 };
 
+const snapshotAttachment = {
+  ...attachment,
+  id: "a2",
+  filename: "MCW_PCF_snapshot.zip",
+  mediaType: "application/zip",
+  sheetNames: [],
+  kindGuess: "snapshot",
+};
+
 function jsonResponse(data: unknown, status = 200) {
   return { ok: true, status, json: async () => data } as Response;
 }
@@ -31,10 +40,10 @@ function hangingStreamResponse() {
   } as unknown as Response;
 }
 
-function stubFetch() {
+function stubFetch(uploaded: unknown = attachment) {
   const mock = vi.fn(async (url: RequestInfo | URL, opts?: RequestInit) => {
     const u = String(url);
-    if (u.includes("/attachments")) return jsonResponse(attachment, 201);
+    if (u.includes("/attachments")) return jsonResponse(uploaded, 201);
     if (u.includes("/messages") && opts?.method === "POST") return hangingStreamResponse();
     return jsonResponse([]);
   });
@@ -103,10 +112,10 @@ describe("Composer attachments", () => {
 
   it("rejects unsupported extensions with a toast and no upload", () => {
     render(<Composer onSend={vi.fn()} streaming={false} onStop={() => {}} conversationId="c1" />);
-    pickFile(new File(["x"], "notes.txt"));
-    expect(useToasts.getState().toasts.some((t) => t.kind === "error" && t.title.includes("notes.txt"))).toBe(true);
+    pickFile(new File(["x"], "notes.pdf"));
+    expect(useToasts.getState().toasts.some((t) => t.kind === "error" && t.title.includes("notes.pdf"))).toBe(true);
     expect(fetch).not.toHaveBeenCalled();
-    expect(screen.queryByText("notes.txt")).toBeNull();
+    expect(screen.queryByText("notes.pdf")).toBeNull();
   });
 
   it("rejects files over 10 MB with a toast and no upload", () => {
@@ -116,6 +125,30 @@ describe("Composer attachments", () => {
     pickFile(big);
     expect(useToasts.getState().toasts.some((t) => t.kind === "error" && t.subtitle?.includes("10 MB"))).toBe(true);
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("uploads a .zip snapshot (even past the 10 MB spreadsheet cap) with a snapshot tag", async () => {
+    const fetchMock = stubFetch(snapshotAttachment);
+    render(<Composer onSend={vi.fn()} streaming={false} onStop={() => {}} conversationId="c1" />);
+    const zip = new File(["zipbytes"], "MCW_PCF_snapshot.zip");
+    Object.defineProperty(zip, "size", { value: 50 * 1024 * 1024 });
+    pickFile(zip);
+    expect(await screen.findByText("MCW_PCF_snapshot.zip")).toBeInTheDocument();
+    expect(screen.getByText("Application snapshot")).toBeInTheDocument();
+    const call = fetchMock.mock.calls.find((c) => String(c[0]) === "/api/conversations/c1/attachments");
+    expect(call).toBeTruthy();
+    expect((call![1] as RequestInit).method).toBe("POST");
+    expect((call![1] as RequestInit).body).toBeInstanceOf(FormData);
+  });
+
+  it("rejects .zip snapshots over 200 MB with a toast and no upload", () => {
+    render(<Composer onSend={vi.fn()} streaming={false} onStop={() => {}} conversationId="c1" />);
+    const huge = new File(["x"], "huge.zip");
+    Object.defineProperty(huge, "size", { value: 201 * 1024 * 1024 });
+    pickFile(huge);
+    expect(useToasts.getState().toasts.some((t) => t.kind === "error" && t.subtitle?.includes("200 MB"))).toBe(true);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(screen.queryByText("huge.zip")).toBeNull();
   });
 
   it("accepts a dropped file and highlights the drop target while dragging", async () => {

@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from ..connector.base import EpmConnector
 from ..connector.errors import ConnectorError
-from ..db.models import Conversation, Project, WorkflowState
+from ..db.models import Attachment, Conversation, Project, WorkflowState
 from ..logging import get_logger
 from ..schemas.chat import ChatBlock, StreamEvent, StreamEventType
 from ..schemas.form_spec import FormSpecification
@@ -79,15 +79,27 @@ def _active_form_spec(wf: WorkflowState | None) -> FormSpecification | None:
     return None
 
 
+def _has_snapshot_zip(session: Session, attachment_ids: list[str]) -> bool:
+    rows = session.query(Attachment).filter(Attachment.id.in_(attachment_ids)).all()
+    return any(a.media_type == "application/zip" or a.filename.lower().endswith(".zip")
+               for a in rows)
+
+
 def _route(
     session: Session, conversation: Conversation, user_text: str,
     attachment_ids: list[str] | None = None,
 ) -> tuple[str, WorkflowState | None]:
     intent = detect_intent(user_text)
     active_wf = _active_workflow(session, conversation.id)
-    # A message carrying attachments always goes to the spreadsheet skill
-    # (slash commands still win) — the upload is the intent.
+    # A message carrying attachments goes to the skill that owns the file type
+    # (slash commands still win) — the upload is the intent. LCM snapshot zips
+    # belong to the context skill; anything else is a spreadsheet drop, and a
+    # mixed upload counts as a snapshot.
     if attachment_ids and not intent.is_slash:
+        if _has_snapshot_zip(session, attachment_ids):
+            if active_wf:
+                active_wf.active = False
+            return "context", None
         if active_wf and active_wf.skill == "spreadsheet":
             return "spreadsheet", active_wf
         if active_wf:

@@ -108,6 +108,10 @@ def spreadsheet_preview(data: dict) -> ChatBlock:
     return _block(ChatBlockType.spreadsheet_preview, data)
 
 
+def snapshot_summary(data: dict) -> ChatBlock:
+    return _block(ChatBlockType.snapshot_summary, data)
+
+
 def rule_preview(data: dict) -> ChatBlock:
     return _block(ChatBlockType.rule_preview, data)
 

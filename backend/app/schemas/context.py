@@ -19,6 +19,8 @@ class ContextMode(str, Enum):
     quick = "quick"
     deep = "deep"
     imported = "imported"
+    snapshot = "snapshot"
+    hybrid = "hybrid"
 
 
 # --- Metadata records -------------------------------------------------------
@@ -111,6 +113,42 @@ class ContextManifest(CamelModel):
     sections: list[ContextSectionStatus] = Field(default_factory=list)
     known_limitations: list[str] = Field(default_factory=list)
     context_version: str
+
+
+# --- LCM application snapshots -----------------------------------------------
+
+
+class SnapshotProvenance(CamelModel):
+    """Who/when/where a snapshot was exported (from the LCM Import.xml)."""
+
+    exported_by: str | None = None
+    exported_at: str | None = None  # ISO-ish, assembled from ExportedDateUTC/TimeUTC
+    service_instance: str | None = None
+    domain: str | None = None
+    exported_version: str | None = None
+
+
+class SnapshotComponent(CamelModel):
+    """One top-level LCM component folder (``<PRODUCT>-<Application>/``)."""
+
+    key: str
+    product: str  # HP | CALC | AIF | HUB | DOCREP | ...
+    application: str
+    artifact_count: int = 0
+
+
+class SnapshotAnalysis(CamelModel):
+    """Deterministic inventory of an LCM application-snapshot zip."""
+
+    filename: str | None = None
+    application: str | None = None  # detected Planning (HP) app, None if absent
+    applications: list[str] = Field(default_factory=list)
+    provenance: SnapshotProvenance | None = None
+    components: list[SnapshotComponent] = Field(default_factory=list)
+    cubes: list[str] = Field(default_factory=list)
+    dimensions: list[str] = Field(default_factory=list)
+    counts: dict[str, int] = Field(default_factory=dict)
+    issues: list[str] = Field(default_factory=list)
 
 
 # --- Retrieval --------------------------------------------------------------

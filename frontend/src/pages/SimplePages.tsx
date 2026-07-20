@@ -1,8 +1,15 @@
 import { useState, useEffect, useRef } from "react";
-import { Button } from "@carbon/react";
+import { Button, FileUploaderButton } from "@carbon/react";
 import { ZoomIn, ZoomOut } from "@carbon/icons-react";
 import { api } from "../api/client";
-import { useArchitecture, useArtifacts, useBuildContext, useContexts, useDeployments } from "../api/hooks";
+import {
+  useArchitecture,
+  useArtifacts,
+  useBuildContext,
+  useContexts,
+  useDeployments,
+  useImportContextSnapshot,
+} from "../api/hooks";
 import { CubeArchitectureBlock } from "../blocks/CubeArchitectureBlock";
 import { useUi } from "../store/ui";
 import { toast } from "../store/toast";
@@ -18,6 +25,7 @@ export function ContextsPage() {
   const pid = usePid();
   const { data: contexts = [] } = useContexts(pid);
   const build = useBuildContext(pid);
+  const importSnapshot = useImportContextSnapshot(pid);
   return (
     <div className="page">
       <h2>Contexts</h2>
@@ -26,6 +34,20 @@ export function ContextsPage() {
         <Button size="sm" kind="primary" disabled={build.isPending} onClick={() => build.mutate("quick")}>
           {build.isPending ? "Building context…" : "Build context"}
         </Button>
+        <FileUploaderButton
+          size="sm"
+          buttonKind="tertiary"
+          labelText={importSnapshot.isPending ? "Importing snapshot…" : "Upload snapshot"}
+          accept={[".zip"]}
+          disableLabelChanges
+          disabled={importSnapshot.isPending || !pid}
+          onChange={(e) => {
+            const input = e.target as HTMLInputElement;
+            const file = input.files?.[0];
+            if (file) importSnapshot.mutate({ file });
+            input.value = "";
+          }}
+        />
       </div>
       <table className="data-table">
         <thead><tr><th>Version</th><th>Mode</th><th>Members</th><th>Forms</th><th>Rules</th><th>Active</th><th>Export</th></tr></thead>

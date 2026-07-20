@@ -15,9 +15,22 @@ from ..context.report_pdf import PDF_MIME, build_context_pdf
 from ..context.report_md import MD_MIME, build_context_md
 from ..schemas.api import ContextVersionOut
 from ..services import context_store, projects
+from ..services.attachments import ZIP_MAX_SIZE_BYTES
 from .deps import get_db, resolve_turn
 
 router = APIRouter(tags=["context"])
+
+
+async def _read_limited(file: UploadFile, limit: int = ZIP_MAX_SIZE_BYTES) -> bytes:
+    """Chunked body read with a hard cap — `await file.read()` would buffer an
+    arbitrarily large upload into memory before any validation runs."""
+    import io
+    buffer = io.BytesIO()
+    while chunk := await file.read(1024 * 1024):
+        buffer.write(chunk)
+        if buffer.tell() > limit:
+            raise HTTPException(413, f"file exceeds the {limit // (1024 * 1024)} MB limit")
+    return buffer.getvalue()
 
 
 @router.get("/api/projects/{project_id}/contexts", response_model=list[ContextVersionOut])
@@ -108,16 +121,41 @@ def export_context_markdown(context_version_id: str, session: Session = Depends(
 
 @router.post("/api/projects/{project_id}/contexts/import", response_model=ContextVersionOut)
 async def import_context(project_id: str, file: UploadFile, session: Session = Depends(get_db)) -> ContextVersionOut:
-    data = await file.read()
+    data = await _read_limited(file)
     try:
         bundle = import_context_package(data)
     except ValueError as exc:
         raise HTTPException(400, f"invalid context package: {exc}") from exc
-    path = get_settings().contexts_dir / (file.filename or f"{bundle.label}.epwcontext")
+    from ..services.attachments import safe_filename
+    path = get_settings().contexts_dir / safe_filename(file.filename or f"{bundle.label}.epwcontext")
     path.write_bytes(data)
     cv = context_store.persist_context(session, project_id, bundle.application, bundle.mode, bundle.label,
                                        {"counts": bundle.counts}, bundle.counts, bundle.records,
                                        fingerprint=bundle.fingerprint, path=str(path))
+    return context_store.to_out(cv)
+
+
+@router.post("/api/projects/{project_id}/contexts/snapshot", response_model=ContextVersionOut)
+async def import_context_snapshot(project_id: str, file: UploadFile, standalone: bool = False,
+                                  session: Session = Depends(get_db)) -> ContextVersionOut:
+    """Import an LCM application snapshot zip: merged onto the active context
+    (default) or as a standalone context version (``?standalone=true``)."""
+    # Runtime import: the snapshot parser lives with the context engine.
+    from ..context.snapshot import SnapshotError, analyze_snapshot, merge_snapshot_into_context
+
+    project = projects.get_project(session, project_id)
+    if project is None:
+        raise HTTPException(404, "project not found")
+    data = await _read_limited(file)
+    try:
+        bundle = analyze_snapshot(data, file.filename)
+    except SnapshotError as exc:
+        raise HTTPException(400, f"invalid snapshot: {exc}") from exc
+    from ..services.attachments import safe_filename
+    path = get_settings().contexts_dir / safe_filename(file.filename or "snapshot.zip")
+    path.write_bytes(data)
+    cv = merge_snapshot_into_context(session, project_id, bundle,
+                                     standalone=standalone, filename=file.filename)
     return context_store.to_out(cv)
 
 

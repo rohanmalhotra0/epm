@@ -4,7 +4,7 @@
 
 import { ApiError } from "./client";
 
-export type AttachmentKind = "chartOfAccounts" | "layout" | "dataTable" | "unknown";
+export type AttachmentKind = "chartOfAccounts" | "layout" | "dataTable" | "snapshot" | "unknown";
 
 export interface AttachmentOut {
   id: string;
@@ -18,13 +18,16 @@ export interface AttachmentOut {
   kindGuess: AttachmentKind;
 }
 
-export const ACCEPTED_EXTENSIONS = [".xlsx", ".xlsm", ".csv", ".txt"];
+export const ACCEPTED_EXTENSIONS = [".xlsx", ".xlsm", ".csv", ".txt", ".zip"];
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+// Application snapshot zips (LCM exports) are far larger than spreadsheets.
+export const MAX_SNAPSHOT_BYTES = 200 * 1024 * 1024;
 
 const KIND_LABELS: Record<string, string> = {
   chartOfAccounts: "chart of accounts",
   layout: "layout",
   dataTable: "data table",
+  snapshot: "Application snapshot",
   unknown: "file",
 };
 
@@ -39,7 +42,11 @@ export function validateAttachmentFile(file: File): string | null {
   if (!ACCEPTED_EXTENSIONS.some((ext) => name.endsWith(ext))) {
     return `Only ${ACCEPTED_EXTENSIONS.join(", ")} files are supported.`;
   }
-  if (file.size > MAX_ATTACHMENT_BYTES) {
+  if (name.endsWith(".zip")) {
+    if (file.size > MAX_SNAPSHOT_BYTES) {
+      return "Snapshot zip files must be 200 MB or smaller.";
+    }
+  } else if (file.size > MAX_ATTACHMENT_BYTES) {
     return "Files must be 10 MB or smaller.";
   }
   return null;

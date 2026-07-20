@@ -136,4 +136,38 @@ describe("inline blocks", () => {
     expect(screen.getByText("Spreadsheet")).toBeInTheDocument();
     expect(screen.getByText("No preview details available.")).toBeInTheDocument();
   });
+
+  it("renders a snapshot summary with application, provenance, cubes and counts", () => {
+    renderBlock("snapshotSummary", {
+      filename: "MCW_PCF_snapshot.zip",
+      application: "MCW_PCF",
+      applications: ["MCW_PCF"],
+      provenance: {
+        exportedBy: "admin@example.com",
+        exportedAt: "2026-07-01 04:12",
+        serviceInstance: "planning-test",
+      },
+      components: [{ key: "HP-MCW_PCF", product: "HP", application: "MCW_PCF", artifactCount: 42 }],
+      cubes: ["OEP_FS", "OEP_WFP"],
+      dimensions: ["Account", "Period", "Scenario"],
+      counts: { members: 4321, rules: 12, securityGroups: 5 },
+      issues: ["Essbase data skipped"],
+    });
+    expect(screen.getByText("MCW_PCF_snapshot.zip")).toBeInTheDocument();
+    expect(screen.getByText("Application snapshot")).toBeInTheDocument();
+    expect(screen.getByText("MCW_PCF")).toBeInTheDocument();
+    expect(screen.getByText(/exported by admin@example\.com on 2026-07-01 04:12 from planning-test/)).toBeInTheDocument();
+    expect(screen.getByText("OEP_FS")).toBeInTheDocument();
+    expect(screen.getByText("Account")).toBeInTheDocument();
+    expect(screen.getByText("Members")).toBeInTheDocument();
+    expect(screen.getByText("4,321")).toBeInTheDocument();
+    expect(screen.getByText("Security groups")).toBeInTheDocument();
+    expect(screen.getByText("Essbase data skipped")).toBeInTheDocument();
+  });
+
+  it("snapshot summary survives empty data", () => {
+    renderBlock("snapshotSummary", {});
+    expect(screen.getByText("Snapshot")).toBeInTheDocument();
+    expect(screen.getByText("No snapshot details available.")).toBeInTheDocument();
+  });
 });

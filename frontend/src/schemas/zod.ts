@@ -83,7 +83,7 @@ export const ChatBlockSchema = z.lazy(() => z.object({
   data: z.record(z.string(), z.unknown()).optional(),
 }));
 
-export const ChatBlockTypeSchema = z.enum(["markdown", "code", "formPreview", "formSpecification", "reportPreview", "reportSpecification", "rulePreview", "runtimePromptForm", "memberSearchResults", "contextSummary", "validationReport", "deploymentPlan", "deploymentProgress", "deploymentResult", "diff", "confirmation", "spreadsheetPreview", "downloadableFile", "errorDiagnostics", "connectionStatus", "toolInvocation", "processSteps", "cubeArchitecture", "cellIntersection", "cubeComparison", "dimensionCoverage", "dimensionHierarchy"]);
+export const ChatBlockTypeSchema = z.enum(["markdown", "code", "formPreview", "formSpecification", "reportPreview", "reportSpecification", "rulePreview", "runtimePromptForm", "memberSearchResults", "contextSummary", "validationReport", "deploymentPlan", "deploymentProgress", "deploymentResult", "diff", "confirmation", "spreadsheetPreview", "snapshotSummary", "downloadableFile", "errorDiagnostics", "connectionStatus", "toolInvocation", "processSteps", "cubeArchitecture", "cellIntersection", "cubeComparison", "dimensionCoverage", "dimensionHierarchy"]);
 
 export const ComparatorSchema = z.enum(["lt", "le", "gt", "ge", "eq", "ne"]);
 
@@ -141,7 +141,7 @@ export const ContextManifestSchema = z.lazy(() => z.object({
   contextVersion: z.string(),
 }));
 
-export const ContextModeSchema = z.enum(["quick", "deep", "imported"]);
+export const ContextModeSchema = z.enum(["quick", "deep", "imported", "snapshot", "hybrid"]);
 
 export const ContextSectionStatusSchema = z.lazy(() => z.object({
   name: z.string(),
@@ -822,6 +822,33 @@ export const SmartFormatSchema = z.lazy(() => z.object({
   prefix: z.string().optional(),
   suffix: z.string().optional(),
   conditionalRules: z.array(ConditionalRuleSchema).optional(),
+}));
+
+export const SnapshotAnalysisSchema = z.lazy(() => z.object({
+  filename: z.string().nullable().optional(),
+  application: z.string().nullable().optional(),
+  applications: z.array(z.string()).optional(),
+  provenance: SnapshotProvenanceSchema.nullable().optional(),
+  components: z.array(SnapshotComponentSchema).optional(),
+  cubes: z.array(z.string()).optional(),
+  dimensions: z.array(z.string()).optional(),
+  counts: z.record(z.string(), z.number()).optional(),
+  issues: z.array(z.string()).optional(),
+}));
+
+export const SnapshotComponentSchema = z.lazy(() => z.object({
+  key: z.string(),
+  product: z.string(),
+  application: z.string(),
+  artifactCount: z.number().optional(),
+}));
+
+export const SnapshotProvenanceSchema = z.lazy(() => z.object({
+  exportedBy: z.string().nullable().optional(),
+  exportedAt: z.string().nullable().optional(),
+  serviceInstance: z.string().nullable().optional(),
+  domain: z.string().nullable().optional(),
+  exportedVersion: z.string().nullable().optional(),
 }));
 
 export const StreamEventSchema = z.lazy(() => z.object({
