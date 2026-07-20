@@ -75,6 +75,32 @@ boundary.
 
 ---
 
+## Application snapshots & RAG grounding
+
+Two features turn EPM Wizard from "knows the API surface" into "knows **your**
+application":
+
+**1. LCM Artifact Snapshot upload.** Attach the zip produced by
+`epmautomate exportSnapshot` + `downloadFile "Artifact Snapshot"` (chat
+paperclip or Context tab → *Upload snapshot*). It is parsed deterministically,
+fully in-memory — the application, cubes and dimensions come from the zip's own
+manifest, so **any** Planning app works — and layered on top of the live
+context as a new provenance-tracked version. This fills in exactly what the
+REST/EPM Automate interfaces can't supply: full member hierarchies with
+formulas, **Calculation Manager rule bodies and runtime prompts**, templates,
+substitution/user variables, form references, FDMEE inventory.
+
+**2. RAG-grounded generation.** When you ask for a new form or business rule,
+the agent retrieves the most relevant artifacts from that context — real rule
+scripts, templates, naming conventions — shows them in a visible **"Grounded
+on"** block, and generates from them. Retrieval is deterministic pure-Python
+BM25 (fully offline, works in Demo Mode) and upgrades to hybrid
+lexical + embedding scoring when the configured provider supports embeddings
+(watsonx.ai, OpenAI-compatible). Rule drafts are **proposals only** — labelled,
+never executed, never auto-deployed — saved as reviewable artifacts.
+
+---
+
 ## Architecture
 
 Hybrid: a local React frontend + a local FastAPI backend, orchestrated by Docker
@@ -149,15 +175,28 @@ a real environment, add it in **Settings → Oracle Environments** and click
 
 ## All-IBM cloud deployment
 
-EPM Wizard can run entirely on IBM Cloud: **watsonx.ai** for inference (a
-first-class provider type in Settings), **Tuning Studio or GPU-as-a-Service**
-for training on your own EPM data, **Code Engine** for hosting, and a
-**Client-to-Site VPN** with email invites as the only way in.
+EPM Wizard can run entirely on IBM Cloud as a login-gated website:
 
-- Architecture, request flow, and training paths: [docs/IBM_CLOUD.md](docs/IBM_CLOUD.md)
-- Terraform + deploy script: [deploy/ibm-cloud/](deploy/ibm-cloud/)
-- Export a redacted fine-tuning corpus from your local data:
-  `python -m scripts.export_training_data` (from `backend/`)
+- **watsonx.ai** for inference and RAG embeddings — token-billed defaults are
+  pinned end-to-end: `meta-llama/llama-3-3-70b-instruct` (chat, 131k context)
+  and `ibm/slate-125m-english-rtrvr` (embeddings). Fractions of a cent per
+  chat turn; no hourly GPU deployment.
+- **Code Engine** for hosting (scales to zero when idle) with an **App ID
+  (OAuth/OIDC) front door** — fully scripted, zero app-code changes: terraform
+  provisions App ID, the deploy script puts an oauth2-proxy gate in front as
+  the only public endpoint, and users are invited by email in App ID. An
+  optional Client-to-Site VPN topology exists for private-only access.
+- **Tuning Studio or GPU-as-a-Service** for fine-tuning on your own EPM data.
+  The corpus exporter turns conversations, validated specs **and the rule
+  bodies from uploaded snapshots** into instruction pairs:
+  `python -m scripts.export_training_data` (from `backend/`).
+
+Go-live is roughly: `terraform apply` → create two secrets → 
+`./deploy-code-engine.sh` → `./configure-app-id.sh` → invite users.
+
+- Runbook: [deploy/ibm-cloud/README.md](deploy/ibm-cloud/README.md)
+- Architecture, request flow, RAG/embeddings, and training paths:
+  [docs/IBM_CLOUD.md](docs/IBM_CLOUD.md)
 
 ---
 
@@ -171,7 +210,7 @@ pip install -e ".[dev]"
 python -m scripts.export_schema          # regenerate frontend schemas from Pydantic
 alembic upgrade head                      # or let the app do it on startup
 uvicorn app.main:app --reload             # http://localhost:8000
-pytest -q                                 # 50 tests
+pytest -q                                 # 260 tests
 
 # Frontend
 cd frontend
@@ -191,15 +230,19 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full design.
 
 ## Testing
 
-- **Backend:** `pytest` — 50 tests covering schema validation, the deterministic
+- **Backend:** `pytest` — 260 tests covering schema validation, the deterministic
   artifact engine (resolver, validation, XML round-trip, reproducible packaging),
-  connector security/injection, redaction, context + retrieval, the cube
-  visualizer, form NLU, the full orchestrator loop (create → edit → coverage →
-  deploy → verify, plus the production safeguard and rule execution), and the HTTP
-  API incl. SSE streaming.
-- **Frontend:** `vitest` + React Testing Library — inline blocks, the cube map,
-  the runtime-prompt form, deployment result, the composer (Enter/Shift+Enter,
-  slash menu, stop), and graceful fallback for unknown block types.
+  connector security/injection, redaction, context + retrieval, the LCM snapshot
+  parser and merge (zip-slip/bomb guards, provenance, real-fixture subset), the
+  RAG index (chunking, BM25 determinism, hybrid embeddings, cache), embeddings
+  adapters, the cube visualizer, form NLU, rule drafting, the full orchestrator
+  loop (create → edit → coverage → deploy → verify, plus the production
+  safeguard and rule execution), and the HTTP API incl. SSE streaming.
+- **Frontend:** `vitest` + React Testing Library — 73 tests: inline blocks
+  (incl. snapshot summary and grounding sources), the cube map, the
+  runtime-prompt form, deployment result, the composer (Enter/Shift+Enter,
+  slash menu, stop, zip/spreadsheet uploads), and graceful fallback for unknown
+  block types.
 
 ---
 
@@ -207,6 +250,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full design.
 
 Everything lives under a single local data directory (a named Docker volume
 `epmw-data`, or `backend/data` in dev): the SQLite database, encrypted secret
-store, generated artifact packages, and context packages. Data survives browser
-refresh, container restart, and machine restart. Export/import a project or a
-`.epwcontext` for backup or team sharing.
+store, generated artifact packages, context packages, uploaded snapshots, and
+the per-version RAG index cache. Data survives browser refresh, container
+restart, and machine restart. Export/import a project or a `.epwcontext` for
+backup or team sharing.
