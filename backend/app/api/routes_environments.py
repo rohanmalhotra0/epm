@@ -46,6 +46,8 @@ def create_environment(body: EnvironmentCreate, project: Project = Depends(requi
                        session: Session = Depends(get_db)) -> EnvironmentOut:
     env = svc.create_environment(session, project.id, name=body.name, base_url=body.base_url,
                                  username=body.username, auth_method=body.auth_method,
+                                 oauth_token_url=body.oauth_token_url, oauth_client_id=body.oauth_client_id,
+                                 oauth_scope=body.oauth_scope,
                                  classification=body.classification.value if hasattr(body.classification, "value") else body.classification,
                                  preferred_application=body.preferred_application, demo=body.demo)
     return svc.to_out(env)
@@ -63,7 +65,9 @@ def delete_environment(environment_id: str, session: Session = Depends(get_db),
 async def connect_environment(environment_id: str, body: dict, session: Session = Depends(get_db),
                               owner: str = Depends(get_current_owner)) -> ConnectionResult:
     env = _require_environment(session, owner, environment_id)
-    password = (body or {}).get("password")
+    # For OAuth environments the secret travels in `clientSecret`; it is
+    # handled exactly like a password (process memory / encrypted store only).
+    password = (body or {}).get("password") or (body or {}).get("clientSecret")
     remember = bool((body or {}).get("remember"))
     if password:
         register_secret(password)

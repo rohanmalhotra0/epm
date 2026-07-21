@@ -145,6 +145,12 @@ diffs, confirmations, downloadable files, and error diagnostics.
 - API keys and remembered passwords go to a local **encrypted secret store**
   (Fernet), not SQLite. "Password in memory" auth keeps the password only for the
   session.
+- Oracle sign-in supports **username/password** or **OAuth 2.0 client
+  credentials** (an OCI IAM identity domain confidential application): supply the
+  identity domain token URL, client ID, client secret and optional scope on the
+  sign-in screen. The client secret is handled exactly like a password (process
+  memory, or the encrypted store when remembered) and bearer tokens are cached
+  in memory and auto-refreshed.
 - Messages that look like a pasted credential are redacted before storage and the
   user is warned.
 - Command arguments are strictly validated (no path traversal, no shell
