@@ -43,6 +43,13 @@ def list_contexts(project: Project = Depends(require_project),
 @router.post("/api/projects/{project_id}/contexts/build", response_model=ContextVersionOut)
 async def build_project_context(mode: str = "quick", project: Project = Depends(require_project),
                                 session: Session = Depends(get_db)) -> ContextVersionOut:
+    # `mode` is a caller-supplied query string that ends up as the manifest's
+    # ContextMode enum. Reject anything but the two build depths here (422) —
+    # otherwise an unknown value would surface as a 500 ValidationError deep in
+    # manifest construction. import/snapshot are set by their own routes, never
+    # by this endpoint.
+    if mode not in ("quick", "deep"):
+        raise HTTPException(422, "mode must be 'quick' or 'deep'")
     project_id = project.id
     turn = resolve_turn(session, project)
     fp = environment_fingerprint(None, turn.application, None)

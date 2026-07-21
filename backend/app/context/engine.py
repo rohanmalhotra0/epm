@@ -193,7 +193,16 @@ def diff_context_records(records_a: list[dict], records_b: list[dict], *, cap: i
     alias/parent/formula/storage/body): ``before``/``after`` carry just those
     keys. Each list is capped at ``cap`` with an integer overflow count so a
     large diff stays bounded. Output ordering is deterministic (sorted).
+
+    Robust against hostile input: a negative ``cap`` is clamped to 0, records
+    whose ``data`` is missing or not a ``dict`` are treated as empty, and
+    ordering is driven by the fully-qualified record key so it is byte-identical
+    run to run regardless of ``PYTHONHASHSEED``.
     """
+    # A negative cap would otherwise slice from the tail (``lst[:-n]``) and
+    # report a nonsensical overflow count (``len - (-n)``); clamp it.
+    cap = max(0, cap)
+
     map_a = {_diff_key(r): r for r in records_a}
     map_b = {_diff_key(r): r for r in records_b}
     keys_a, keys_b = set(map_a), set(map_b)
@@ -206,16 +215,29 @@ def diff_context_records(records_a: list[dict], records_b: list[dict], *, cap: i
     def entry(rec: dict) -> dict:
         return {"name": rec.get("name"), "dimension": rec.get("dimension"), "cube": rec.get("cube")}
 
-    for k in keys_b - keys_a:
+    def as_data(rec: dict) -> dict:
+        # `data` may be None, a list, a scalar, or absent on hostile/partial
+        # records — only a mapping can be key-diffed, everything else is "empty".
+        d = rec.get("data")
+        return d if isinstance(d, dict) else {}
+
+    # Iterate keys in sorted order (not raw set-difference order) so the bucket
+    # lists are built deterministically. The key is the full identity tuple
+    # ``(kind, name, dimension, parent, cube)``, so entries that tie on
+    # name+dimension still order stably by parent/cube.
+    for k in sorted(keys_b - keys_a):
         rec = map_b[k]
         bucket(rec.get("kind") or "")["added"].append(entry(rec))
-    for k in keys_a - keys_b:
+    for k in sorted(keys_a - keys_b):
         rec = map_a[k]
         bucket(rec.get("kind") or "")["removed"].append(entry(rec))
-    for k in keys_a & keys_b:
+    for k in sorted(keys_a & keys_b):
         ra, rb = map_a[k], map_b[k]
-        da, db = ra.get("data") or {}, rb.get("data") or {}
-        changed_keys = sorted(dk for dk in set(da) | set(db) if da.get(dk) != db.get(dk))
+        da, db = as_data(ra), as_data(rb)
+        # ``key=str`` guards against non-string data keys (JSON always yields
+        # strings, but in-memory records could carry anything).
+        changed_keys = sorted((set(da) | set(db)), key=str)
+        changed_keys = [dk for dk in changed_keys if da.get(dk) != db.get(dk)]
         if changed_keys:
             bucket(ra.get("kind") or "")["changed"].append({
                 "name": ra.get("name"), "dimension": ra.get("dimension"),
@@ -223,15 +245,10 @@ def diff_context_records(records_a: list[dict], records_b: list[dict], *, cap: i
                 "after": {dk: db.get(dk) for dk in changed_keys},
             })
 
-    def sort_key(item: dict) -> tuple[str, str]:
-        return (item.get("name") or "", item.get("dimension") or "")
-
     result: dict[str, dict] = {}
     for kind in sorted(kinds):
         b = kinds[kind]
-        added = sorted(b["added"], key=sort_key)
-        removed = sorted(b["removed"], key=sort_key)
-        changed = sorted(b["changed"], key=sort_key)
+        added, removed, changed = b["added"], b["removed"], b["changed"]
         result[kind] = {
             "added": added[:cap],
             "removed": removed[:cap],

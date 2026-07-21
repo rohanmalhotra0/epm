@@ -29,7 +29,7 @@ def tokenize(text: str) -> list[str]:
     ``OCF_Daily`` are kept BOTH as the full token (``ocf_daily``) and as their
     parts (``ocf``, ``daily``) so either spelling matches."""
     out: list[str] = []
-    for raw in _TOKEN_RE.findall(text.lower()):
+    for raw in _TOKEN_RE.findall((text or "").lower()):
         full = raw.strip("_")
         if "_" in full:
             if len(full) >= 2:
@@ -58,7 +58,10 @@ def _chunk(kind: str, name: str, text: str, *, cube: str | None = None,
            dimension: str | None = None, snippet: str | None = None) -> Chunk:
     red = redact_text(text or "")
     snip = redact_text(snippet) if snippet is not None else red
-    return Chunk(kind=kind, name=name, cube=cube, dimension=dimension, text=red,
+    # Names/dimensions come from uploaded snapshots and may be absent/None; a
+    # chunk name must always be a string (it becomes GroundingChunk.name, which
+    # is required) and must never crash the digest/join logic below.
+    return Chunk(kind=kind, name=name or "", cube=cube, dimension=dimension, text=red,
                  snippet=snip[:SNIPPET_LIMIT], tokens=tokenize(red))
 
 
@@ -89,7 +92,7 @@ def _script_chunks(kind: str, name: str, cube: str | None, data: dict) -> list[C
 
 def _form_chunk(record) -> Chunk:
     data = record.data or {}
-    parts = [record.name]
+    parts = [record.name or ""]
     if record.cube:
         parts.append(record.cube)
     if data.get("folder"):
@@ -107,7 +110,8 @@ def _form_chunk(record) -> Chunk:
 def _variable_chunk(record) -> Chunk:
     data = record.data or {}
     value = data.get("value")
-    text = f"{record.name} = {value}" if value not in (None, "") else record.name
+    rname = record.name or ""
+    text = f"{rname} = {value}" if value not in (None, "") else rname
     plan_type = data.get("planType") or data.get("plan_type") or record.cube
     if plan_type:
         text = f"{text} (planType: {plan_type})"
@@ -125,7 +129,7 @@ def _smartlist_chunk(record) -> Chunk:
 
 def _datamap_chunk(record) -> Chunk:
     data = record.data or {}
-    parts = [record.name]
+    parts = [record.name or ""]
     if data.get("sourceCube"):
         parts.append(f"from {data['sourceCube']}")
     if data.get("targetCube"):
@@ -136,20 +140,22 @@ def _datamap_chunk(record) -> Chunk:
 def _intersection_chunk(record) -> Chunk:
     data = record.data or {}
     dims = [str(d) for d in (data.get("dimensions") or [])]
-    return _chunk("validIntersection", record.name, " ".join([record.name, *dims]))
+    return _chunk("validIntersection", record.name, " ".join([record.name or "", *dims]))
 
 
 def _dashboard_chunk(record) -> Chunk:
     data = record.data or {}
     forms = [str(f) for f in (data.get("forms") or [])]
-    return _chunk("dashboard", record.name, " ".join([record.name, *forms]), cube=record.cube)
+    return _chunk("dashboard", record.name, " ".join([record.name or "", *forms]), cube=record.cube)
 
 
 def _member_digest(dimension: str, members: list[tuple[str, str | None]]) -> Chunk:
     """Per-dimension convention digest: sample of member names/aliases plus the
     common ``PREFIX_`` naming patterns — never one chunk per member."""
-    names = sorted({name for name, _ in members})
-    aliases = {name: alias for name, alias in members if alias}
+    # Member names may be missing on malformed snapshots; drop them rather than
+    # crash sorting/joining None against str.
+    names = sorted({name for name, _ in members if name})
+    aliases = {name: alias for name, alias in members if name and alias}
     sample = names[:MEMBER_SAMPLE_LIMIT]
     listed = ", ".join(f"{n} ({aliases[n]})" if n in aliases else n for n in sample)
     prefixes = Counter(n.split("_", 1)[0] + "_" for n in names if "_" in n and len(n.split("_", 1)[0]) >= 2)

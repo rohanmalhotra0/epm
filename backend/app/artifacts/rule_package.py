@@ -14,11 +14,24 @@ from __future__ import annotations
 
 import io
 import json
+import re
 import zipfile
 from xml.etree import ElementTree as ET
 
 from ..schemas.rule_spec import RuleSpecification
 from .packager import _FIXED_DT, _safe, sha256
+
+# Characters outside the XML 1.0 legal set (nulls and most C0 control chars).
+# ElementTree serialises these verbatim, producing bytes no conformant parser
+# can read back — so a script body or spec field carrying them would break the
+# "valid, round-trippable XML" contract. Strip them before serialisation.
+_ILLEGAL_XML = re.compile(  # XML 1.0 forbids these: C0 controls except tab/LF/CR + FFFE/FFFF
+    "[\x00-\x08\x0b\x0c\x0e-\x1f\ufffe\uffff]")
+
+
+def _xml_safe(value: str) -> str:
+    return _ILLEGAL_XML.sub("", value or "")
+
 
 RULE_RENDERER_VERSION = "1.0.0"
 GENERATOR = f"epm-wizard-rule-packager/{RULE_RENDERER_VERSION}"
@@ -33,7 +46,7 @@ _CDATA_TOKEN = "__EPM_WIZARD_CDATA_BODY__"
 def _prop(parent: ET.Element, name: str, text: str) -> None:
     el = ET.SubElement(parent, "property")
     el.set("name", name)
-    el.text = text
+    el.text = _xml_safe(text)
 
 
 def _cdata(body: str) -> str:
@@ -56,7 +69,7 @@ def render_rule_xml(spec: RuleSpecification, script: str, script_type: str = "gr
     variables = ET.SubElement(root, "variables")
     for i, prompt in enumerate(spec.runtime_prompts, start=1):
         var = ET.SubElement(variables, "variable")
-        var.set("name", prompt.name)
+        var.set("name", _xml_safe(prompt.name))
         var.set("type", "member")
         var.set("usage", "const")
         var.set("id", str(i))
@@ -69,13 +82,13 @@ def render_rule_xml(spec: RuleSpecification, script: str, script_type: str = "gr
         _prop(var, "scope", "rule")
         value = ET.SubElement(var, "value")
         if prompt.default_value:
-            value.text = prompt.default_value
+            value.text = _xml_safe(prompt.default_value)
 
     ET.SubElement(root, "rulesets")
     rules = ET.SubElement(root, "rules")
     rule = ET.SubElement(rules, "rule")
     rule.set("id", "1")
-    rule.set("name", spec.name)
+    rule.set("name", _xml_safe(spec.name))
     rule.set("product", "Planning")
     _prop(rule, "application", spec.application)
     _prop(rule, "plantype", spec.cube)
@@ -83,7 +96,7 @@ def render_rule_xml(spec: RuleSpecification, script: str, script_type: str = "gr
         refs = ET.SubElement(rule, "variable_references")
         for i, prompt in enumerate(spec.runtime_prompts, start=1):
             ref = ET.SubElement(refs, "variable_reference")
-            ref.set("name", prompt.name)
+            ref.set("name", _xml_safe(prompt.name))
             ref.set("id", str(i))
             _prop(ref, "application", spec.application)
             _prop(ref, "hidden", "false")
@@ -93,19 +106,25 @@ def render_rule_xml(spec: RuleSpecification, script: str, script_type: str = "gr
             _prop(ref, "useAsOverrideValue", "false")
     script_el = ET.SubElement(rule, "script")
     script_el.set("type", script_type)
-    script_el.text = _CDATA_TOKEN if script_type == "calcscript" else script
+    script_el.text = _CDATA_TOKEN if script_type == "calcscript" else _xml_safe(script)
     ET.SubElement(root, "templates")
 
     body = ET.tostring(root, encoding="unicode")
     if script_type == "calcscript":
-        body = body.replace(_CDATA_TOKEN, _cdata(script), 1)
+        body = body.replace(_CDATA_TOKEN, _cdata(_xml_safe(script)), 1)
     return "<?xml version = '1.0' encoding = 'UTF-8'?>\n" + body
+
+
+_CONTROL_RE = re.compile("[\x00-\x1f\x7f]")
 
 
 def _path_component(name: str) -> str:
     """A zip path segment: keep the real name (spaces included, like snapshot
-    rule files) but never let it introduce extra path levels."""
-    cleaned = name.replace("/", "_").replace("\\", "_").strip().strip(".")
+    rule files) but never let it introduce extra path levels — and never let a
+    control/null byte truncate the entry name (zip readers stop at a NUL, which
+    would silently blank the leaf and make the archive non-deterministic)."""
+    cleaned = _CONTROL_RE.sub("", name or "")
+    cleaned = cleaned.replace("/", "_").replace("\\", "_").strip().strip(".")
     return cleaned or "_"
 
 

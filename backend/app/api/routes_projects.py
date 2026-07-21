@@ -91,6 +91,13 @@ def set_active_context(
     session: Session = Depends(get_db),
 ) -> ProjectOut:
     from ..services import context_store
+    # Confused-deputy guard: the target context must belong to THIS project.
+    # Without this, an owner authorized for their own project could point its
+    # active context at another owner's context_version_id (resolved purely by
+    # id) and exfiltrate that context through their own conversation turns.
+    cv = context_store.get_context(session, context_version_id)
+    if cv is None or cv.project_id != project.id:
+        raise HTTPException(404, "context not found")
     context_store.activate_context(session, project.id, context_version_id)
     return svc._to_out(session, project)
 

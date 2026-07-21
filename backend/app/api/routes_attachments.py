@@ -42,9 +42,15 @@ async def upload_attachment(
 
 
 def _load_analysis(attachment):
-    if attachment.media_type == attachments_svc.ZIP_MEDIA_TYPE:
-        return attachments_svc.load_snapshot_analysis(attachment)
-    return attachments_svc.load_analysis(attachment)
+    try:
+        if attachment.media_type == attachments_svc.ZIP_MEDIA_TYPE:
+            return attachments_svc.load_snapshot_analysis(attachment)
+        return attachments_svc.load_analysis(attachment)
+    except attachments_svc.AttachmentError as exc:
+        # Stored analysis and the source file are both gone/corrupt: the analysis
+        # resource cannot be produced. 404 (not a 500) — the metadata still exists
+        # but its deterministic analysis is unavailable.
+        raise HTTPException(404, str(exc)) from exc
 
 
 @router.get("/api/attachments/{attachment_id}", response_model=AttachmentOut)

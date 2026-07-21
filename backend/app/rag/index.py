@@ -229,6 +229,8 @@ async def retrieve_grounding(
     ``0.5*bm25_norm + 0.5*cosine_norm`` (method "hybrid", or "semantic" for a
     chunk BM25 knew nothing about). Any provider/embedding failure falls back
     to lexical-only silently. Deterministic: ties break on (kind, name)."""
+    if k <= 0:  # a non-positive budget asks for no rows (a bare slice would
+        return []  # silently return all-but-|k| for negative k)
     index = build_rag_index(session, context_version_id)
     if not index.chunks:
         return []
