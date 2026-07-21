@@ -26,8 +26,22 @@ def _to_out(session: Session, p: Project) -> ProjectOut:
     )
 
 
-def list_projects(session: Session) -> list[ProjectOut]:
-    projects = session.query(Project).order_by(Project.created_at.asc()).all()
+def _owner_visible(owner: str):
+    """Rows owned by ``owner`` plus legacy NULL-owner rows (visible to all).
+
+    When multi-user is off every row carries the "local" owner (or NULL), so
+    this predicate is a no-op filter and behavior is unchanged.
+    """
+    return (Project.owner_id == owner) | (Project.owner_id.is_(None))
+
+
+def list_projects(session: Session, owner: str = "local") -> list[ProjectOut]:
+    projects = (
+        session.query(Project)
+        .filter(_owner_visible(owner))
+        .order_by(Project.created_at.asc())
+        .all()
+    )
     return [_to_out(session, p) for p in projects]
 
 
@@ -35,12 +49,15 @@ def get_project(session: Session, project_id: str) -> Project | None:
     return session.get(Project, project_id)
 
 
-def get_default_project(session: Session) -> Project | None:
-    return session.query(Project).filter_by(is_default=True).first() or session.query(Project).first()
+def get_default_project(session: Session, owner: str = "local") -> Project | None:
+    base = session.query(Project).filter(_owner_visible(owner))
+    return base.filter(Project.is_default.is_(True)).first() or base.first()
 
 
-def create_project(session: Session, name: str, description: str | None = None) -> ProjectOut:
-    project = Project(name=name, description=description, is_default=False)
+def create_project(
+    session: Session, name: str, description: str | None = None, owner: str = "local"
+) -> ProjectOut:
+    project = Project(name=name, description=description, is_default=False, owner_id=owner)
     session.add(project)
     session.flush()
     return _to_out(session, project)

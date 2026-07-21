@@ -97,4 +97,51 @@ describe("SettingsPage provider form", () => {
       expect(body.roleModels).toBeUndefined();
     });
   });
+
+  it("merges role model inputs (chat/fast/structured/code + embedding) into roleModels", async () => {
+    renderPage();
+    fireEvent.change(screen.getAllByPlaceholderText("Name")[0], { target: { value: "Multi" } });
+    fireEvent.change(screen.getByPlaceholderText("Chat model"), { target: { value: "gpt-chat" } });
+    fireEvent.change(screen.getByPlaceholderText("Fast model"), { target: { value: "gpt-fast" } });
+    fireEvent.change(screen.getByPlaceholderText("Structured model"), { target: { value: "gpt-struct" } });
+    fireEvent.change(screen.getByPlaceholderText("Code model"), { target: { value: "gpt-code" } });
+    fireEvent.change(screen.getByPlaceholderText("Embedding model (RAG)"), { target: { value: "emb-1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add provider" }));
+
+    const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
+    await vi.waitFor(() => {
+      const post = fetchMock.mock.calls.find(
+        (c) => String(c[0]) === "/api/providers" && (c[1] as RequestInit)?.method === "POST",
+      );
+      expect(post).toBeTruthy();
+      const body = JSON.parse(String((post![1] as RequestInit).body));
+      expect(body.roleModels).toEqual({
+        chat: "gpt-chat",
+        fast: "gpt-fast",
+        structured: "gpt-struct",
+        code: "gpt-code",
+        embedding: "emb-1",
+      });
+      // Transient form-only fields must not leak into the payload.
+      expect(body.chatModel).toBeUndefined();
+      expect(body.embeddingModel).toBeUndefined();
+    });
+  });
+
+  it("includes only the non-empty role model keys", async () => {
+    renderPage();
+    fireEvent.change(screen.getAllByPlaceholderText("Name")[0], { target: { value: "Partial" } });
+    fireEvent.change(screen.getByPlaceholderText("Code model"), { target: { value: "only-code" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add provider" }));
+
+    const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
+    await vi.waitFor(() => {
+      const post = fetchMock.mock.calls.find(
+        (c) => String(c[0]) === "/api/providers" && (c[1] as RequestInit)?.method === "POST",
+      );
+      expect(post).toBeTruthy();
+      const body = JSON.parse(String((post![1] as RequestInit).body));
+      expect(body.roleModels).toEqual({ code: "only-code" });
+    });
+  });
 });

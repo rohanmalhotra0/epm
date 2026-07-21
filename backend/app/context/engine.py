@@ -168,3 +168,76 @@ def diff_contexts(old_counts: dict, new_counts: dict) -> dict:
     keys = sorted(set(old_counts) | set(new_counts))
     return {k: {"before": old_counts.get(k, 0), "after": new_counts.get(k, 0),
                 "delta": new_counts.get(k, 0) - old_counts.get(k, 0)} for k in keys}
+
+
+def _diff_key(rec: dict) -> tuple[str, str, str, str, str]:
+    # Include parent and cube: a shared member (same name+dimension under two
+    # parents) is two distinct rows, and keying on name+dimension alone would
+    # collapse them and silently drop a real add/remove. The cost — a parent
+    # move shows as remove+add rather than "changed" — is honest, not lossy.
+    return (rec.get("kind") or "", rec.get("name") or "", rec.get("dimension") or "",
+            rec.get("parent") or "", rec.get("cube") or "")
+
+
+def diff_context_records(records_a: list[dict], records_b: list[dict], *, cap: int = 100) -> dict:
+    """Record-level diff between two context versions (spec section 18).
+
+    Keys each record on ``(kind, name, dimension, parent, cube)`` so shared
+    members are never collapsed. Returns, per record kind::
+
+        {added: [{name, dimension, cube}], removed: [...],
+         changed: [{name, dimension, before, after}],
+         addedTruncated, removedTruncated, changedTruncated}
+
+    ``changed`` reports only the top-level ``data`` keys that differ (e.g.
+    alias/parent/formula/storage/body): ``before``/``after`` carry just those
+    keys. Each list is capped at ``cap`` with an integer overflow count so a
+    large diff stays bounded. Output ordering is deterministic (sorted).
+    """
+    map_a = {_diff_key(r): r for r in records_a}
+    map_b = {_diff_key(r): r for r in records_b}
+    keys_a, keys_b = set(map_a), set(map_b)
+
+    kinds: dict[str, dict[str, list]] = {}
+
+    def bucket(kind: str) -> dict[str, list]:
+        return kinds.setdefault(kind, {"added": [], "removed": [], "changed": []})
+
+    def entry(rec: dict) -> dict:
+        return {"name": rec.get("name"), "dimension": rec.get("dimension"), "cube": rec.get("cube")}
+
+    for k in keys_b - keys_a:
+        rec = map_b[k]
+        bucket(rec.get("kind") or "")["added"].append(entry(rec))
+    for k in keys_a - keys_b:
+        rec = map_a[k]
+        bucket(rec.get("kind") or "")["removed"].append(entry(rec))
+    for k in keys_a & keys_b:
+        ra, rb = map_a[k], map_b[k]
+        da, db = ra.get("data") or {}, rb.get("data") or {}
+        changed_keys = sorted(dk for dk in set(da) | set(db) if da.get(dk) != db.get(dk))
+        if changed_keys:
+            bucket(ra.get("kind") or "")["changed"].append({
+                "name": ra.get("name"), "dimension": ra.get("dimension"),
+                "before": {dk: da.get(dk) for dk in changed_keys},
+                "after": {dk: db.get(dk) for dk in changed_keys},
+            })
+
+    def sort_key(item: dict) -> tuple[str, str]:
+        return (item.get("name") or "", item.get("dimension") or "")
+
+    result: dict[str, dict] = {}
+    for kind in sorted(kinds):
+        b = kinds[kind]
+        added = sorted(b["added"], key=sort_key)
+        removed = sorted(b["removed"], key=sort_key)
+        changed = sorted(b["changed"], key=sort_key)
+        result[kind] = {
+            "added": added[:cap],
+            "removed": removed[:cap],
+            "changed": changed[:cap],
+            "addedTruncated": max(0, len(added) - cap),
+            "removedTruncated": max(0, len(removed) - cap),
+            "changedTruncated": max(0, len(changed) - cap),
+        }
+    return result

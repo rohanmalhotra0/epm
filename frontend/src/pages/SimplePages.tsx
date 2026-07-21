@@ -6,9 +6,12 @@ import {
   useArchitecture,
   useArtifacts,
   useBuildContext,
+  useContextDiff,
   useContexts,
   useDeployments,
   useImportContextSnapshot,
+  type ContextDiffEntry,
+  type ContextDiffKind,
 } from "../api/hooks";
 import { CubeArchitectureBlock } from "../blocks/CubeArchitectureBlock";
 import { useUi } from "../store/ui";
@@ -178,6 +181,98 @@ function ContextVersionDetail({
           })}
         </div>
       )}
+      {compare && <ContextDetailedDiff versionId={compare.id} thisId={version.id} againstLabel={compare.label} />}
+    </div>
+  );
+}
+
+function formatDiffValue(v: unknown): string {
+  if (v === null || v === undefined) return "—";
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  try {
+    return JSON.stringify(v);
+  } catch {
+    return String(v);
+  }
+}
+
+/** A single diff row (added/removed/changed) inside one kind's diff table. */
+function ContextDiffRow({ entry, change }: { entry: ContextDiffEntry; change: "added" | "removed" | "changed" }) {
+  const ident = [entry.name, entry.dimension || null].filter(Boolean).join(" · ") || "—";
+  return (
+    <tr className={`diff-row ${change}`}>
+      <td><span className={`diff-badge ${change}`}>{change}</span></td>
+      <td className="path">{ident}</td>
+      <td className="val-left">
+        {change === "added" ? "—" : change === "removed" ? (entry.cube || "removed") : formatDiffValue(entry.before)}
+      </td>
+      <td className="val-right">
+        {change === "removed" ? "—" : change === "added" ? (entry.cube || "added") : formatDiffValue(entry.after)}
+      </td>
+    </tr>
+  );
+}
+
+/** Record-level diff of one context version vs. the active one, per kind. */
+function ContextDetailedDiff({
+  versionId,
+  thisId,
+  againstLabel,
+}: {
+  versionId: string; // the active baseline (A); added/removed are relative to it
+  thisId: string; // the version being viewed (B), so direction matches the count deltas above
+  againstLabel: string;
+}) {
+  const { data, isLoading, isError } = useContextDiff(versionId, thisId);
+  const secondary = { color: "var(--cds-text-secondary,#8d8d8d)" } as const;
+  return (
+    <div>
+      <div style={{ fontWeight: 600, marginBottom: 4 }}>Detailed diff (vs. {againstLabel})</div>
+      {isLoading && <div style={secondary}>Loading detailed diff…</div>}
+      {isError && <div style={secondary}>Detailed diff is unavailable for this pair of versions.</div>}
+      {data && (() => {
+        const kinds = Object.entries(data.kinds || {}).filter(
+          ([, k]) => k.added.length || k.removed.length || k.changed.length,
+        );
+        if (kinds.length === 0) return <div style={secondary}>No record-level differences.</div>;
+        return kinds.map(([kind, k]: [string, ContextDiffKind]) => {
+          const more = [
+            k.addedTruncated ? `+${k.addedTruncated} more added` : "",
+            k.removedTruncated ? `+${k.removedTruncated} more removed` : "",
+            k.changedTruncated ? `+${k.changedTruncated} more changed` : "",
+          ].filter(Boolean);
+          return (
+            <div key={kind} className="diff-panel" style={{ marginTop: 10 }}>
+              <div className="diff-head">
+                <span>{kind}</span>
+                <span className="grow" />
+                <span style={{ fontWeight: 400, ...secondary }}>
+                  {k.added.length} added · {k.removed.length} removed · {k.changed.length} changed
+                </span>
+              </div>
+              <table className="diff-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: 90 }}>Change</th>
+                    <th>Record</th>
+                    <th>Before</th>
+                    <th>After</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {k.removed.map((e, i) => <ContextDiffRow key={`r${i}`} entry={e} change="removed" />)}
+                  {k.added.map((e, i) => <ContextDiffRow key={`a${i}`} entry={e} change="added" />)}
+                  {k.changed.map((e, i) => <ContextDiffRow key={`c${i}`} entry={e} change="changed" />)}
+                </tbody>
+              </table>
+              {more.length > 0 && (
+                <div style={{ padding: "5px 12px", fontSize: 11, ...secondary }}>{more.join(" · ")}</div>
+              )}
+            </div>
+          );
+        });
+      })()}
     </div>
   );
 }

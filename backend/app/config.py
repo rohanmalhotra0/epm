@@ -77,6 +77,14 @@ class Settings(BaseSettings):
     default_provider: str = "mock"
     default_model: str = "epmw-local-1"
 
+    # Optional multi-user owner-scoping. OFF by default: the app stays a single
+    # "local" owner (Demo/local behavior is unchanged). When EPMW_MULTI_USER is
+    # true, projects are scoped to the identity in the reverse-proxy-provided
+    # header EPMW_AUTH_EMAIL_HEADER (default "X-Forwarded-Email"); legacy rows
+    # with no owner remain visible to everyone.
+    multi_user: bool = False
+    auth_email_header: str = "X-Forwarded-Email"
+
     # How many timestamped SQLite backups to keep in <data>/backups (EPMW_BACKUP_KEEP).
     backup_keep: int = 5
 

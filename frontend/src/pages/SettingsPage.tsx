@@ -24,7 +24,10 @@ export function SettingsPage() {
   const createEnv = useCreateEnvironment(pid);
   const connect = useConnectEnvironment(pid);
 
-  const emptyProvider = { name: "", providerType: "anthropic", baseUrl: "", apiKey: "", defaultModel: "", embeddingModel: "" };
+  const emptyProvider = {
+    name: "", providerType: "anthropic", baseUrl: "", apiKey: "", defaultModel: "",
+    chatModel: "", fastModel: "", structuredModel: "", codeModel: "", embeddingModel: "",
+  };
   const [np, setNp] = useState(emptyProvider);
   const [ne, setNe] = useState({ name: "", baseUrl: "", username: "", classification: "development", demo: false });
   const [pw, setPw] = useState<Record<string, string>>({});
@@ -33,7 +36,7 @@ export function SettingsPage() {
   const [detecting, setDetecting] = useState(false);
 
   const applyOllamaPreset = () => {
-    setNp({ name: "Local Ollama", providerType: "ollama", baseUrl: "http://localhost:11434/v1", apiKey: "", defaultModel: "", embeddingModel: "" });
+    setNp({ ...emptyProvider, name: "Local Ollama", providerType: "ollama", baseUrl: "http://localhost:11434/v1" });
     setDiscovered([]);
     toast.info("Local model preset applied", "Ollama needs no API key. Click Detect models to list what's installed.");
   };
@@ -126,6 +129,13 @@ export function SettingsPage() {
             <input placeholder="Default model" value={np.defaultModel} onChange={(e) => setNp({ ...np, defaultModel: e.target.value })} style={inp} />
           )}
           <input placeholder={np.providerType === "ollama" ? "API key (not needed for Ollama)" : "API key"} type="password" value={np.apiKey} onChange={(e) => setNp({ ...np, apiKey: e.target.value })} style={{ ...inp, gridColumn: "1 / 3" }} />
+          <div style={{ gridColumn: "1 / 3", fontSize: 11, fontWeight: 600, color: "var(--cds-text-secondary, #8d8d8d)", marginTop: 2 }}>
+            Role models (optional) — override the default model per task
+          </div>
+          <input placeholder="Chat model" aria-label="Chat model" value={np.chatModel} onChange={(e) => setNp({ ...np, chatModel: e.target.value })} style={inp} />
+          <input placeholder="Fast model" aria-label="Fast model" value={np.fastModel} onChange={(e) => setNp({ ...np, fastModel: e.target.value })} style={inp} />
+          <input placeholder="Structured model" aria-label="Structured model" value={np.structuredModel} onChange={(e) => setNp({ ...np, structuredModel: e.target.value })} style={inp} />
+          <input placeholder="Code model" aria-label="Code model" value={np.codeModel} onChange={(e) => setNp({ ...np, codeModel: e.target.value })} style={inp} />
           <input
             placeholder="Embedding model (RAG)"
             aria-label="Embedding model (RAG)"
@@ -143,10 +153,17 @@ export function SettingsPage() {
             kind="primary"
             disabled={!np.name}
             onClick={() => {
-              const { embeddingModel, ...body } = np;
+              const { chatModel, fastModel, structuredModel, codeModel, embeddingModel, ...body } = np;
+              const roleModels: Record<string, string> = {
+                ...(chatModel.trim() ? { chat: chatModel.trim() } : {}),
+                ...(fastModel.trim() ? { fast: fastModel.trim() } : {}),
+                ...(structuredModel.trim() ? { structured: structuredModel.trim() } : {}),
+                ...(codeModel.trim() ? { code: codeModel.trim() } : {}),
+                ...(embeddingModel.trim() ? { embedding: embeddingModel.trim() } : {}),
+              };
               createProvider.mutate({
                 ...body,
-                ...(embeddingModel.trim() ? { roleModels: { embedding: embeddingModel.trim() } } : {}),
+                ...(Object.keys(roleModels).length ? { roleModels } : {}),
               });
               setNp(emptyProvider);
               setDiscovered([]);

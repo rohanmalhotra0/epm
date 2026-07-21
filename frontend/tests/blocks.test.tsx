@@ -203,4 +203,31 @@ describe("inline blocks", () => {
     expect(screen.getByText("Grounding")).toBeInTheDocument();
     expect(screen.getByText("No grounding sources.")).toBeInTheDocument();
   });
+
+  it("renders a rule preview with name, cube, runtime prompts and draft script", () => {
+    renderBlock("rulePreview", {
+      name: "Copy Working to Final",
+      application: "MCWPCF",
+      cube: "OEP_FS",
+      type: "businessRule",
+      purpose: "Copy the working scenario to final",
+      runtimePrompts: [
+        { name: "Scenario", promptText: "Pick a scenario", type: "member", dimension: "Scenario", required: true },
+      ],
+      draftScript: 'FIX("Working") DATACOPY "Working" TO "Final"; ENDFIX',
+      grounded: true,
+    });
+    expect(screen.getByText(/Copy Working to Final/)).toBeInTheDocument();
+    expect(screen.getByText("OEP_FS")).toBeInTheDocument();
+    expect(screen.getByText("Runtime prompts")).toBeInTheDocument();
+    expect(screen.getAllByText("Scenario").length).toBeGreaterThan(0);
+    expect(screen.getByText(/Pick a scenario/)).toBeInTheDocument();
+    expect(screen.getByText(/DATACOPY/)).toBeInTheDocument();
+  });
+
+  it("rule preview survives empty data", () => {
+    renderBlock("rulePreview", {});
+    expect(screen.getByText("Rule draft")).toBeInTheDocument();
+    expect(screen.getByText("No draft script generated.")).toBeInTheDocument();
+  });
 });

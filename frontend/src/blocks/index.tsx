@@ -21,6 +21,7 @@ import {
   ErrorDiagnosticsBlock,
   FallbackBlock,
   MemberSearchBlock,
+  RulePreviewBlock,
   RuntimePromptFormBlock,
   ToolInvocationBlock,
   ValidationReportBlock,
@@ -63,6 +64,8 @@ export function BlockRenderer({ block, onAction }: { block: ChatBlockT; onAction
     case "reportPreview":
     case "reportSpecification":
       return <ArtifactBlock block={block} />;
+    case "rulePreview":
+      return <RulePreviewBlock data={d} />;
     case "validationReport":
       return <ValidationReportBlock data={d} />;
     case "confirmation":

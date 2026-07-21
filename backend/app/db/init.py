@@ -44,6 +44,7 @@ def seed_defaults(session: Session) -> Project:
             name="Default Project",
             description="Local project. Sign in to an Oracle EPM environment to begin.",
             is_default=True,
+            owner_id="local",
         )
         session.add(project)
         session.flush()

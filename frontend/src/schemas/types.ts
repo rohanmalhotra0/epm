@@ -1122,6 +1122,8 @@ export type ValidationLayer =
   "application" |
   "axis" |
   "selection" |
+  "runtimePrompt" |
+  "script" |
   "display" |
   "performance" |
   "security" |

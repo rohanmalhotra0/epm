@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from ..schemas.api import AttachmentOut
 from ..services import attachments as attachments_svc
 from ..services import conversations as conversations_svc
-from .deps import get_db
+from .deps import authorize_project_id, get_current_owner, get_db
 
 router = APIRouter(tags=["attachments"])
 
@@ -24,10 +24,12 @@ async def upload_attachment(
     conversation_id: str,
     file: UploadFile = File(...),
     session: Session = Depends(get_db),
+    owner: str = Depends(get_current_owner),
 ) -> AttachmentOut:
     conversation = conversations_svc.get_conversation(session, conversation_id)
     if conversation is None:
         raise HTTPException(404, "conversation not found")
+    authorize_project_id(session, owner, conversation.project_id)
     from .routes_context import _read_limited
     data = await _read_limited(file)
     try:
@@ -46,19 +48,23 @@ def _load_analysis(attachment):
 
 
 @router.get("/api/attachments/{attachment_id}", response_model=AttachmentOut)
-def get_attachment(attachment_id: str, session: Session = Depends(get_db)) -> AttachmentOut:
+def get_attachment(attachment_id: str, session: Session = Depends(get_db),
+                   owner: str = Depends(get_current_owner)) -> AttachmentOut:
     attachment = attachments_svc.get_attachment(session, attachment_id)
     if attachment is None:
         raise HTTPException(404, "attachment not found")
+    authorize_project_id(session, owner, attachment.project_id)
     return attachments_svc.to_out(attachment, _load_analysis(attachment))
 
 
 @router.get("/api/attachments/{attachment_id}/analysis")
-def get_attachment_analysis(attachment_id: str, session: Session = Depends(get_db)) -> dict:
+def get_attachment_analysis(attachment_id: str, session: Session = Depends(get_db),
+                            owner: str = Depends(get_current_owner)) -> dict:
     """The stored deterministic analysis: a ``WorkbookAnalysis`` for
     spreadsheets, a ``SnapshotAnalysis`` for LCM snapshot zips (the payload is
     a plain JSON object because the shape depends on the attachment type)."""
     attachment = attachments_svc.get_attachment(session, attachment_id)
     if attachment is None:
         raise HTTPException(404, "attachment not found")
+    authorize_project_id(session, owner, attachment.project_id)
     return _load_analysis(attachment).model_dump(by_alias=True, mode="json")

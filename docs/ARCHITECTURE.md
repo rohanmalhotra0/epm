@@ -99,6 +99,23 @@ embeddings in tests). The per-version index is cached as JSON under
 `<data>/rag/`; embedding failures fall back silently to lexical, so grounding
 never blocks creation.
 
+The snapshot parser also deep-parses smart lists, data maps, valid
+intersections and dashboards into searchable context records (tolerating their
+absence), and a **record-level diff** (`GET /api/contexts/{id}/diff?against=`)
+reports per-kind added/removed/changed between any two versions. `/rules`
+drafts are validated (`app/artifacts/rule_validation.py`) with the same
+`ValidationReport` machinery as forms, and a saved draft also renders a
+deterministic, Migration-importable Calculation Manager package.
+
+### Optional per-user isolation
+
+The app is single-user by default (one implicit `local` owner). With
+`EPMW_MULTI_USER=true` behind an authenticating proxy, `Project.owner_id` is
+set from the identity header and enforced centrally in the API dependency layer
+(`require_project` / `authorize_project_id`), so every project-scoped and by-ID
+route rejects cross-owner access with 404. Legacy owner-less projects stay
+shared. The flag is inert when off — no behavior change for local/Demo use.
+
 ### AI layer (`app/ai`)
 
 Provider-independent interface: model listing, connection test, streaming, tool
