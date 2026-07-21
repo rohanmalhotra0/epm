@@ -120,17 +120,29 @@ deploy_app epmw-backend "${BACKEND_IMAGE}" 8000 \
 # Then run ../configure-app-id.sh once to register the callback URL in App ID.
 AUTH_SECRET="${AUTH_SECRET:-epmw-appid}"
 AUTH_IMAGE="${AUTH_IMAGE:-quay.io/oauth2-proxy/oauth2-proxy:v7.6.0}"
-PROJECT_NAME="$(ibmcloud ce project current --output json | grep -o '"name": *"[^"]*"' | head -1 | sed 's/.*: *"//;s/"//')"
+
+# Cluster-local URL of a just-deployed app (its host uses the project subdomain,
+# not the project name). Falls back to the in-namespace short service name.
+app_internal_url() {
+  local name="$1" url
+  url="$(ibmcloud ce app get --name "${name}" --output json 2>/dev/null \
+    | grep -oE 'http://[a-z0-9.-]+\.svc\.cluster\.local' | head -1)"
+  printf '%s' "${url:-http://${name}}"
+}
 
 FRONTEND_VISIBILITY_DEFAULT=public
 if ibmcloud ce secret get --name "${AUTH_SECRET}" >/dev/null 2>&1; then
   FRONTEND_VISIBILITY_DEFAULT=project
 fi
 
+# The frontend nginx proxies /api to the backend's real internal URL.
+BACKEND_INTERNAL_URL="$(app_internal_url epmw-backend)"
+echo "==> Frontend will proxy /api to ${BACKEND_INTERNAL_URL}"
+
 echo "==> Deploying frontend"
 deploy_app epmw-frontend "${FRONTEND_IMAGE}" 3000 \
   --visibility "${FRONTEND_VISIBILITY:-${FRONTEND_VISIBILITY_DEFAULT}}" \
-  --env BACKEND_URL="http://epmw-backend.${PROJECT_NAME}"
+  --env BACKEND_URL="${BACKEND_INTERNAL_URL}"
 
 if ibmcloud ce secret get --name "${AUTH_SECRET}" >/dev/null 2>&1; then
   echo "==> ${AUTH_SECRET} secret found — deploying App ID login gate (oauth2-proxy)"
@@ -138,7 +150,7 @@ if ibmcloud ce secret get --name "${AUTH_SECRET}" >/dev/null 2>&1; then
     --visibility public \
     --env OAUTH2_PROXY_PROVIDER=oidc \
     --env OAUTH2_PROXY_HTTP_ADDRESS=0.0.0.0:4180 \
-    --env OAUTH2_PROXY_UPSTREAMS="http://epmw-frontend.${PROJECT_NAME}" \
+    --env OAUTH2_PROXY_UPSTREAMS="$(app_internal_url epmw-frontend)" \
     --env OAUTH2_PROXY_EMAIL_DOMAINS='*' \
     --env OAUTH2_PROXY_COOKIE_SECURE=true \
     --env OAUTH2_PROXY_FLUSH_INTERVAL=1s \
