@@ -29,7 +29,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 
 : "${ICR_APIKEY:?set ICR_APIKEY to an IBM Cloud IAM api key (used for the image rebuild)}"
 
-echo "==> [1/5] Provisioning PostgreSQL '${PG_NAME}' (PAID, ~$30-50/mo)"
+echo "==> [1/5] Provisioning PostgreSQL '${PG_NAME}' (PAID, ~\$30-50/mo)"
 if ibmcloud resource service-instance "${PG_NAME}" >/dev/null 2>&1; then
   echo "    instance already exists"
 else
