@@ -15,7 +15,13 @@ set -euo pipefail
 REGION="${REGION:-us-south}"
 ICR_NAMESPACE="${ICR_NAMESPACE:-epmw}"
 CE_PROJECT="${CE_PROJECT:-epmw-project}"
-TAG="${TAG:-$(git rev-parse --short HEAD)}"
+# Local builds tag by commit; the cloud-build path (SKIP_BUILD) pushes :latest,
+# so default to :latest there instead of a commit sha that was never built.
+if [ -n "${SKIP_BUILD:-}" ]; then
+  TAG="${TAG:-latest}"
+else
+  TAG="${TAG:-$(git rev-parse --short HEAD)}"
+fi
 REGISTRY="${REGISTRY:-us.icr.io}"
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
