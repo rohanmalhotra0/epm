@@ -22,15 +22,22 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BACKEND_IMAGE="${REGISTRY}/${ICR_NAMESPACE}/epmw-backend:${TAG}"
 FRONTEND_IMAGE="${REGISTRY}/${ICR_NAMESPACE}/epmw-frontend:${TAG}"
 
-echo "==> Building images (tag ${TAG})"
-docker build -f "${REPO_ROOT}/backend/Dockerfile" -t "${BACKEND_IMAGE}" "${REPO_ROOT}"
-docker build -f "${REPO_ROOT}/frontend/Dockerfile" -t "${FRONTEND_IMAGE}" "${REPO_ROOT}"
+# Local Docker build+push is skipped when SKIP_BUILD is set — the cloud-build
+# path (deploy-code-engine-cloudbuild.sh) builds the images in Code Engine
+# instead and just wants the app create/update half of this script.
+if [ -z "${SKIP_BUILD:-}" ]; then
+  echo "==> Building images (tag ${TAG})"
+  docker build -f "${REPO_ROOT}/backend/Dockerfile" -t "${BACKEND_IMAGE}" "${REPO_ROOT}"
+  docker build -f "${REPO_ROOT}/frontend/Dockerfile" -t "${FRONTEND_IMAGE}" "${REPO_ROOT}"
 
-echo "==> Pushing to IBM Container Registry"
-ibmcloud cr region-set "${REGION}" >/dev/null
-ibmcloud cr login
-docker push "${BACKEND_IMAGE}"
-docker push "${FRONTEND_IMAGE}"
+  echo "==> Pushing to IBM Container Registry"
+  ibmcloud cr region-set "${REGION}" >/dev/null
+  ibmcloud cr login
+  docker push "${BACKEND_IMAGE}"
+  docker push "${FRONTEND_IMAGE}"
+else
+  echo "==> SKIP_BUILD set — using prebuilt images ${BACKEND_IMAGE} / ${FRONTEND_IMAGE}"
+fi
 
 echo "==> Selecting Code Engine project ${CE_PROJECT}"
 ibmcloud ce project select --name "${CE_PROJECT}"
