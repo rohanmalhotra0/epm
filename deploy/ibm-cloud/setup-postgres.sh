@@ -57,9 +57,26 @@ if [ "${STATE}" != "active" ]; then
 fi
 
 echo "==> [3/5] Creating service key and reading the connection string"
-ibmcloud resource service-key-create "${PG_KEY}" Administrator --instance-name "${PG_NAME}" >/dev/null 2>&1 \
-  || echo "    (service key already exists)"
-DB_URL="$(ibmcloud resource service-key "${PG_KEY}" --output json | python3 -c "
+if ibmcloud resource service-key "${PG_KEY}" >/dev/null 2>&1; then
+  echo "    service key already exists"
+else
+  # Don't mask errors — service-key-create can fail if the deployment isn't yet
+  # ready to mint credentials; retry a few times before giving up.
+  for attempt in 1 2 3 4 5; do
+    if ibmcloud resource service-key-create "${PG_KEY}" Administrator --instance-name "${PG_NAME}"; then
+      break
+    fi
+    echo "    key create failed (attempt ${attempt}/5) — the DB may still be finalizing; waiting 30s"
+    sleep 30
+  done
+fi
+KEY_JSON="$(ibmcloud resource service-key "${PG_KEY}" --output json 2>/dev/null)"
+if [ -z "${KEY_JSON}" ] || [ "${KEY_JSON}" = "[]" ]; then
+  echo "    !! could not read service key '${PG_KEY}'. Create it manually and re-run:" >&2
+  echo "       ibmcloud resource service-key-create ${PG_KEY} Administrator --instance-name ${PG_NAME}" >&2
+  exit 1
+fi
+DB_URL="$(printf '%s' "${KEY_JSON}" | python3 -c "
 import sys, json, urllib.parse
 d = json.load(sys.stdin); d = d[0] if isinstance(d, list) else d
 pg = d['credentials']['connection']['postgres']
