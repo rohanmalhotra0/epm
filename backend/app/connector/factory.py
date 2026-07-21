@@ -18,10 +18,12 @@ from .base import EpmConnector
 from .demo import DemoConnector
 from .epm_automate import EpmAutomateRunner
 from .errors import ConnectorError, ErrorCategory
+from .oauth import OAuthClientCredentials
 from .oracle_rest import OracleRestConnector
 
 log = get_logger(__name__)
 SECRET_NS = "environment"
+OAUTH_METHOD = "oauthClientCredentials"
 
 
 class ConnectionRegistry:
@@ -66,24 +68,38 @@ class ConnectionRegistry:
                 self._connectors[env.id] = connector
             return connector
 
+        # The stored secret is the Oracle password, or — for an OAuth
+        # environment — the confidential application's client secret.
+        oauth_env = env.auth_method == OAUTH_METHOD
         pwd = password or get_process_secrets().get(SECRET_NS, env.id) or get_secret_store().get(SECRET_NS, env.id)
         if not pwd:
             raise ConnectorError(
                 ErrorCategory.authentication,
-                "A password is required to connect to this environment.",
-                suggested_action="Enter your Oracle password to connect.",
+                "A client secret is required to connect to this environment."
+                if oauth_env else "A password is required to connect to this environment.",
+                suggested_action="Enter the OAuth client secret to connect."
+                if oauth_env else "Enter your Oracle password to connect.",
             )
         register_secret(pwd)
         settings = get_settings()
+        oauth = None
+        if oauth_env:
+            oauth = OAuthClientCredentials(
+                token_url=env.oauth_token_url or "",
+                client_id=env.oauth_client_id or "",
+                client_secret=pwd,
+                scope=env.oauth_scope,
+            )
         connector = OracleRestConnector(
             base_url=env.base_url or "",
             username=env.username or "",
-            password=pwd,
+            password="" if oauth_env else pwd,
             classification=env.classification,
             application=env.preferred_application,
             runner=EpmAutomateRunner(),
             metadata_job=settings.oracle_metadata_job,
             metadata_snapshot=settings.oracle_metadata_snapshot,
+            oauth=oauth,
         )
         await connector.login()  # harmless read-only auth check
         # Keep the password only where the user asked.

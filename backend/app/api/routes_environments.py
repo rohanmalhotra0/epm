@@ -26,6 +26,8 @@ def list_environments(project_id: str, session: Session = Depends(get_db)) -> li
 def create_environment(project_id: str, body: EnvironmentCreate, session: Session = Depends(get_db)) -> EnvironmentOut:
     env = svc.create_environment(session, project_id, name=body.name, base_url=body.base_url,
                                  username=body.username, auth_method=body.auth_method,
+                                 oauth_token_url=body.oauth_token_url, oauth_client_id=body.oauth_client_id,
+                                 oauth_scope=body.oauth_scope,
                                  classification=body.classification.value if hasattr(body.classification, "value") else body.classification,
                                  preferred_application=body.preferred_application, demo=body.demo)
     return svc.to_out(env)
@@ -42,7 +44,9 @@ async def connect_environment(environment_id: str, body: dict, session: Session 
     env = svc.get_environment(session, environment_id)
     if env is None:
         raise HTTPException(404, "environment not found")
-    password = (body or {}).get("password")
+    # For OAuth environments the secret travels in `clientSecret`; it is
+    # handled exactly like a password (process memory / encrypted store only).
+    password = (body or {}).get("password") or (body or {}).get("clientSecret")
     remember = bool((body or {}).get("remember"))
     if password:
         register_secret(password)

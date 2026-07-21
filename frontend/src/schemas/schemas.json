@@ -2220,6 +2220,42 @@
           "title": "Name",
           "type": "string"
         },
+        "oauthClientId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Oauthclientid"
+        },
+        "oauthScope": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Oauthscope"
+        },
+        "oauthTokenUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Oauthtokenurl"
+        },
         "preferredApplication": {
           "anyOf": [
             {

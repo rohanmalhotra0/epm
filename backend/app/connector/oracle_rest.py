@@ -29,6 +29,7 @@ from ..security.redaction import register_secret
 from .base import ConnectorInfo, EpmConnector, JobResult
 from .epm_automate import EpmAutomateRunner
 from .errors import ConnectorError, ErrorCategory
+from .oauth import OAuthClientCredentials
 from .metadata_export import parse_lcm_snapshot, parse_metadata_export
 from .validation import validate_application, validate_rule_name, validate_url
 
@@ -41,19 +42,27 @@ class OracleRestConnector(EpmConnector):
     def __init__(
         self,
         base_url: str,
-        username: str,
-        password: str,
+        username: str = "",
+        password: str = "",
         classification: str = "development",
         application: str | None = None,
         timeout: float = 30.0,
         runner: EpmAutomateRunner | None = None,
         metadata_job: str = "",
         metadata_snapshot: str = "",
+        oauth: OAuthClientCredentials | None = None,
     ) -> None:
         self.base_url = validate_url(base_url)
         self.username = username
         self._password = password
-        register_secret(password)
+        self._oauth = oauth
+        if not oauth and not (username and password):
+            raise ConnectorError(
+                ErrorCategory.authentication,
+                "Either a username/password or OAuth client credentials are required.",
+            )
+        if password:
+            register_secret(password)
         self.timeout = timeout
         # EPM Automate is used only to import members (not exposed by the REST API):
         # either a saved Export Metadata job, or an existing LCM application snapshot.
@@ -66,9 +75,10 @@ class OracleRestConnector(EpmConnector):
         )
 
     def _client(self) -> httpx.AsyncClient:
+        auth: httpx.Auth | tuple[str, str] = self._oauth or (self.username, self._password)
         return httpx.AsyncClient(
             base_url=self.base_url,
-            auth=(self.username, self._password),
+            auth=auth,
             timeout=self.timeout,
             headers={"Accept": "application/json"},
         )
@@ -188,7 +198,10 @@ class OracleRestConnector(EpmConnector):
 
     @property
     def _can_export_members(self) -> bool:
+        # EPM Automate signs in with username/password; with OAuth-only
+        # credentials the export degrades to "members unavailable".
         return bool(self._runner and self._runner.installed
+                    and self.username and self._password
                     and (self._metadata_job or self._metadata_snapshot))
 
     async def _ensure_members_loaded(self, application: str) -> None:

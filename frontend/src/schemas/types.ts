@@ -473,6 +473,9 @@ export interface EnvironmentOut {
   baseUrl?: string | null;
   username?: string | null;
   authMethod?: string;
+  oauthTokenUrl?: string | null;
+  oauthClientId?: string | null;
+  oauthScope?: string | null;
   classification: EnvironmentClassification;
   preferredApplication?: string | null;
   demo?: boolean;

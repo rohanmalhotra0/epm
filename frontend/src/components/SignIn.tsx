@@ -11,6 +11,7 @@ import { useUi } from "../store/ui";
 import type { EnvironmentOut } from "../schemas/types";
 
 const CLASSIFICATIONS = ["development", "test", "production"];
+const OAUTH_METHOD = "oauthClientCredentials";
 
 /**
  * Blocks the app behind an Oracle EPM sign-in until a live environment is
@@ -49,10 +50,15 @@ function SignInScreen({
   const createEnv = useCreateEnvironment(projectId);
   const connect = useConnectEnvironment(projectId);
 
+  const [authMode, setAuthMode] = useState<"password" | "oauth">("password");
   const [form, setForm] = useState({
     baseUrl: "",
     username: "",
     password: "",
+    tokenUrl: "",
+    clientId: "",
+    clientSecret: "",
+    scope: "",
     application: "",
     classification: "development",
     remember: false,
@@ -76,6 +82,11 @@ function SignInScreen({
     if (data.USERNAME) set("username", data.USERNAME);
     if (data.PASSWORD) set("password", data.PASSWORD);
     if (data.INSTANCE) set("baseUrl", data.INSTANCE);
+    if (data.TOKEN_URL) set("tokenUrl", data.TOKEN_URL);
+    if (data.CLIENT_ID) set("clientId", data.CLIENT_ID);
+    if (data.CLIENT_SECRET) set("clientSecret", data.CLIENT_SECRET);
+    if (data.SCOPE) set("scope", data.SCOPE);
+    if (data.TOKEN_URL || data.CLIENT_ID) setAuthMode("oauth");
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -121,22 +132,34 @@ function SignInScreen({
     }
   };
 
+  const oauth = authMode === "oauth";
+
   const signIn = async () => {
     setError("");
-    if (!form.baseUrl || !form.username || !form.password) {
+    if (oauth) {
+      if (!form.baseUrl || !form.tokenUrl || !form.clientId || !form.clientSecret) {
+        setError("Instance URL, token URL, client ID and client secret are required.");
+        return;
+      }
+    } else if (!form.baseUrl || !form.username || !form.password) {
       setError("Instance URL, username and password are required.");
       return;
     }
     setBusy(true);
     try {
       const base = form.baseUrl.trim().replace(/\/+$/, "");
-      let env = environments.find((e) => !e.demo && (e.baseUrl || "") === base);
+      let env = environments.find(
+        (e) => !e.demo && (e.baseUrl || "") === base && (e.authMethod === OAUTH_METHOD) === oauth,
+      );
       if (!env) {
         env = await createEnv.mutateAsync({
-          name: `Oracle EPM (${form.username})`,
+          name: `Oracle EPM (${oauth ? form.clientId.trim() : form.username})`,
           baseUrl: base,
-          username: form.username.trim(),
-          authMethod: form.remember ? "passwordStored" : "passwordInMemory",
+          username: oauth ? undefined : form.username.trim(),
+          authMethod: oauth ? OAUTH_METHOD : form.remember ? "passwordStored" : "passwordInMemory",
+          oauthTokenUrl: oauth ? form.tokenUrl.trim() : undefined,
+          oauthClientId: oauth ? form.clientId.trim() : undefined,
+          oauthScope: oauth ? form.scope.trim() || undefined : undefined,
           classification: form.classification,
           preferredApplication: form.application.trim() || undefined,
           demo: false,
@@ -144,7 +167,7 @@ function SignInScreen({
       }
       const result: any = await connect.mutateAsync({
         id: env.id,
-        password: form.password,
+        password: oauth ? form.clientSecret : form.password,
         remember: form.remember,
       });
       if (result && result.connected === false) {
@@ -171,8 +194,9 @@ function SignInScreen({
         </div>
         <h1 className="signin-title">Sign in to Oracle EPM</h1>
         <p className="signin-sub">
-          Connect to your Planning tenant to begin. Your password is held in process memory only
-          and never written to chat or logs.
+          Connect to your Planning tenant to begin — with your Oracle password or an OAuth 2.0
+          client credential. The secret is held in process memory only and never written to chat
+          or logs.
         </p>
 
         <input
@@ -208,14 +232,40 @@ function SignInScreen({
           autoFocus
         />
 
-        <div className="signin-row">
-          <div style={{ flex: 1 }}>
-            <label className="signin-label">Username</label>
+        <label className="signin-label">Authentication</label>
+        <select
+          className="signin-input"
+          value={authMode}
+          onChange={(e) => setAuthMode(e.target.value as "password" | "oauth")}
+        >
+          <option value="password" style={{ color: "#000" }}>
+            Username &amp; password
+          </option>
+          <option value="oauth" style={{ color: "#000" }}>
+            OAuth 2.0 client credentials (OCI IAM)
+          </option>
+        </select>
+
+        {oauth && (
+          <>
+            <label className="signin-label">Token URL (identity domain)</label>
             <input
               className="signin-input"
-              placeholder="you@example.com"
-              value={form.username}
-              onChange={(e) => set("username", e.target.value)}
+              placeholder="https://idcs-….identity.oraclecloud.com/oauth2/v1/token"
+              value={form.tokenUrl}
+              onChange={(e) => set("tokenUrl", e.target.value)}
+            />
+          </>
+        )}
+
+        <div className="signin-row">
+          <div style={{ flex: 1 }}>
+            <label className="signin-label">{oauth ? "Client ID" : "Username"}</label>
+            <input
+              className="signin-input"
+              placeholder={oauth ? "confidential application client ID" : "you@example.com"}
+              value={oauth ? form.clientId : form.username}
+              onChange={(e) => set(oauth ? "clientId" : "username", e.target.value)}
             />
           </div>
           <div style={{ width: 150 }}>
@@ -231,12 +281,12 @@ function SignInScreen({
 
         <div className="signin-row">
           <div style={{ flex: 1 }}>
-            <label className="signin-label">Password</label>
+            <label className="signin-label">{oauth ? "Client secret" : "Password"}</label>
             <input
               className="signin-input"
               type="password"
-              value={form.password}
-              onChange={(e) => set("password", e.target.value)}
+              value={oauth ? form.clientSecret : form.password}
+              onChange={(e) => set(oauth ? "clientSecret" : "password", e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !busy && signIn()}
             />
           </div>
@@ -256,13 +306,25 @@ function SignInScreen({
           </div>
         </div>
 
+        {oauth && (
+          <>
+            <label className="signin-label">Scope (optional)</label>
+            <input
+              className="signin-input"
+              placeholder="urn:opc:serviceInstanceID=…urn:opc:resource:consumer::all"
+              value={form.scope}
+              onChange={(e) => set("scope", e.target.value)}
+            />
+          </>
+        )}
+
         <label className="signin-check">
           <input
             type="checkbox"
             checked={form.remember}
             onChange={(e) => set("remember", e.target.checked)}
           />
-          Remember password on this machine (encrypted local store)
+          Remember {oauth ? "client secret" : "password"} on this machine (encrypted local store)
         </label>
 
         {error && <div className="signin-error">{error}</div>}

@@ -34,6 +34,9 @@ class EnvironmentCreate(CamelModel):
     base_url: str | None = None
     username: str | None = None
     auth_method: str = "passwordInMemory"
+    oauth_token_url: str | None = None
+    oauth_client_id: str | None = None
+    oauth_scope: str | None = None
     classification: EnvironmentClassification = EnvironmentClassification.development
     preferred_application: str | None = None
     demo: bool = True
@@ -46,6 +49,9 @@ class EnvironmentOut(CamelModel):
     base_url: str | None = None
     username: str | None = None
     auth_method: str = "passwordInMemory"
+    oauth_token_url: str | None = None
+    oauth_client_id: str | None = None
+    oauth_scope: str | None = None
     classification: EnvironmentClassification
     preferred_application: str | None = None
     demo: bool = True

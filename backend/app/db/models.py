@@ -47,6 +47,11 @@ class EnvironmentProfile(IdMixin, TimestampMixin, Base):
     base_url: Mapped[str | None] = mapped_column(String(400))
     username: Mapped[str | None] = mapped_column(String(200))
     auth_method: Mapped[str] = mapped_column(String(40), default="passwordInMemory")
+    # OAuth 2.0 client-credentials (OCI IAM identity domain confidential app).
+    # The client secret itself lives in the secret store / process memory only.
+    oauth_token_url: Mapped[str | None] = mapped_column(String(400))
+    oauth_client_id: Mapped[str | None] = mapped_column(String(200))
+    oauth_scope: Mapped[str | None] = mapped_column(String(400))
     classification: Mapped[str] = mapped_column(String(20), default="development")
     preferred_application: Mapped[str | None] = mapped_column(String(120))
     demo: Mapped[bool] = mapped_column(Boolean, default=False)
