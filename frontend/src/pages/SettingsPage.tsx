@@ -24,7 +24,8 @@ export function SettingsPage() {
   const createEnv = useCreateEnvironment(pid);
   const connect = useConnectEnvironment(pid);
 
-  const [np, setNp] = useState({ name: "", providerType: "anthropic", baseUrl: "", apiKey: "", defaultModel: "" });
+  const emptyProvider = { name: "", providerType: "anthropic", baseUrl: "", apiKey: "", defaultModel: "", embeddingModel: "" };
+  const [np, setNp] = useState(emptyProvider);
   const [ne, setNe] = useState({ name: "", baseUrl: "", username: "", classification: "development", demo: false });
   const [pw, setPw] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<string>("");
@@ -32,7 +33,7 @@ export function SettingsPage() {
   const [detecting, setDetecting] = useState(false);
 
   const applyOllamaPreset = () => {
-    setNp({ name: "Local Ollama", providerType: "ollama", baseUrl: "http://localhost:11434/v1", apiKey: "", defaultModel: "" });
+    setNp({ name: "Local Ollama", providerType: "ollama", baseUrl: "http://localhost:11434/v1", apiKey: "", defaultModel: "", embeddingModel: "" });
     setDiscovered([]);
     toast.info("Local model preset applied", "Ollama needs no API key. Click Detect models to list what's installed.");
   };
@@ -125,9 +126,32 @@ export function SettingsPage() {
             <input placeholder="Default model" value={np.defaultModel} onChange={(e) => setNp({ ...np, defaultModel: e.target.value })} style={inp} />
           )}
           <input placeholder={np.providerType === "ollama" ? "API key (not needed for Ollama)" : "API key"} type="password" value={np.apiKey} onChange={(e) => setNp({ ...np, apiKey: e.target.value })} style={{ ...inp, gridColumn: "1 / 3" }} />
+          <input
+            placeholder="Embedding model (RAG)"
+            aria-label="Embedding model (RAG)"
+            value={np.embeddingModel}
+            onChange={(e) => setNp({ ...np, embeddingModel: e.target.value })}
+            style={{ ...inp, gridColumn: "1 / 3" }}
+          />
+          <div style={{ gridColumn: "1 / 3", fontSize: 11, color: "var(--cds-text-secondary, #8d8d8d)" }}>
+            Used for hybrid RAG scoring; leave empty for the provider default (e.g. ibm/slate-125m-english-rtrvr on watsonx).
+          </div>
         </div>
         <div className="action-row">
-          <Button size="sm" kind="primary" disabled={!np.name} onClick={() => { createProvider.mutate(np as any); setNp({ name: "", providerType: "anthropic", baseUrl: "", apiKey: "", defaultModel: "" }); setDiscovered([]); }}>Add provider</Button>
+          <Button
+            size="sm"
+            kind="primary"
+            disabled={!np.name}
+            onClick={() => {
+              const { embeddingModel, ...body } = np;
+              createProvider.mutate({
+                ...body,
+                ...(embeddingModel.trim() ? { roleModels: { embedding: embeddingModel.trim() } } : {}),
+              });
+              setNp(emptyProvider);
+              setDiscovered([]);
+            }}
+          >Add provider</Button>
           <Button size="sm" kind="tertiary" disabled={detecting} onClick={detectModels}>
             {detecting ? "Detecting…" : "Detect models"}
           </Button>

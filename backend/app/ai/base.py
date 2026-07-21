@@ -25,6 +25,8 @@ class ProviderConfig:
     api_key: str | None = None
     default_model: str | None = None
     models: list[str] = field(default_factory=list)
+    # Per-role model overrides from the provider profile (chat/embedding/…).
+    role_models: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass

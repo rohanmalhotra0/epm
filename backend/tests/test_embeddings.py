@@ -238,3 +238,33 @@ async def test_openai_compat_embed_http_error_becomes_provider_error(monkeypatch
 
 def test_openai_capabilities_declare_embeddings():
     assert OpenAICompatibleProvider.capabilities["embeddings"] is True
+
+
+def test_watsonx_embeddings_model_prefers_profile_role_model(monkeypatch):
+    from app.ai.base import ProviderConfig
+    from app.ai.watsonx import WatsonxProvider
+
+    monkeypatch.delenv("WATSONX_EMBEDDINGS_MODEL_ID", raising=False)
+    base = WatsonxProvider(ProviderConfig(provider_type="watsonx",
+                                          base_url="https://x?project_id=p", api_key="k"))
+    assert base.embeddings_model == "ibm/slate-125m-english-rtrvr"  # default
+    monkeypatch.setenv("WATSONX_EMBEDDINGS_MODEL_ID", "env/model")
+    assert base.embeddings_model == "env/model"  # env beats default
+    with_role = WatsonxProvider(ProviderConfig(
+        provider_type="watsonx", base_url="https://x?project_id=p", api_key="k",
+        role_models={"embedding": "ibm/granite-embedding-107m"}))
+    assert with_role.embeddings_model == "ibm/granite-embedding-107m"  # profile beats env
+
+
+def test_provider_from_profile_threads_role_models(monkeypatch):
+    monkeypatch.delenv("WATSONX_EMBEDDINGS_MODEL_ID", raising=False)
+    from app.ai.registry import provider_from_profile
+    from app.db.models import ProviderProfile
+
+    profile = ProviderProfile(id="p1", name="wx", provider_type="watsonx",
+                              base_url="https://x?project_id=p",
+                              default_model="meta-llama/llama-3-3-70b-instruct",
+                              role_models={"embedding": "ibm/granite-embedding-278m"})
+    provider = provider_from_profile(profile)  # no DB write needed
+    assert provider.config.role_models == {"embedding": "ibm/granite-embedding-278m"}
+    assert provider.embeddings_model == "ibm/granite-embedding-278m"

@@ -9,7 +9,9 @@ from ...connector.demo import DemoConnector
 from ...schemas.tools import SkillSpec
 from .. import blocks
 from ..form_nlu import _match_rule, find_member
+from ..grounding import _fence_excerpts
 from .base import Emitter, Skill, SkillContext, SkillResult
+from .forms_skill import _grounding_block, _retrieve_grounding
 
 
 class ExplainSkill(Skill):
@@ -20,16 +22,27 @@ class ExplainSkill(Skill):
         md = await ctx.tool_ctx.metadata()
         text = ctx.user_text
 
+        # Additive RAG grounding (never a gate): provenance block before the
+        # explanation, excerpts fenced into any provider prompt. The helpers
+        # are defensive — a retrieval failure simply means no grounding.
+        grounding = await _retrieve_grounding(
+            ctx, kinds=["rule", "template", "form", "member", "variable"], k=4)
+        grounding_block = _grounding_block(text, "explain", grounding)
+
         # rule phrase after "explain"
         m = re.search(r"explain\s+(the\s+)?([\w \-]+?)\s+rule\b", text, re.I)
         rule_name = _match_rule(md, m.group(2)) if m else _match_rule(md, text)
         if rule_name:
+            if grounding_block is not None:
+                await emit.block(grounding_block)
             return await self._explain_rule(ctx, emit, rule_name)
 
         member = find_member(md, text)
         if member:
             mrec = md.get_member(member[1], member[0])
             if mrec and mrec.formula:
+                if grounding_block is not None:
+                    await emit.block(grounding_block)
                 await emit.block(blocks.markdown(
                     f"### {mrec.name}\n\n**Type:** {mrec.storage}\n\n**Formula:**"))
                 await emit.block(blocks.code(mrec.formula, "text"))
@@ -37,8 +50,12 @@ class ExplainSkill(Skill):
                 return SkillResult(skill="explain")
 
         # fall back to the provider for open-ended explanation
+        if grounding_block is not None:
+            await emit.block(grounding_block)
         system = ("You are EPM Wizard. Explain the user's EPM question concisely and factually. "
                   "Do not invent tenant-specific members or values.")
+        if (fenced := _fence_excerpts(grounding, 3000)) is not None:
+            system = f"{system}\n\n{fenced}"
         await emit.stream_provider_text(ctx, [AIMessage(role="user", content=text)], system=system)
         return SkillResult(skill="explain", provider_used=ctx.provider.name)
 

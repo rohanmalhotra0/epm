@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from ...ai.base import AIMessage
 from ...schemas.tools import SkillSpec
+from ..grounding import _fence_excerpts
 from .base import Emitter, Skill, SkillContext, SkillResult
+from .forms_skill import _grounding_block, _retrieve_grounding
 
 
 class ChatSkill(Skill):
@@ -21,6 +23,14 @@ class ChatSkill(Skill):
             "For building forms, running rules, or visualizing cube architecture, tell the user to "
             "use the matching skill (/forms, /rules, /architecture)."
         )
+        # RAG grounding is a garnish, never a gate: the helpers are defensive,
+        # so any retrieval failure yields no chunks and chat proceeds ungrounded.
+        grounding = await _retrieve_grounding(ctx, kinds=None, k=4)
+        if grounding:
+            if (grounding_block := _grounding_block(ctx.user_text, "chat", grounding)) is not None:
+                await emit.block(grounding_block)
+            if (fenced := _fence_excerpts(grounding, 3000)) is not None:
+                system = f"{system}\n\n{fenced}"
         await emit.stream_provider_text(ctx, [AIMessage(role="user", content=ctx.user_text)], system=system)
         usage = emit.usage if any(emit.usage.values()) else None
         return SkillResult(skill="chat", provider_used=ctx.provider.name,

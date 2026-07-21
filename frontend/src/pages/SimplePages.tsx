@@ -14,7 +14,7 @@ import { CubeArchitectureBlock } from "../blocks/CubeArchitectureBlock";
 import { useUi } from "../store/ui";
 import { toast } from "../store/toast";
 import { diffSpecs, formatValue, type DiffRow } from "../utils/specDiff";
-import type { ArtifactOut, CubeArchitecture } from "../schemas/types";
+import type { ArtifactOut, ContextVersionOut, CubeArchitecture } from "../schemas/types";
 import "../styles/feature-pages.css";
 
 function usePid() {
@@ -26,6 +26,9 @@ export function ContextsPage() {
   const { data: contexts = [] } = useContexts(pid);
   const build = useBuildContext(pid);
   const importSnapshot = useImportContextSnapshot(pid);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const toggleExpanded = (id: string) => setExpanded((cur) => ({ ...cur, [id]: !cur[id] }));
+  const activeVersion = contexts.find((c) => c.active);
   return (
     <div className="page">
       <h2>Contexts</h2>
@@ -50,29 +53,131 @@ export function ContextsPage() {
         />
       </div>
       <table className="data-table">
-        <thead><tr><th>Version</th><th>Mode</th><th>Members</th><th>Forms</th><th>Rules</th><th>Active</th><th>Export</th></tr></thead>
+        <thead><tr><th style={{ width: 80 }}></th><th>Version</th><th>Mode</th><th>Members</th><th>Forms</th><th>Rules</th><th>Active</th><th>Export</th></tr></thead>
         <tbody>
-          {contexts.map((c) => (
-            <tr key={c.id}>
-              <td className="mono">{c.label}</td>
-              <td>{c.mode}</td>
-              <td>{String(c.counts?.members ?? "—")}</td>
-              <td>{String(c.counts?.forms ?? "—")}</td>
-              <td>{String(c.counts?.rules ?? "—")}</td>
-              <td>{c.active ? <span className="tag-inline">active</span> : ""}</td>
-              <td style={{ whiteSpace: "nowrap" }}>
-                <a href={`/api/contexts/${c.id}/export.docx`} title="Download as Word document">Word</a>
-                {" · "}
-                <a href={`/api/contexts/${c.id}/export.pdf`} title="Download as PDF with diagrams">PDF</a>
-                {" · "}
-                <a href={`/api/contexts/${c.id}/export.md`} title="Download as Markdown with Mermaid diagrams">Markdown</a>
-              </td>
-            </tr>
-          ))}
-          {contexts.length === 0 && <tr><td colSpan={7} style={{ color: "#8d8d8d" }}>No context yet — build one above.</td></tr>}
+          {contexts.map((c) => {
+            const isOpen = !!expanded[c.id];
+            return [
+              <tr key={c.id}>
+                <td>
+                  <Button
+                    size="sm"
+                    kind="ghost"
+                    aria-expanded={isOpen}
+                    aria-label={`${isOpen ? "Hide" : "Show"} details for ${c.label}`}
+                    onClick={() => toggleExpanded(c.id)}
+                  >
+                    {isOpen ? "Hide" : "Details"}
+                  </Button>
+                </td>
+                <td className="mono">{c.label}</td>
+                <td>{c.mode}</td>
+                <td>{String(c.counts?.members ?? "—")}</td>
+                <td>{String(c.counts?.forms ?? "—")}</td>
+                <td>{String(c.counts?.rules ?? "—")}</td>
+                <td>{c.active ? <span className="tag-inline">active</span> : ""}</td>
+                <td style={{ whiteSpace: "nowrap" }}>
+                  <a href={`/api/contexts/${c.id}/export.docx`} title="Download as Word document">Word</a>
+                  {" · "}
+                  <a href={`/api/contexts/${c.id}/export.pdf`} title="Download as PDF with diagrams">PDF</a>
+                  {" · "}
+                  <a href={`/api/contexts/${c.id}/export.md`} title="Download as Markdown with Mermaid diagrams">Markdown</a>
+                </td>
+              </tr>,
+              isOpen ? (
+                <tr key={`${c.id}-detail`}>
+                  <td colSpan={8} style={{ padding: "10px 12px", background: "var(--cds-layer,#1f1f1f)" }}>
+                    <ContextVersionDetail version={c} activeVersion={activeVersion} />
+                  </td>
+                </tr>
+              ) : null,
+            ];
+          })}
+          {contexts.length === 0 && <tr><td colSpan={8} style={{ color: "#8d8d8d" }}>No context yet — build one above.</td></tr>}
         </tbody>
       </table>
       <ArchitectureViewer projectId={pid} />
+    </div>
+  );
+}
+
+function sectionStatusColor(s: string) {
+  return s === "complete" ? "#42be65" : s === "unavailable" ? "#ff8389" : s === "notRequested" ? "#6f6f6f" : "#f1c21b";
+}
+
+function toCount(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** Expanded panel for one context version row: manifest sections, snapshot provenance, count diff vs. active. */
+function ContextVersionDetail({
+  version,
+  activeVersion,
+}: {
+  version: ContextVersionOut;
+  activeVersion: ContextVersionOut | undefined;
+}) {
+  const manifest = (version.manifest ?? {}) as Record<string, any>;
+  const sections: Array<{ name: string; status: string; count?: number; note?: string | null }> =
+    Array.isArray(manifest.sections) ? manifest.sections : [];
+  const snapshot = manifest.snapshot as Record<string, any> | undefined;
+  const provenance = (snapshot?.provenance ?? {}) as Record<string, any>;
+  const compare = !version.active && activeVersion && activeVersion.id !== version.id ? activeVersion : undefined;
+  const diffKeys = compare
+    ? Array.from(new Set([...Object.keys(compare.counts ?? {}), ...Object.keys(version.counts ?? {})])).sort()
+    : [];
+  const secondary = { color: "var(--cds-text-secondary,#8d8d8d)" } as const;
+  return (
+    <div style={{ fontSize: 12, display: "grid", gap: 14 }}>
+      <div>
+        <div style={{ fontWeight: 600, marginBottom: 4 }}>Sections</div>
+        {sections.length === 0 && <div style={secondary}>No section information in this version's manifest.</div>}
+        {sections.map((s, i) => (
+          <div key={i} style={{ fontSize: 12, display: "flex", gap: 8, padding: "2px 0" }}>
+            <span style={{ width: 210 }}>{s.name}</span>
+            <span style={{ color: sectionStatusColor(s.status) }}>{s.status}</span>
+            <span style={secondary}>{s.count ? `(${s.count})` : ""} {s.note || ""}</span>
+          </div>
+        ))}
+      </div>
+      {snapshot && (
+        <div>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>Snapshot provenance</div>
+          <div style={{ display: "flex", gap: 8, padding: "2px 0" }}>
+            <span style={{ width: 210, ...secondary }}>Application</span>
+            <span>{snapshot.application || "—"}</span>
+          </div>
+          <div style={{ display: "flex", gap: 8, padding: "2px 0" }}>
+            <span style={{ width: 210, ...secondary }}>Exported by</span>
+            <span>{provenance.exportedBy || "—"}</span>
+          </div>
+          <div style={{ display: "flex", gap: 8, padding: "2px 0" }}>
+            <span style={{ width: 210, ...secondary }}>Exported at</span>
+            <span>{provenance.exportedAt || "—"}</span>
+          </div>
+        </div>
+      )}
+      {compare && (
+        <div>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>Compare with active ({compare.label})</div>
+          {diffKeys.length === 0 && <div style={secondary}>No counts recorded on either version.</div>}
+          {diffKeys.map((k) => {
+            const before = toCount((compare.counts ?? {})[k]);
+            const after = toCount((version.counts ?? {})[k]);
+            const delta = after - before;
+            const deltaLabel = delta > 0 ? `+${delta}` : delta < 0 ? `−${Math.abs(delta)}` : "±0";
+            const deltaColor = delta > 0 ? "#42be65" : delta < 0 ? "#ff8389" : "#6f6f6f";
+            return (
+              <div key={k} style={{ display: "flex", gap: 8, padding: "2px 0" }}>
+                <span style={{ width: 210 }}>{k}</span>
+                <span style={secondary}>{before} → {after}</span>
+                <span style={{ color: deltaColor, fontWeight: 600 }}>{deltaLabel}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
