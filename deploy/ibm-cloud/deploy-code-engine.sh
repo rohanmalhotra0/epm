@@ -102,6 +102,7 @@ echo "==> Deploying backend"
 deploy_app epmw-backend "${BACKEND_IMAGE}" 8000 \
   --visibility project \
   --env EPMW_DATA_DIR=/data --env EPMW_LOG_JSON=true \
+  --env EPMW_MULTI_USER="${EPMW_MULTI_USER:-false}" \
   --env WATSONX_CHAT_MODEL_ID="${WATSONX_CHAT_MODEL_ID:-meta-llama/llama-3-3-70b-instruct}" \
   --env WATSONX_EMBEDDINGS_MODEL_ID="${WATSONX_EMBEDDINGS_MODEL_ID:-ibm/slate-125m-english-rtrvr}" \
   --env-from-secret epmw-secrets \
@@ -160,6 +161,7 @@ if ibmcloud ce secret get --name "${AUTH_SECRET}" >/dev/null 2>&1; then
     --env OAUTH2_PROXY_FLUSH_INTERVAL=1s \
     --env OAUTH2_PROXY_PASS_HOST_HEADER=false \
     --env OAUTH2_PROXY_REVERSE_PROXY=true \
+    --env OAUTH2_PROXY_PASS_USER_HEADERS=true \
     --env-from-secret "${AUTH_SECRET}"
   # The redirect URL is this app's own generated URL — set it now that it exists.
   AUTH_URL="$(ibmcloud ce app get --name epmw-auth --output json | grep -o '"url": *"https[^"]*"' | head -1 | sed 's/.*: *"//;s/"//')"
