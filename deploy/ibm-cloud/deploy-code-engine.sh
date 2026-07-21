@@ -44,11 +44,17 @@ ibmcloud ce project select --name "${CE_PROJECT}"
 
 deploy_app() {
   local name="$1" image="$2" port="$3"; shift 3
+  # A private-ICR image needs a registry pull secret on the APP too (the build's
+  # push secret does not carry over). Without it the revision fails with
+  # "UNAUTHORIZED: Authorization required" and never becomes ready.
+  local reg_args=()
+  [ -n "${REGISTRY_SECRET:-}" ] && reg_args+=(--registry-secret "${REGISTRY_SECRET}")
   if ibmcloud ce app get --name "${name}" >/dev/null 2>&1; then
-    ibmcloud ce app update --name "${name}" --image "${image}" "$@"
+    ibmcloud ce app update --name "${name}" --image "${image}" \
+      ${reg_args[@]+"${reg_args[@]}"} "$@"
   else
     ibmcloud ce app create --name "${name}" --image "${image}" --port "${port}" \
-      --min-scale 0 --max-scale 2 "$@"
+      --min-scale 0 --max-scale 2 ${reg_args[@]+"${reg_args[@]}"} "$@"
   fi
 }
 
