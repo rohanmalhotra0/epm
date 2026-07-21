@@ -50,6 +50,28 @@ billing is a single filtered view.
 
 ## 2. Deploy the apps
 
+### Fastest path — one command (no Terraform)
+
+For a first hosted deploy you don't need Terraform at all. With the IBM Cloud
+CLI + Docker installed and `ibmcloud login` done (plus the `code-engine` and
+`container-registry` plugins), `bootstrap-code-engine.sh` creates the registry
+namespace, the Code Engine project, and the watsonx secret, then builds, pushes,
+and deploys both apps:
+
+```bash
+ibmcloud plugin install code-engine container-registry -f
+
+WATSONX_API_KEY=<your-ibm-iam-api-key> \
+WATSONX_PROJECT_ID=<your-watsonx.ai-project-id> \
+  ./bootstrap-code-engine.sh
+```
+
+It prints the public frontend URL when done. This uses ephemeral storage and
+leaves the frontend public with no login — add App ID (§5 of the main doc) and
+managed Postgres (§4) afterward. Re-run any time to roll out a new image.
+
+### Manual path (Terraform-provisioned infra)
+
 ```bash
 # one-time: the backend's secret bundle (watsonx key, Oracle creds)
 ibmcloud ce secret create --name epmw-secrets --from-env-file .env.production
