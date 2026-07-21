@@ -243,6 +243,9 @@ export function useBuildContext(projectId: string | undefined) {
       api<ContextVersionOut>(`/api/projects/${projectId}/contexts/build?mode=${mode}`, { method: "POST" }),
     onSuccess: (cv) => {
       qc.invalidateQueries({ queryKey: ["contexts", projectId] });
+      // The active context changed, so the Cube Architecture panel (keyed by
+      // project, not context version) must refetch or it shows the old cubes.
+      qc.invalidateQueries({ queryKey: ["architecture", projectId] });
       qc.invalidateQueries({ queryKey: ["projects"] });
       const c = cv?.counts as Record<string, number> | undefined;
       toast.success(
@@ -261,6 +264,9 @@ export function useImportContextSnapshot(projectId: string | undefined) {
       uploadContextSnapshot(projectId!, file, standalone),
     onSuccess: (cv) => {
       qc.invalidateQueries({ queryKey: ["contexts", projectId] });
+      // Snapshot merge activates a new context version — refresh the Cube
+      // Architecture panel too, otherwise it keeps showing the old cubes.
+      qc.invalidateQueries({ queryKey: ["architecture", projectId] });
       toast.success("Snapshot imported — context updated", cv?.label);
     },
     onError: (e: Error) => toast.error("Snapshot import failed", e.message),

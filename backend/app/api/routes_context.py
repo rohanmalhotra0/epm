@@ -50,6 +50,10 @@ async def build_project_context(mode: str = "quick", project: Project = Depends(
     cv = context_store.persist_context(session, project_id, bundle.application, bundle.mode, bundle.label,
                                        bundle.manifest.model_dump(by_alias=True), bundle.counts, bundle.records,
                                        fingerprint=bundle.fingerprint)
+    # Commit before responding so an immediate follow-up read (e.g. the client
+    # refetching the cube architecture, which resolves the now-active context)
+    # never races the post-response commit and sees the previous active version.
+    session.commit()
     return context_store.to_out(cv)
 
 
@@ -190,6 +194,9 @@ async def import_context_snapshot(file: UploadFile, standalone: bool = False,
     path.write_bytes(data)
     cv = merge_snapshot_into_context(session, project_id, bundle,
                                      standalone=standalone, filename=file.filename)
+    # Commit before responding so the client's immediate architecture/context
+    # refetch sees the newly-activated hybrid version, not the previous one.
+    session.commit()
     return context_store.to_out(cv)
 
 
