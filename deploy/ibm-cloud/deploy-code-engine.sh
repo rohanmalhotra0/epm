@@ -66,6 +66,19 @@ else
   echo "==> No ${DB_SECRET} secret — backend stays on SQLite (/data volume)"
 fi
 
+# Persistent storage for the SQLite /data volume is OPTIONAL and off by default.
+# Set EPMW_DATA_STORE to the name of an existing Code Engine data store to mount
+# it at /data. Without it the backend runs on ephemeral disk (SQLite resets when
+# the app scales to zero) — fine for a first deploy/demo. For durable multi-user
+# storage use the managed-Postgres path (terraform enable_postgres) instead.
+MOUNT_ARGS=()
+if [ -n "${EPMW_DATA_STORE:-}" ]; then
+  echo "==> Mounting data store ${EPMW_DATA_STORE} at /data"
+  MOUNT_ARGS+=(--mount-data-store "/data=${EPMW_DATA_STORE}")
+else
+  echo "==> No EPMW_DATA_STORE — backend uses ephemeral /data (SQLite resets on cold start)"
+fi
+
 echo "==> Deploying backend"
 deploy_app epmw-backend "${BACKEND_IMAGE}" 8000 \
   --visibility project \
@@ -74,7 +87,7 @@ deploy_app epmw-backend "${BACKEND_IMAGE}" 8000 \
   --env WATSONX_EMBEDDINGS_MODEL_ID="${WATSONX_EMBEDDINGS_MODEL_ID:-ibm/slate-125m-english-rtrvr}" \
   --env-from-secret epmw-secrets \
   ${DB_ARGS[@]+"${DB_ARGS[@]}"} \
-  --mount-data-store /data=epmw-data
+  ${MOUNT_ARGS[@]+"${MOUNT_ARGS[@]}"}
 
 # App ID front door (docs/IBM_CLOUD.md §5): when the epmw-appid secret exists,
 # an oauth2-proxy app becomes the ONLY public endpoint and the frontend is
