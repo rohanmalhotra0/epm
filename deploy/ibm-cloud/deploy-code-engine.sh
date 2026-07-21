@@ -154,6 +154,8 @@ if ibmcloud ce secret get --name "${AUTH_SECRET}" >/dev/null 2>&1; then
     --env OAUTH2_PROXY_EMAIL_DOMAINS='*' \
     --env OAUTH2_PROXY_COOKIE_SECURE=true \
     --env OAUTH2_PROXY_FLUSH_INTERVAL=1s \
+    --env OAUTH2_PROXY_PASS_HOST_HEADER=false \
+    --env OAUTH2_PROXY_REVERSE_PROXY=true \
     --env-from-secret "${AUTH_SECRET}"
   # The redirect URL is this app's own generated URL — set it now that it exists.
   AUTH_URL="$(ibmcloud ce app get --name epmw-auth --output json | grep -o '"url": *"https[^"]*"' | head -1 | sed 's/.*: *"//;s/"//')"
