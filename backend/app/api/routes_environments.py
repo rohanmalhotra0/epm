@@ -7,24 +7,44 @@ from sqlalchemy.orm import Session
 
 from ..connector.errors import ConnectorError
 from ..connector.factory import get_registry
+from ..db.models import Project
 from ..schemas.api import ConnectionResult, EnvironmentCreate, EnvironmentOut
 from ..security.redaction import register_secret
 from ..services import environments as svc
 from ..services import projects as projects_svc
-from .deps import get_db
+from .deps import authorize_project_id, get_current_owner, get_db, require_project
 
 router = APIRouter(tags=["environments"])
 
 
+def _require_environment(session: Session, owner: str, environment_id: str):
+    """Load an environment and confirm the caller owns its project, or 404.
+
+    By-id environment routes carry no project in the path, so — like the other
+    by-id resources — they must resolve the environment, then re-check ownership
+    of its project. Without this an attacker who knows (or guesses) an
+    environment id could connect/test/disconnect/delete another owner's Oracle
+    environment. 404 (not 403) so a foreign id is indistinguishable from a
+    missing one. A no-op re-check when multi-user is off, so Demo is unchanged.
+    """
+    env = svc.get_environment(session, environment_id)
+    if env is None:
+        raise HTTPException(404, "environment not found")
+    authorize_project_id(session, owner, env.project_id)
+    return env
+
+
 @router.get("/api/projects/{project_id}/environments", response_model=list[EnvironmentOut])
-def list_environments(project_id: str, session: Session = Depends(get_db)) -> list[EnvironmentOut]:
+def list_environments(project: Project = Depends(require_project),
+                      session: Session = Depends(get_db)) -> list[EnvironmentOut]:
     reg = get_registry()
-    return [svc.to_out(e, connected=reg.is_connected(e.id)) for e in svc.list_environments(session, project_id)]
+    return [svc.to_out(e, connected=reg.is_connected(e.id)) for e in svc.list_environments(session, project.id)]
 
 
 @router.post("/api/projects/{project_id}/environments", response_model=EnvironmentOut, status_code=201)
-def create_environment(project_id: str, body: EnvironmentCreate, session: Session = Depends(get_db)) -> EnvironmentOut:
-    env = svc.create_environment(session, project_id, name=body.name, base_url=body.base_url,
+def create_environment(body: EnvironmentCreate, project: Project = Depends(require_project),
+                       session: Session = Depends(get_db)) -> EnvironmentOut:
+    env = svc.create_environment(session, project.id, name=body.name, base_url=body.base_url,
                                  username=body.username, auth_method=body.auth_method,
                                  oauth_token_url=body.oauth_token_url, oauth_client_id=body.oauth_client_id,
                                  oauth_scope=body.oauth_scope,
@@ -34,16 +54,17 @@ def create_environment(project_id: str, body: EnvironmentCreate, session: Sessio
 
 
 @router.delete("/api/environments/{environment_id}", status_code=204)
-def delete_environment(environment_id: str, session: Session = Depends(get_db)) -> None:
+def delete_environment(environment_id: str, session: Session = Depends(get_db),
+                       owner: str = Depends(get_current_owner)) -> None:
+    _require_environment(session, owner, environment_id)
     get_registry().disconnect(environment_id)
     svc.delete_environment(session, environment_id)
 
 
 @router.post("/api/environments/{environment_id}/connect", response_model=ConnectionResult)
-async def connect_environment(environment_id: str, body: dict, session: Session = Depends(get_db)) -> ConnectionResult:
-    env = svc.get_environment(session, environment_id)
-    if env is None:
-        raise HTTPException(404, "environment not found")
+async def connect_environment(environment_id: str, body: dict, session: Session = Depends(get_db),
+                              owner: str = Depends(get_current_owner)) -> ConnectionResult:
+    env = _require_environment(session, owner, environment_id)
     # For OAuth environments the secret travels in `clientSecret`; it is
     # handled exactly like a password (process memory / encrypted store only).
     password = (body or {}).get("password") or (body or {}).get("clientSecret")
@@ -82,15 +103,16 @@ async def connect_environment(environment_id: str, body: dict, session: Session 
 
 
 @router.post("/api/environments/{environment_id}/disconnect", status_code=204)
-def disconnect_environment(environment_id: str) -> None:
+def disconnect_environment(environment_id: str, session: Session = Depends(get_db),
+                           owner: str = Depends(get_current_owner)) -> None:
+    _require_environment(session, owner, environment_id)
     get_registry().disconnect(environment_id)
 
 
 @router.post("/api/environments/{environment_id}/test", response_model=ConnectionResult)
-async def test_environment(environment_id: str, session: Session = Depends(get_db)) -> ConnectionResult:
-    env = svc.get_environment(session, environment_id)
-    if env is None:
-        raise HTTPException(404, "environment not found")
+async def test_environment(environment_id: str, session: Session = Depends(get_db),
+                           owner: str = Depends(get_current_owner)) -> ConnectionResult:
+    env = _require_environment(session, owner, environment_id)
     reg = get_registry()
     try:
         connector = reg.get(environment_id) or reg.get_or_demo(env)

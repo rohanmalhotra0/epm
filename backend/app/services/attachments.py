@@ -55,13 +55,23 @@ def attachments_dir() -> Path:
 
 
 def safe_filename(raw: str) -> str:
-    """Basename-only, conservative character set, no traversal."""
+    """Basename-only, conservative character set, no traversal, length-bounded.
+
+    The length cap keeps the on-disk write clear of the filesystem's 255-byte
+    per-component limit (ENAMETOOLONG); an unbounded ``.<400 chars>`` "extension"
+    is not a real extension, so it is folded back into the stem instead.
+    """
     name = (raw or "").replace("\\", "/").split("/")[-1]
     stem, ext = os.path.splitext(name)
+    ext = ext.lower()
+    if len(ext) > 32:
+        stem, ext = name, ""
     cleaned = "".join(c if (c.isalnum() or c in " _-.") else "_" for c in stem).strip(" .")
     while ".." in cleaned:
         cleaned = cleaned.replace("..", ".")
-    return f"{cleaned or 'upload'}{ext.lower()}"
+    if len(cleaned) > 120:
+        cleaned = cleaned[:120].strip(" .")
+    return f"{cleaned or 'upload'}{ext}"
 
 
 def _analysis_dump(analysis: WorkbookAnalysis) -> str:
@@ -122,7 +132,10 @@ def save_attachment(
             shutil.rmtree(directory, ignore_errors=True)
             raise AttachmentError(f"could not parse {name}: {redact_text(str(exc))}") from exc
         (directory / _ANALYSIS_FILENAME).write_text(_analysis_dump(analysis), encoding="utf-8")
-        text_extract = _text_extract(name, analysis)
+        # Redact the ORIGINAL filename, not the sanitized one: safe_filename rewrites
+        # '=' / ':' to '_', which would defeat redact_text's ``password=<value>``
+        # pattern and leak a credential embedded in the uploaded filename.
+        text_extract = _text_extract(filename, analysis)
 
     attachment = Attachment(
         id=attachment_id,
@@ -151,8 +164,16 @@ def load_analysis(attachment: Attachment) -> WorkbookAnalysis:
         raise AttachmentError(f"{attachment.filename} is a snapshot zip, not a spreadsheet")
     stored = Path(attachment.path).parent / _ANALYSIS_FILENAME
     if stored.exists():
-        return WorkbookAnalysis.model_validate_json(stored.read_text(encoding="utf-8"))
-    return analyze_file(Path(attachment.path), attachment.filename)
+        try:
+            return WorkbookAnalysis.model_validate_json(stored.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001 — stored cache corrupt/unreadable; fall back to a fresh parse
+            pass
+    try:
+        return analyze_file(Path(attachment.path), attachment.filename)
+    except Exception as exc:  # noqa: BLE001 — underlying file missing or unparseable, never a 500
+        raise AttachmentError(
+            f"analysis for {attachment.filename} is unavailable: {redact_text(str(exc))}"
+        ) from exc
 
 
 def load_snapshot_analysis(attachment: Attachment) -> SnapshotAnalysis:
@@ -162,8 +183,16 @@ def load_snapshot_analysis(attachment: Attachment) -> SnapshotAnalysis:
 
     stored = Path(attachment.path).parent / _SNAPSHOT_FILENAME
     if stored.exists():
-        return SnapshotAnalysis.model_validate_json(stored.read_text(encoding="utf-8"))
-    return analyze_snapshot(Path(attachment.path).read_bytes(), attachment.filename).analysis
+        try:
+            return SnapshotAnalysis.model_validate_json(stored.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001 — stored cache corrupt/unreadable; fall back to a fresh parse
+            pass
+    try:
+        return analyze_snapshot(Path(attachment.path).read_bytes(), attachment.filename).analysis
+    except Exception as exc:  # noqa: BLE001 — underlying file missing or unparseable, never a 500
+        raise AttachmentError(
+            f"analysis for {attachment.filename} is unavailable: {redact_text(str(exc))}"
+        ) from exc
 
 
 def to_out(attachment: Attachment, analysis: WorkbookAnalysis | SnapshotAnalysis) -> AttachmentOut:
