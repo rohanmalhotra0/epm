@@ -922,7 +922,7 @@ export const ValidationIssueSchema = z.lazy(() => z.object({
   candidates: z.array(z.string()).optional(),
 }));
 
-export const ValidationLayerSchema = z.enum(["schema", "application", "axis", "selection", "display", "performance", "security", "deployment"]);
+export const ValidationLayerSchema = z.enum(["schema", "application", "axis", "selection", "runtimePrompt", "script", "display", "performance", "security", "deployment"]);
 
 export const ValidationReportSchema = z.lazy(() => z.object({
   schemaVersion: z.string().optional(),

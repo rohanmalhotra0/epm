@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
-from .engine import ContextBundle, build_context, diff_contexts, environment_fingerprint
+from .engine import (
+    ContextBundle,
+    build_context,
+    diff_context_records,
+    diff_contexts,
+    environment_fingerprint,
+)
 from .package import export_context_package, import_context_package, validate_context_package
 from .retrieval import resolve_member, search_all, search_members
 from .snapshot import (
@@ -16,6 +22,7 @@ from .snapshot import (
 __all__ = [
     "ContextBundle",
     "build_context",
+    "diff_context_records",
     "diff_contexts",
     "environment_fingerprint",
     "export_context_package",

@@ -17,6 +17,7 @@ from pydantic import ValidationError
 
 from ...ai.base import AIMessage
 from ...artifacts.rule_package import build_rule_package
+from ...artifacts.rule_validation import validate_rule
 from ...config import get_settings
 from ...connector.demo import DemoConnector
 from ...connector.errors import ConnectorError
@@ -157,11 +158,18 @@ class RulesSkill(Skill):
         }))
         await emit.step_done(3)
 
+        report = validate_rule(spec, md, draft_script)
+        await emit.block(blocks.validation_report(report))
+
+        prompt = (f"Save the draft **{spec.name}** as an artifact? It is a generated proposal — "
+                  "review it before any use; nothing is ever deployed from here.") if report.valid else (
+            f"The draft **{spec.name}** has validation errors — review before saving. It is a "
+            "generated proposal; nothing is ever deployed from here.")
         await emit.block(blocks.confirmation(
-            f"Save the draft **{spec.name}** as an artifact? It is a generated proposal — "
-            "review it before any use; nothing is ever deployed from here.",
+            prompt,
             [blocks.action("save", "Save as artifact", "save rule draft", "primary"),
-             blocks.action("cancel", "Cancel", "cancel", "ghost")]))
+             blocks.action("cancel", "Cancel", "cancel", "ghost")],
+            severity="info" if report.valid else "warning"))
         usage = emit.usage if any(emit.usage.values()) else None
         return SkillResult(
             skill="rules", workflow_state="draft_ready", workflow_active=True,
@@ -199,6 +207,19 @@ class RulesSkill(Skill):
         except ValidationError:
             spec = None
         if spec is not None:
+            # Re-validate before shipping a package. A blocking report means the
+            # spec doesn't hold up against the loaded context — save the JSON
+            # draft (already done above) but withhold the import package rather
+            # than ship one that fails validation.
+            md = await ctx.tool_ctx.metadata()
+            report = validate_rule(spec, md, draft.get("draftScript") or "")
+            if report.blocking:
+                await emit.block(blocks.validation_report(report))
+                await emit.block(blocks.markdown(
+                    "The Calculation Manager import package was **withheld** because the draft has "
+                    "validation errors (see above). The JSON draft was still saved so you can revise "
+                    "it — ask me to save again once the issues are fixed."))
+                return SkillResult(skill="rules", workflow_state="saved", workflow_active=False)
             # The deterministic spec carries the type rule_nlu inferred from the
             # request (calcScript vs businessRule); the package must match it so
             # a calc-script body isn't imported as a Groovy rule.

@@ -13,35 +13,61 @@ from ..db.base import get_sessionmaker
 from ..db.models import Attachment
 from ..schemas.api import ConversationCreate, ConversationOut, ConversationUpdate
 from ..schemas.chat import ChatMessageIn, MessageOut, StreamEvent, StreamEventType
+from ..db.models import Project
 from ..security.redaction import looks_like_secret, redact_text
 from ..services import conversations as svc
-from .deps import get_db, resolve_turn
+from .deps import authorize_project_id, get_current_owner, get_db, require_project, resolve_turn
 
 router = APIRouter(tags=["conversations"])
 
 
+def _authorize_conversation(conversation_id: str, owner: str) -> None:
+    """Ownership guard for the streaming routes, which persist via their own
+    sessionmaker and must run the check (in its own short-lived session, closed
+    before any SSE body starts) before streaming begins. Raises 404 both when
+    the conversation is missing and when the owner may not access its project."""
+    SessionLocal = get_sessionmaker()
+    session = SessionLocal()
+    try:
+        conv = svc.get_conversation(session, conversation_id)
+        if conv is None:
+            raise HTTPException(404, "conversation not found")
+        authorize_project_id(session, owner, conv.project_id)
+    finally:
+        session.close()
+
+
 @router.get("/api/projects/{project_id}/conversations", response_model=list[ConversationOut])
-def list_conversations(project_id: str, search: str | None = None, include_archived: bool = False,
+def list_conversations(search: str | None = None, include_archived: bool = False,
+                       project: Project = Depends(require_project),
                        session: Session = Depends(get_db)) -> list[ConversationOut]:
-    return svc.list_conversations(session, project_id, search=search, include_archived=include_archived)
+    return svc.list_conversations(session, project.id, search=search, include_archived=include_archived)
 
 
 @router.post("/api/projects/{project_id}/conversations", response_model=ConversationOut, status_code=201)
-def create_conversation(project_id: str, body: ConversationCreate, session: Session = Depends(get_db)) -> ConversationOut:
-    conv = svc.create_conversation(session, project_id, body.title)
+def create_conversation(body: ConversationCreate, project: Project = Depends(require_project),
+                        session: Session = Depends(get_db)) -> ConversationOut:
+    conv = svc.create_conversation(session, project.id, body.title)
     return svc._conv_out(session, conv)
 
 
 @router.get("/api/conversations/{conversation_id}/messages", response_model=list[MessageOut])
-def get_messages(conversation_id: str, session: Session = Depends(get_db)) -> list[MessageOut]:
+def get_messages(conversation_id: str, session: Session = Depends(get_db),
+                 owner: str = Depends(get_current_owner)) -> list[MessageOut]:
     conv = svc.get_conversation(session, conversation_id)
     if conv is None:
         raise HTTPException(404, "conversation not found")
+    authorize_project_id(session, owner, conv.project_id)
     return [svc.message_out(m) for m in svc.get_active_messages(session, conversation_id)]
 
 
 @router.patch("/api/conversations/{conversation_id}", response_model=ConversationOut)
-def update_conversation(conversation_id: str, body: ConversationUpdate, session: Session = Depends(get_db)) -> ConversationOut:
+def update_conversation(conversation_id: str, body: ConversationUpdate, session: Session = Depends(get_db),
+                        owner: str = Depends(get_current_owner)) -> ConversationOut:
+    conv = svc.get_conversation(session, conversation_id)
+    if conv is None:
+        raise HTTPException(404, "conversation not found")
+    authorize_project_id(session, owner, conv.project_id)
     conv = svc.update_conversation(session, conversation_id, **body.model_dump(exclude_none=True))
     if conv is None:
         raise HTTPException(404, "conversation not found")
@@ -49,7 +75,11 @@ def update_conversation(conversation_id: str, body: ConversationUpdate, session:
 
 
 @router.delete("/api/conversations/{conversation_id}", status_code=204)
-def delete_conversation(conversation_id: str, session: Session = Depends(get_db)) -> None:
+def delete_conversation(conversation_id: str, session: Session = Depends(get_db),
+                        owner: str = Depends(get_current_owner)) -> None:
+    conv = svc.get_conversation(session, conversation_id)
+    if conv is not None:
+        authorize_project_id(session, owner, conv.project_id)
     svc.delete_conversation(session, conversation_id)
 
 
@@ -126,13 +156,19 @@ def _stream_response(
 
 
 @router.post("/api/conversations/{conversation_id}/messages")
-def send_message(conversation_id: str, body: ChatMessageIn) -> StreamingResponse:
+def send_message(conversation_id: str, body: ChatMessageIn,
+                 owner: str = Depends(get_current_owner)) -> StreamingResponse:
+    # Ownership is enforced BEFORE any persistence or streaming begins.
+    _authorize_conversation(conversation_id, owner)
     _msg_id, safe, linked = _persist_user_message(conversation_id, body.content, body.attachments)
     return _stream_response(conversation_id, safe, linked)
 
 
 @router.post("/api/conversations/{conversation_id}/messages/{message_id}/branch")
-def branch_message(conversation_id: str, message_id: str, body: ChatMessageIn) -> StreamingResponse:
+def branch_message(conversation_id: str, message_id: str, body: ChatMessageIn,
+                   owner: str = Depends(get_current_owner)) -> StreamingResponse:
+    # Ownership is enforced BEFORE any persistence or streaming begins.
+    _authorize_conversation(conversation_id, owner)
     SessionLocal = get_sessionmaker()
     session = SessionLocal()
     try:

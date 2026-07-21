@@ -39,4 +39,38 @@ describe("message actions", () => {
     rerender(<MessageView message={{ id: "m3", role: "assistant", content: "answer" }} onAction={() => {}} />);
     expect(screen.queryByLabelText("Regenerate response")).toBeNull();
   });
+
+  it("renders a per-message token footer with input/output and model", () => {
+    render(
+      <MessageView
+        message={{
+          id: "m4",
+          role: "assistant",
+          content: "answer",
+          model: "claude-opus",
+          provider: "anthropic",
+          usage: { inputTokens: 120, outputTokens: 45 },
+        }}
+        onAction={() => {}}
+      />,
+    );
+    expect(screen.getByText(/120 in · 45 out · claude-opus/)).toBeInTheDocument();
+  });
+
+  it("omits the token footer when no usage or model is present", () => {
+    const { container } = render(
+      <MessageView message={{ id: "m5", role: "assistant", content: "answer" }} onAction={() => {}} />,
+    );
+    expect(container.querySelector(".msg-usage")).toBeNull();
+  });
+
+  it("never shows a token footer on user messages", () => {
+    const { container } = render(
+      <MessageView
+        message={{ id: "m6", role: "user", content: "hi", usage: { inputTokens: 5 } }}
+        onAction={() => {}}
+      />,
+    );
+    expect(container.querySelector(".msg-usage")).toBeNull();
+  });
 });

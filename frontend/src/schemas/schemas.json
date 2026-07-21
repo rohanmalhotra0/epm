@@ -5547,6 +5547,8 @@
         "application",
         "axis",
         "selection",
+        "runtimePrompt",
+        "script",
         "display",
         "performance",
         "security",

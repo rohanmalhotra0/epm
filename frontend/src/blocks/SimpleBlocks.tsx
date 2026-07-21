@@ -195,6 +195,59 @@ export function RuntimePromptFormBlock({ data, onAction }: { data: any; onAction
   );
 }
 
+export function RulePreviewBlock({ data }: { data: any }) {
+  const d = data || {};
+  const prompts: any[] = Array.isArray(d.runtimePrompts) ? d.runtimePrompts : [];
+  const script = d.draftScript ?? d.source ?? "";
+  return (
+    <div className="block-card">
+      <div className="block-head">
+        <Rule size={16} /> <span>Rule draft{d.name ? ` — ${d.name}` : ""}</span>
+        <span className="grow" />
+        {d.cube && <span className="tag-inline">{d.cube}</span>}
+        {d.type && <span className="tag-inline">{d.type}</span>}
+      </div>
+      <div className="block-body">
+        {d.purpose && <div style={{ fontSize: 12.5, marginBottom: 8 }}>{d.purpose}</div>}
+        {(d.application || d.grounded) && (
+          <div style={{ fontSize: 11.5, color: "var(--cds-text-secondary)", marginBottom: 8 }}>
+            {d.application ? `Application: ${d.application}` : ""}
+            {d.application && d.grounded ? " · " : ""}
+            {d.grounded ? "grounded on existing artifacts" : ""}
+          </div>
+        )}
+        {prompts.length > 0 && (
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Runtime prompts</div>
+            <table className="data-table">
+              <thead><tr><th>Name</th><th>Prompt</th><th>Dimension</th><th>Type</th></tr></thead>
+              <tbody>
+                {prompts.map((p: any, i: number) => (
+                  <tr key={i}>
+                    <td className="mono">{p.name || "—"}</td>
+                    <td>{p.promptText || "—"}{p.required ? " *" : ""}</td>
+                    <td>{p.dimension || "—"}</td>
+                    <td><span className="tag-inline">{p.type || "text"}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Draft script</div>
+        {script ? (
+          <pre className="fallback-json mono"><code>{script}</code></pre>
+        ) : (
+          <div style={{ fontSize: 12, color: "var(--cds-text-secondary)" }}>No draft script generated.</div>
+        )}
+        <div style={{ fontSize: 11, color: "var(--cds-text-secondary)", marginTop: 6 }}>
+          Generated proposal — review before any use; nothing is deployed from here.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ToolInvocationBlock({ data }: { data: any }) {
   const color = data.status === "completed" ? "#42be65" : data.status === "failed" ? "#ff8389" : "#78a9ff";
   return (

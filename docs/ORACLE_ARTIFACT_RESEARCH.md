@@ -21,6 +21,26 @@ upload/import on a live tenant. This is deliberate: a deployment is only reporte
 as **verified** after the artifact is confirmed to exist — never because an import
 command exited 0.
 
+## Current status (this build)
+
+To be precise about what is and is not implemented against the numbered workflow
+below:
+
+- **Steps 5-6 are implemented and test-guarded.** EPM Wizard's *normalized* form
+  XML round-trips exactly (render → parse → re-render is byte-identical) and its
+  package builds reproducibly (byte-identical zip + checksum on re-run). See
+  `tests/test_oracle_roundtrip.py` (explicit guard) and
+  `tests/test_artifacts.py::test_xml_roundtrip_is_lossless` /
+  `::test_package_is_deterministic`.
+- **Steps 1-4 and 7-9 remain blocked on a development tenant.** Observing the
+  real Oracle Migration (LCM) package layout, sanitizing fixtures, importing, and
+  verifying a deployed form all require a live development environment we do not
+  have here.
+- **A parser for the REAL Oracle Migration package layout does not exist** and is
+  not faked. `app/artifacts/parser.py` parses only EPM Wizard's own normalized
+  XML — never a real tenant export. The `not_supported` stance on live
+  import/deploy (below) is therefore accurate and unchanged.
+
 ## The workflow to enable validated deployment
 
 Follow this against a **development** tenant before flipping the

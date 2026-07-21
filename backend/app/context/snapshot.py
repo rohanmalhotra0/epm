@@ -293,6 +293,85 @@ def _parse_form_definition(text: str, where: str, issues: list[str]):
         return None
 
 
+# --- optional deep-parsers (smart lists / data maps / valid intersections /
+#     dashboards). Oracle exports these under varied root/element tag names; all
+#     matching is by local tag, case-insensitively, so a differently-cased or
+#     namespaced variant still parses. A malformed file degrades to a name-only
+#     record plus an issue (via _read_xml) and never aborts the snapshot parse. --
+
+
+def _attr_ci(el, *names: str) -> str | None:
+    wanted = {n.casefold() for n in names}
+    for k, v in el.attrib.items():
+        if _local(k).casefold() in wanted and (v or "").strip():
+            return v.strip()
+    return None
+
+
+def _child_text_ci(el, *names: str) -> str | None:
+    wanted = {n.casefold() for n in names}
+    for c in el:
+        if _local(c.tag).casefold() in wanted and (c.text or "").strip():
+            return c.text.strip()
+    return None
+
+
+def _parse_smart_list(root, name: str) -> tuple[dict, str | None]:
+    entries: list[dict] = []
+    for el in root.iter():
+        if _local(el.tag).casefold() not in ("entry", "smartlistentry"):
+            continue
+        ename = _attr_ci(el, "name", "entryName") or _child_text_ci(el, "name")
+        label = _attr_ci(el, "label", "entryLabel") or _child_text_ci(el, "label")
+        value = _attr_ci(el, "value", "entryValue", "id") or _child_text_ci(el, "value")
+        if ename or label or value:
+            entries.append({"name": ename, "label": label, "value": value})
+    search = " ".join([name] + [e["label"] for e in entries if e["label"]])
+    return {"entries": entries}, search
+
+
+def _cube_ref(root, which: str) -> str | None:
+    val = _attr_ci(root, f"{which}Cube", f"{which}PlanType")
+    if val:
+        return val
+    for el in root.iter():
+        if _local(el.tag).casefold() == which:
+            return _attr_ci(el, "cube", "planType", "name") or (el.text or "").strip() or None
+    return None
+
+
+def _parse_data_map(root, name: str) -> tuple[dict, str | None]:
+    return {"sourceCube": _cube_ref(root, "source"), "targetCube": _cube_ref(root, "target")}, None
+
+
+def _parse_valid_intersection(root, name: str) -> tuple[dict, str | None]:
+    dims: list[str] = []
+    for el in root.iter():
+        if _local(el.tag).casefold() not in ("dimension", "dimensionname", "axis"):
+            continue
+        d = _attr_ci(el, "name", "dimension", "dimensionName") or (el.text or "").strip()
+        if d and d not in dims:
+            dims.append(d)
+    return {"dimensions": dims}, None
+
+
+def _parse_dashboard(root, name: str) -> tuple[dict, str | None]:
+    forms: list[str] = []
+    for el in root.iter():
+        tag = _local(el.tag).casefold()
+        ref = None
+        if tag in ("form", "formname", "formreference"):
+            ref = _attr_ci(el, "name", "formName", "form") or (el.text or "").strip() or None
+        elif tag in ("object", "artifact"):
+            if "form" in (_attr_ci(el, "type", "objectType") or "").casefold():
+                ref = _attr_ci(el, "name", "artifactName")
+        else:
+            ref = _attr_ci(el, "formName")
+        if ref and ref not in forms:
+            forms.append(ref)
+    return {"forms": forms}, " ".join([name] + forms)
+
+
 def _parse_hp(archive: _Archive, key: str, application: str, records: list[dict]) -> dict:
     found: dict = {"dimensions": [], "cubes": [], "members": 0, "variables": 0,
                    "forms_referenced": set(), "dashboards_referenced": set(),
@@ -427,13 +506,52 @@ def _parse_hp(archive: _Archive, key: str, application: str, records: list[dict]
         data = {"name": name, "application": application, "referencedOnly": True, "source": _SOURCE}
         records.append(_record("form", name, data, application=application))
 
-    # Smart lists, data maps, valid intersections: tolerate presence or absence.
-    for kind, folder in (("smartList", "Smart Lists"), ("dataMap", "Data Maps"),
-                         ("validIntersection", "Valid Intersections")):
+    # Smart lists, data maps, valid intersections, dashboards: optional deep
+    # parsers, each tolerant of presence or absence. Per kind we track whether
+    # the folder was present, the total records emitted, and how many were
+    # actually deep-parsed (vs. degraded to a name-only stub) so the section
+    # tier can be reported honestly: complete (parsed), derived (names only),
+    # unavailable (folder absent).
+    deep: dict[str, dict[str, int | bool]] = {
+        k: {"present": False, "total": 0, "parsed": 0}
+        for k in ("smartList", "dataMap", "validIntersection", "dashboard")}
+
+    def _emit_deep(kind: str, parts: tuple[str, ...], parser, cube: str | None = None) -> None:
+        entry_name = parts[-1].removesuffix(".xml")
+        bucket = deep[kind]
+        bucket["present"] = True
+        bucket["total"] += 1
+        data = {"name": entry_name, "application": application, "source": _SOURCE}
+        if cube is not None:
+            data["cube"] = cube
+        search = entry_name
+        root = _read_xml(archive, parts)  # malformed -> issue + name-only
+        if root is not None:
+            extra, extra_search = parser(root, entry_name)
+            data.update(extra)
+            search = extra_search or entry_name
+            bucket["parsed"] += 1
+        records.append(_record(kind, entry_name, data, cube=data.get("cube"),
+                               application=application, search=search))
+
+    for folder, kind, parser in (("Smart Lists", "smartList", _parse_smart_list),
+                                 ("Data Maps", "dataMap", _parse_data_map),
+                                 ("Valid Intersections", "validIntersection", _parse_valid_intersection)):
         for parts in archive.under(*res, "Global Artifacts", folder):
-            name = parts[-1].removesuffix(".xml")
-            records.append(_record(kind, name, {"name": name, "application": application, "source": _SOURCE},
-                                   application=application))
+            if parts[-1].casefold().endswith(".xml"):
+                _emit_deep(kind, parts, parser)
+
+    # Dashboards live under Global Artifacts and per-cube (Cube/<cube>/Dashboards).
+    dash_entries = list(archive.under(*res, "Global Artifacts", "Dashboards"))
+    dash_entries += [p for p in archive.under(*res, "Cube")
+                     if len(p) > len(res) + 2 and p[len(res) + 2] == "Dashboards"]
+    for parts in sorted(dash_entries):
+        if not parts[-1].casefold().endswith(".xml"):
+            continue
+        cube = parts[len(res) + 1] if parts[len(res)] == "Cube" else None
+        _emit_deep("dashboard", parts, _parse_dashboard, cube=cube)
+
+    found["deep"] = deep
     return found
 
 
@@ -628,6 +746,11 @@ def _analyze_snapshot(data: bytes, filename: str | None = None) -> SnapshotBundl
         if found["nav_flows"]:
             counts["formsReferenced"] = len(found["forms_referenced"])
             counts["dashboardsReferenced"] = len(found["dashboards_referenced"])
+        for kind, ckey in (("smartList", "smartLists"), ("dataMap", "dataMaps"),
+                           ("validIntersection", "validIntersections"), ("dashboard", "dashboards")):
+            total = found.get("deep", {}).get(kind, {}).get("total", 0)
+            if total:
+                counts[ckey] = total
 
     rule_count = template_count = 0
     for comp in components:
@@ -689,6 +812,21 @@ def _analyze_snapshot(data: bytes, filename: str | None = None) -> SnapshotBundl
     section("Security Groups", counts.get("securityGroups", 0),
             CompletenessStatus.derived if counts.get("securityGroups") else CompletenessStatus.unavailable)
 
+    # Optional deep-parsed categories: complete when structured entries were
+    # parsed, derived when only a name was recoverable, unavailable when the
+    # folder is absent from the snapshot (the case for the shipped fixture).
+    deep = found.get("deep", {})
+
+    def _deep_status(info: dict) -> CompletenessStatus:
+        if not info.get("present"):
+            return CompletenessStatus.unavailable
+        return CompletenessStatus.complete if info.get("parsed") else CompletenessStatus.derived
+
+    for sec_name, kind in (("Smart Lists", "smartList"), ("Data Maps", "dataMap"),
+                           ("Valid Intersections", "validIntersection"), ("Dashboards", "dashboard")):
+        info = deep.get(kind, {})
+        section(sec_name, int(info.get("total", 0)), _deep_status(info))
+
     analysis = SnapshotAnalysis(
         filename=filename,
         application=application,
@@ -713,7 +851,9 @@ def summarize_snapshot(analysis: SnapshotAnalysis) -> str:
         bits.append(f"{len(analysis.dimensions)} dimensions")
     labels = (("members", "members"), ("rules", "rules"), ("templates", "templates"),
               ("variables", "variables"), ("forms", "forms"), ("formsReferenced", "referenced forms"),
-              ("dashboardsReferenced", "referenced dashboards"), ("integrations", "integrations"),
+              ("dashboardsReferenced", "referenced dashboards"), ("smartLists", "smart lists"),
+              ("dataMaps", "data maps"), ("validIntersections", "valid intersections"),
+              ("dashboards", "dashboards"), ("integrations", "integrations"),
               ("pipelines", "pipelines"), ("securityGroups", "security groups"), ("users", "users"))
     bits.extend(f"{analysis.counts[key]} {label}" for key, label in labels if analysis.counts.get(key))
     prov = analysis.provenance
@@ -733,7 +873,9 @@ _SECTION_RANK = {"complete": 4, "derived": 3, "partial": 2, "unavailable": 1, "n
 _KIND_COUNT_KEYS = {"application": "applications", "cube": "cubes", "dimension": "dimensions",
                     "member": "members", "variable": "variables", "form": "forms", "rule": "rules",
                     "template": "templates", "integration": "integrations",
-                    "securityGroup": "securityGroups"}
+                    "securityGroup": "securityGroups", "smartList": "smartLists",
+                    "dataMap": "dataMaps", "validIntersection": "validIntersections",
+                    "dashboard": "dashboards"}
 _CARRIED_COUNT_KEYS = ("userVariables", "formsReferenced", "dashboardsReferenced", "pipelines", "users")
 
 

@@ -5,11 +5,12 @@ from __future__ import annotations
 from collections.abc import Iterator
 from dataclasses import dataclass
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from ..ai.base import AIProvider
 from ..ai.registry import resolve_active_provider
+from ..config import get_settings
 from ..connector.base import EpmConnector
 from ..connector.factory import get_registry
 from ..db.base import get_sessionmaker
@@ -30,11 +31,50 @@ def get_db() -> Iterator[Session]:
         session.close()
 
 
-def require_project(project_id: str, session: Session = Depends(get_db)) -> Project:
-    project = projects_svc.get_project(session, project_id)
+def get_current_owner(request: Request) -> str:
+    """Resolve the owner identity for the current request.
+
+    Single "local" owner unless multi-user is enabled, in which case the
+    identity comes from the reverse-proxy header (default X-Forwarded-Email),
+    falling back to "local" when the header is absent.
+    """
+    settings = get_settings()
+    if not settings.multi_user:
+        return "local"
+    return request.headers.get(settings.auth_email_header) or "local"
+
+
+def _owner_may_access(project: Project | None, owner: str) -> bool:
+    """True when `owner` may touch this project. No-op (always True) unless
+    multi-user is on; legacy NULL-owner rows stay visible to everyone."""
+    if not get_settings().multi_user:
+        return True
     if project is None:
+        return True  # a missing project 404s for its own reason, not ownership
+    return project.owner_id is None or project.owner_id == owner
+
+
+def require_project(
+    project_id: str,
+    session: Session = Depends(get_db),
+    owner: str = Depends(get_current_owner),
+) -> Project:
+    project = projects_svc.get_project(session, project_id)
+    if project is None or not _owner_may_access(project, owner):
         raise HTTPException(status_code=404, detail="project not found")
     return project
+
+
+def authorize_project_id(session: Session, owner: str, project_id: str | None) -> None:
+    """Ownership guard for by-ID routes that resolve a resource, then need to
+    confirm the caller owns its project. A no-op when multi-user is off, so
+    single-user/Demo behavior is unchanged. Raises 404 to avoid leaking
+    existence of another owner's resource."""
+    if not get_settings().multi_user or project_id is None:
+        return
+    project = session.get(Project, project_id)
+    if not _owner_may_access(project, owner):
+        raise HTTPException(status_code=404, detail="not found")
 
 
 @dataclass

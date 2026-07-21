@@ -115,6 +115,36 @@ def _variable_chunk(record) -> Chunk:
                   dimension=record.dimension)
 
 
+def _smartlist_chunk(record) -> Chunk:
+    data = record.data or {}
+    labels = [str(e.get("label") or e.get("name") or "")
+              for e in (data.get("entries") or []) if isinstance(e, dict)]
+    text = " ".join(x for x in [record.name, *labels] if x)
+    return _chunk("smartList", record.name, text)
+
+
+def _datamap_chunk(record) -> Chunk:
+    data = record.data or {}
+    parts = [record.name]
+    if data.get("sourceCube"):
+        parts.append(f"from {data['sourceCube']}")
+    if data.get("targetCube"):
+        parts.append(f"to {data['targetCube']}")
+    return _chunk("dataMap", record.name, " ".join(parts))
+
+
+def _intersection_chunk(record) -> Chunk:
+    data = record.data or {}
+    dims = [str(d) for d in (data.get("dimensions") or [])]
+    return _chunk("validIntersection", record.name, " ".join([record.name, *dims]))
+
+
+def _dashboard_chunk(record) -> Chunk:
+    data = record.data or {}
+    forms = [str(f) for f in (data.get("forms") or [])]
+    return _chunk("dashboard", record.name, " ".join([record.name, *forms]), cube=record.cube)
+
+
 def _member_digest(dimension: str, members: list[tuple[str, str | None]]) -> Chunk:
     """Per-dimension convention digest: sample of member names/aliases plus the
     common ``PREFIX_`` naming patterns — never one chunk per member."""
@@ -144,6 +174,14 @@ def build_chunks(records) -> list[Chunk]:
             chunks.append(_form_chunk(r))
         elif r.kind == "variable":
             chunks.append(_variable_chunk(r))
+        elif r.kind == "smartList":
+            chunks.append(_smartlist_chunk(r))
+        elif r.kind == "dataMap":
+            chunks.append(_datamap_chunk(r))
+        elif r.kind == "validIntersection":
+            chunks.append(_intersection_chunk(r))
+        elif r.kind == "dashboard":
+            chunks.append(_dashboard_chunk(r))
         elif r.kind == "member":
             dim = r.dimension or data.get("dimension") or ""
             if dim:

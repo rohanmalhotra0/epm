@@ -125,6 +125,38 @@ def build_tenant_metadata(session: Session, context_version_id: str) -> TenantMe
                           kinds["variable"][1], kinds["form"][1], kinds["rule"][1])
 
 
+def _record_to_dict(r: ContextRecord) -> dict:
+    return {
+        "kind": r.kind,
+        "name": r.name,
+        "dimension": r.dimension,
+        "cube": r.cube,
+        "alias": r.alias,
+        "parent": r.parent,
+        "application": r.application,
+        "data": r.data or {},
+    }
+
+
+def diff_records(session: Session, version_a_id: str, version_b_id: str, cap: int = 100) -> dict:
+    """Record-level diff between two persisted context versions (spec section 18).
+
+    Delegates to ``engine.diff_context_records`` and wraps the per-kind result
+    with both versions' ids/labels for the Context tab's detailed diff view.
+    """
+    from ..context.engine import diff_context_records  # runtime import: avoid cycle
+
+    cv_a = session.get(ContextVersion, version_a_id)
+    cv_b = session.get(ContextVersion, version_b_id)
+    recs_a = [_record_to_dict(r) for r in get_records(session, version_a_id)]
+    recs_b = [_record_to_dict(r) for r in get_records(session, version_b_id)]
+    return {
+        "versionA": {"id": cv_a.id if cv_a else version_a_id, "label": cv_a.label if cv_a else None},
+        "versionB": {"id": cv_b.id if cv_b else version_b_id, "label": cv_b.label if cv_b else None},
+        "kinds": diff_context_records(recs_a, recs_b, cap=cap),
+    }
+
+
 def delete_context(session: Session, context_version_id: str) -> None:
     cv = session.get(ContextVersion, context_version_id)
     if cv is not None:

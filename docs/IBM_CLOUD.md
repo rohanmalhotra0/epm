@@ -221,6 +221,21 @@ email invite — nothing to install, which is what a locked-down corporate
 laptop needs. See `docs/TRAINING.md` §7 for the user-facing notes (including
 verifying SSE streaming through corporate proxies).
 
+### Per-user isolation (optional)
+
+By default the workspace is **shared**: App ID controls who gets in, and
+everyone inside sees the same projects. To isolate each user's projects, set
+`EPMW_MULTI_USER=true` and `EPMW_AUTH_EMAIL_HEADER` to the header the
+oauth2-proxy injects (default `X-Forwarded-Email`). Every project is then
+owned by the authenticated email and only that owner can list, read, or
+mutate it (and its conversations, contexts, artifacts, deployments, and
+attachments); cross-owner access returns 404. Projects that predate the flag
+have no owner and stay visible to everyone, so enabling it never hides
+existing data. **Only enable it behind a proxy that authenticates users and
+sets the identity header** — the app trusts that header, so a directly
+reachable backend would let a client set it themselves. When the flag is off
+(the default) the app is single-user and behaves exactly as before.
+
 The App ID front door is fully scripted and needs **zero app-code changes**
 (EPM Wizard itself stays local-first with no auth layer):
 

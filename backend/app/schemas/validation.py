@@ -14,6 +14,8 @@ class ValidationLayer(str, Enum):
     application = "application"
     axis = "axis"
     selection = "selection"
+    runtime_prompt = "runtimePrompt"
+    script = "script"
     display = "display"
     performance = "performance"
     security = "security"

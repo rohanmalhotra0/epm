@@ -6,12 +6,13 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
+from ..db.models import Project
 from ..schemas.api import ImpactAnalysisOut, ProjectCreate, ProjectOut, SearchResponse
 from ..services import impact as impact_svc
 from ..services import project_bundle
 from ..services import projects as svc
 from ..services import search as search_svc
-from .deps import get_db
+from .deps import get_current_owner, get_db, require_project
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -22,17 +23,27 @@ def _safe_filename(name: str) -> str:
 
 
 @router.get("", response_model=list[ProjectOut])
-def list_projects(session: Session = Depends(get_db)) -> list[ProjectOut]:
-    return svc.list_projects(session)
+def list_projects(
+    session: Session = Depends(get_db), owner: str = Depends(get_current_owner)
+) -> list[ProjectOut]:
+    return svc.list_projects(session, owner=owner)
 
 
 @router.post("", response_model=ProjectOut, status_code=201)
-def create_project(body: ProjectCreate, session: Session = Depends(get_db)) -> ProjectOut:
-    return svc.create_project(session, body.name, body.description)
+def create_project(
+    body: ProjectCreate,
+    session: Session = Depends(get_db),
+    owner: str = Depends(get_current_owner),
+) -> ProjectOut:
+    return svc.create_project(session, body.name, body.description, owner=owner)
 
 
 @router.post("/import", response_model=ProjectOut, status_code=201)
-async def import_project(file: UploadFile = File(...), session: Session = Depends(get_db)) -> ProjectOut:
+async def import_project(
+    file: UploadFile = File(...),
+    session: Session = Depends(get_db),
+    owner: str = Depends(get_current_owner),
+) -> ProjectOut:
     data = await file.read(project_bundle.MAX_BUNDLE_BYTES + 1)
     if len(data) > project_bundle.MAX_BUNDLE_BYTES:
         raise HTTPException(400, f"bundle exceeds the maximum size of {project_bundle.MAX_BUNDLE_BYTES} bytes")
@@ -40,45 +51,54 @@ async def import_project(file: UploadFile = File(...), session: Session = Depend
         project = project_bundle.import_project(session, data)
     except project_bundle.BundleError as exc:
         raise HTTPException(400, str(exc)) from exc
+    project.owner_id = owner
+    session.flush()
     return svc._to_out(session, project)
 
 
 @router.get("/{project_id}", response_model=ProjectOut)
-def get_project(project_id: str, session: Session = Depends(get_db)) -> ProjectOut:
-    project = svc.get_project(session, project_id)
-    if project is None:
-        raise HTTPException(404, "project not found")
+def get_project(project: Project = Depends(require_project), session: Session = Depends(get_db)) -> ProjectOut:
     return svc._to_out(session, project)
 
 
 @router.get("/{project_id}/search", response_model=SearchResponse)
-def search_project(project_id: str, q: str, limit: int = 20, session: Session = Depends(get_db)) -> SearchResponse:
-    if svc.get_project(session, project_id) is None:
-        raise HTTPException(404, "project not found")
-    return SearchResponse(results=search_svc.global_search(session, project_id, q, limit))
+def search_project(
+    q: str,
+    limit: int = 20,
+    project: Project = Depends(require_project),
+    session: Session = Depends(get_db),
+) -> SearchResponse:
+    return SearchResponse(results=search_svc.global_search(session, project.id, q, limit))
 
 
 @router.post("/{project_id}/active-environment/{environment_id}", response_model=ProjectOut)
-def set_active_environment(project_id: str, environment_id: str, session: Session = Depends(get_db)) -> ProjectOut:
+def set_active_environment(
+    environment_id: str,
+    project: Project = Depends(require_project),
+    session: Session = Depends(get_db),
+) -> ProjectOut:
     try:
-        svc.set_active_environment(session, project_id, environment_id)
+        svc.set_active_environment(session, project.id, environment_id)
     except (KeyError, ValueError) as exc:
         raise HTTPException(400, str(exc)) from exc
-    return svc._to_out(session, svc.get_project(session, project_id))
+    return svc._to_out(session, project)
 
 
 @router.post("/{project_id}/active-context/{context_version_id}", response_model=ProjectOut)
-def set_active_context(project_id: str, context_version_id: str, session: Session = Depends(get_db)) -> ProjectOut:
+def set_active_context(
+    context_version_id: str,
+    project: Project = Depends(require_project),
+    session: Session = Depends(get_db),
+) -> ProjectOut:
     from ..services import context_store
-    context_store.activate_context(session, project_id, context_version_id)
-    return svc._to_out(session, svc.get_project(session, project_id))
+    context_store.activate_context(session, project.id, context_version_id)
+    return svc._to_out(session, project)
 
 
 @router.get("/{project_id}/export")
-def export_project(project_id: str, session: Session = Depends(get_db)) -> Response:
-    project = svc.get_project(session, project_id)
-    if project is None:
-        raise HTTPException(404, "project not found")
+def export_project(
+    project: Project = Depends(require_project), session: Session = Depends(get_db)
+) -> Response:
     zip_bytes = project_bundle.export_project(session, project)
     filename = f"epm-wizard-project-{_safe_filename(project.name)}.zip"
     return Response(content=zip_bytes, media_type="application/zip",
@@ -86,18 +106,22 @@ def export_project(project_id: str, session: Session = Depends(get_db)) -> Respo
 
 
 @router.get("/{project_id}/impact", response_model=ImpactAnalysisOut)
-def impact_analysis(project_id: str, member: str, session: Session = Depends(get_db)) -> ImpactAnalysisOut:
-    if svc.get_project(session, project_id) is None:
-        raise HTTPException(404, "project not found")
+def impact_analysis(
+    member: str,
+    project: Project = Depends(require_project),
+    session: Session = Depends(get_db),
+) -> ImpactAnalysisOut:
     try:
-        return impact_svc.find_references(session, project_id, member)
+        return impact_svc.find_references(session, project.id, member)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
 
 
 @router.delete("/{project_id}", status_code=204)
-def delete_project(project_id: str, session: Session = Depends(get_db)) -> None:
+def delete_project(
+    project: Project = Depends(require_project), session: Session = Depends(get_db)
+) -> None:
     try:
-        svc.delete_project(session, project_id)
+        svc.delete_project(session, project.id)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc

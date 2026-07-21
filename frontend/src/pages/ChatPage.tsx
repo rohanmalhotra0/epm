@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { streamMessage } from "../api/client";
 import type { AttachmentOut } from "../api/attachments";
 import { useMessages } from "../api/hooks";
-import { MessageView, type ChatMessage } from "../components/Message";
+import { MessageView, messageTokens, type ChatMessage } from "../components/Message";
 import { Composer } from "../components/Composer";
 import type { ChatBlockT } from "../blocks";
 import { ArtifactsPanel } from "../artifacts/ArtifactsPanel";
@@ -142,6 +142,18 @@ export function ChatPage() {
   })();
   const canRegenerate = lastAssistantIdx >= 0 && precedingUser !== null && !live && !pendingUser;
 
+  // Per-conversation token total (sum of per-message usage). Tokens only — no cost.
+  const convoTokens = msgs.reduce(
+    (acc, m) => {
+      const { input, output } = messageTokens(m.usage);
+      acc.input += input ?? 0;
+      acc.output += output ?? 0;
+      return acc;
+    },
+    { input: 0, output: 0 },
+  );
+  const convoTotal = convoTokens.input + convoTokens.output;
+
   return (
     <div className="chat-split">
     <div className="main-col">
@@ -194,6 +206,19 @@ export function ChatPage() {
           )}
         </div>
       </div>
+      {convoTotal > 0 && (
+        <div
+          className="convo-usage"
+          style={{
+            fontSize: 11,
+            color: "var(--cds-text-secondary, #8d8d8d)",
+            padding: "2px 16px",
+            textAlign: "right",
+          }}
+        >
+          Conversation tokens: {convoTokens.input.toLocaleString()} in · {convoTokens.output.toLocaleString()} out · {convoTotal.toLocaleString()} total
+        </div>
+      )}
       <Composer onSend={send} streaming={!!live} onStop={stop} conversationId={id} />
     </div>
       <ArtifactsPanel />

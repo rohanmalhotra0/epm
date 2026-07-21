@@ -24,6 +24,9 @@ class Project(IdMixin, TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Optional multi-user owner. NULL = legacy/unowned (visible to everyone).
+    # Single-user/Demo installs use the sentinel "local" owner.
+    owner_id: Mapped[str | None] = mapped_column(String(120), index=True, nullable=True)
     active_environment_id: Mapped[str | None] = mapped_column(String(32))
     active_context_version_id: Mapped[str | None] = mapped_column(String(32))
     settings: Mapped[dict] = mapped_column(JSON, default=dict)

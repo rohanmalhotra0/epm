@@ -185,6 +185,45 @@ export interface ArchitectureResponse {
   architecture: CubeArchitecture;
 }
 
+/** One record identity in a context diff (kind is the outer map key). */
+export interface ContextDiffEntry {
+  name: string;
+  dimension?: string | null;
+  cube?: string | null;
+  before?: unknown;
+  after?: unknown;
+}
+
+export interface ContextDiffKind {
+  added: ContextDiffEntry[];
+  removed: ContextDiffEntry[];
+  changed: ContextDiffEntry[];
+  addedTruncated: number;
+  removedTruncated: number;
+  changedTruncated: number;
+}
+
+export interface ContextDiffResponse {
+  versionA: { id: string; label: string };
+  versionB: { id: string; label: string };
+  kinds: Record<string, ContextDiffKind>;
+}
+
+/**
+ * Record-level diff of one context version against another. Follows useArchitecture:
+ * a missing version (404) or cross-project pair (400) is an expected error, not retried.
+ */
+export const useContextDiff = (id: string | undefined, against: string | undefined) =>
+  useQuery({
+    queryKey: ["contextDiff", id, against ?? ""],
+    enabled: !!id && !!against,
+    retry: false,
+    queryFn: () =>
+      api<ContextDiffResponse>(
+        `/api/contexts/${id}/diff?against=${encodeURIComponent(against!)}&cap=100`,
+      ),
+  });
+
 /** Cube Architecture for the active context, powering the Context tab visualizer. */
 export const useArchitecture = (projectId: string | undefined, cube?: string) =>
   useQuery({
