@@ -72,7 +72,7 @@ cloud_build epmw-frontend-build frontend/Dockerfile "${FRONTEND_IMAGE}"
 # local Docker build. TAG=latest makes its derived image names match ours.
 echo "==> Deploying apps from the cloud-built images"
 SKIP_BUILD=1 TAG="${TAG}" REGION="${REGION}" ICR_NAMESPACE="${ICR_NAMESPACE}" \
-  CE_PROJECT="${CE_PROJECT}" REGISTRY="${REGISTRY}" \
+  CE_PROJECT="${CE_PROJECT}" REGISTRY="${REGISTRY}" REGISTRY_SECRET="${REG_SECRET}" \
   "${HERE}/deploy-code-engine.sh"
 
 echo
