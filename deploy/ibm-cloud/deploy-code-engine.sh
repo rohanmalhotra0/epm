@@ -125,8 +125,12 @@ AUTH_IMAGE="${AUTH_IMAGE:-quay.io/oauth2-proxy/oauth2-proxy:v7.6.0}"
 # not the project name). Falls back to the in-namespace short service name.
 app_internal_url() {
   local name="$1" url
+  # Match THIS app's own cluster host (http://<name>.<sub>.svc.cluster.local).
+  # A bare '…svc.cluster.local' match would also catch a BACKEND_URL env value
+  # carried in the app's JSON (e.g. the frontend holds the backend's URL), so
+  # anchor on the app name.
   url="$(ibmcloud ce app get --name "${name}" --output json 2>/dev/null \
-    | grep -oE 'http://[a-z0-9.-]+\.svc\.cluster\.local' | head -1)"
+    | grep -oE "http://${name}\.[a-z0-9.-]+\.svc\.cluster\.local" | head -1)"
   printf '%s' "${url:-http://${name}}"
 }
 
