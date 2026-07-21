@@ -99,7 +99,11 @@ def _persist_user_message(
         linked: list[str] = []
         for attachment_id in attachment_ids or []:
             attachment = session.get(Attachment, attachment_id)
-            if attachment is None:
+            # Confused-deputy guard: only link attachments belonging to THIS
+            # conversation's project. Otherwise a caller could reference another
+            # owner's attachment id and have its (parsed) contents pulled into
+            # their own turn — cross-owner data exfiltration.
+            if attachment is None or attachment.project_id != conv.project_id:
                 continue
             attachment.message_id = msg.id
             if not attachment.conversation_id:
@@ -172,6 +176,16 @@ def branch_message(conversation_id: str, message_id: str, body: ChatMessageIn,
     SessionLocal = get_sessionmaker()
     session = SessionLocal()
     try:
+        # Confused-deputy guard: the message must belong to the (already
+        # authorized) conversation. branch_from_user_edit resolves the message
+        # purely by id and mutates target.conversation_id's history, so without
+        # this an owner could branch/deactivate another owner's messages and
+        # inject into their conversation by pairing their own conversation_id
+        # with a foreign message_id.
+        from ..db.models import Message
+        target = session.get(Message, message_id)
+        if target is None or target.conversation_id != conversation_id:
+            raise HTTPException(404, "message not found")
         new_msg = svc.branch_from_user_edit(session, message_id, body.content)
         if new_msg is None:
             raise HTTPException(400, "cannot branch from this message")

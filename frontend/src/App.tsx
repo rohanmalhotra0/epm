@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { Theme } from "@carbon/react";
 import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
 import { SignInGate } from "./components/SignIn";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ChatPage } from "./pages/ChatPage";
 import { AboutPage, ArtifactsPage, ContextsPage, DeploymentsPage } from "./pages/SimplePages";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -44,6 +45,7 @@ export function App() {
   const setProject = useUi((s) => s.setProject);
   const { data: projects } = useProjects();
   const nav = useNavigate();
+  const loc = useLocation();
   const createConv = useCreateConversation(projectId ?? undefined);
   const [paletteOpen, setPaletteOpen] = useState(false);
 
@@ -75,21 +77,23 @@ export function App() {
         <div className="app-body">
           <Sidebar />
           <SignInGate>
-            <Routes>
-              <Route path="/" element={<ChatRedirect />} />
-              <Route path="/c/:id" element={<ChatPage />} />
-              <Route path="/contexts" element={<ContextsPage />} />
-              <Route path="/artifacts" element={<ArtifactsPage />} />
-              <Route path="/deployments" element={<DeploymentsPage />} />
-              <Route path="/skills" element={<SkillsPage />} />
-              <Route path="/explorer" element={<ExplorerPage />} />
-              <Route path="/data" element={<DataPage />} />
-              <Route path="/how-to" element={<HowToPage />} />
-              <Route path="/how-it-works" element={<HowItWorksPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            <ErrorBoundary resetKey={loc.pathname} label="this view">
+              <Routes>
+                <Route path="/" element={<ChatRedirect />} />
+                <Route path="/c/:id" element={<ChatPage />} />
+                <Route path="/contexts" element={<ContextsPage />} />
+                <Route path="/artifacts" element={<ArtifactsPage />} />
+                <Route path="/deployments" element={<DeploymentsPage />} />
+                <Route path="/skills" element={<SkillsPage />} />
+                <Route path="/explorer" element={<ExplorerPage />} />
+                <Route path="/data" element={<DataPage />} />
+                <Route path="/how-to" element={<HowToPage />} />
+                <Route path="/how-it-works" element={<HowItWorksPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </ErrorBoundary>
           </SignInGate>
         </div>
         <Toaster />

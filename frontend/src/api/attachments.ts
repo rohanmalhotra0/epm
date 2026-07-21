@@ -18,7 +18,11 @@ export interface AttachmentOut {
   kindGuess: AttachmentKind;
 }
 
-export const ACCEPTED_EXTENSIONS = [".xlsx", ".xlsm", ".csv", ".txt", ".zip"];
+// Must stay in sync with the backend's ALLOWED_EXTENSIONS
+// (backend/app/services/attachments.py). Advertising an extension the backend
+// rejects lets the user pick a file that fails only after upload — so `.txt`,
+// which the backend does not accept, is intentionally excluded here.
+export const ACCEPTED_EXTENSIONS = [".xlsx", ".xlsm", ".csv", ".zip"];
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 // Application snapshot zips (LCM exports) are far larger than spreadsheets.
 export const MAX_SNAPSHOT_BYTES = 200 * 1024 * 1024;

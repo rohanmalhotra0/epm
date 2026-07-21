@@ -238,7 +238,13 @@ def _dimension_header(text: str, where: str, issues: list[str]) -> tuple[bool | 
                     dim_type = declared
                 elif declared == "time":
                     dim_type = "period"
-    header_row = next(csv.reader(io.StringIO(_strip_lcm_header(text))), [])
+    try:
+        header_row = next(csv.reader(io.StringIO(_strip_lcm_header(text))), [])
+    except csv.Error as exc:
+        # A single oversized/unbalanced header field must not abort the whole
+        # snapshot: degrade this dimension to no per-cube columns and continue.
+        issues.append(f"unparseable dimension header {where}: {exc}")
+        header_row = []
     cubes = []
     for h in header_row:
         m = _CUBE_COLUMN.match(h.strip())
@@ -559,12 +565,16 @@ def _parse_hp(archive: _Archive, key: str, application: str, records: list[dict]
 
 
 def _iter_outside_templates(elem):
-    """Iterate a rule subtree skipping inlined dependent-template subtrees."""
-    for child in elem:
-        if _local(child.tag) in ("template", "templates"):
+    """Iterate a rule subtree (pre-order DFS) skipping inlined dependent-template
+    subtrees. Iterative on purpose: a deeply nested (hostile) rule XML would blow
+    the Python stack with a recursive walk and abort the whole snapshot parse."""
+    stack = list(elem)[::-1]
+    while stack:
+        node = stack.pop()
+        if _local(node.tag) in ("template", "templates"):
             continue
-        yield child
-        yield from _iter_outside_templates(child)
+        yield node
+        stack.extend(list(node)[::-1])
 
 
 def _parse_rule_file(text: str, where: str, fallback_name: str, fallback_cube: str,
@@ -676,10 +686,14 @@ def _parse_hss(archive: _Archive, key: str, records: list[dict]) -> tuple[int | 
         if lines and lines[0].startswith("#"):
             lines = lines[1:]
         names = []
-        for row in csv.DictReader(io.StringIO("\n".join(lines))):
-            name = (row.get("name") or "").strip()
-            if name:
-                names.append(name)
+        try:
+            for row in csv.DictReader(io.StringIO("\n".join(lines))):
+                name = (row.get("name") or "").strip()
+                if name:
+                    names.append(name)
+        except csv.Error as exc:
+            # An oversized/unbalanced field must not abort the whole snapshot.
+            archive.issues.append(f"unparseable groups CSV {'/'.join(groups_parts)}: {exc}")
         for name in sorted(names):
             records.append(_record("securityGroup", name, {"name": name, "source": _SOURCE}))
         groups = len(names)

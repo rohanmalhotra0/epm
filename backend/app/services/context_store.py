@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from ..artifacts.metadata import TenantMetadata, build_metadata
@@ -104,6 +105,10 @@ def get_records(session: Session, context_version_id: str, kind: str | None = No
 def _validate_known(model_cls, data: dict):
     # Snapshot-derived records carry provenance keys ("source", "referencedOnly",
     # rule bodies…) that the strict record models forbid; keep only known fields.
+    # ``data`` may be None or a non-mapping on hostile/partial records — coerce to
+    # an empty dict so filtering never raises (validation then rejects it cleanly).
+    if not isinstance(data, dict):
+        data = {}
     fields = model_cls.model_fields
     allowed = set(fields) | {f.alias for f in fields.values() if f.alias}
     return model_cls.model_validate({k: v for k, v in data.items() if k in allowed})
@@ -119,8 +124,15 @@ def build_tenant_metadata(session: Session, context_version_id: str) -> TenantMe
              "form": (FormRecord, []), "rule": (RuleRecord, [])}
     for r in records:
         entry = kinds.get(r.kind)
-        if entry is not None:
-            entry[1].append(_validate_known(entry[0], r.data or {}))
+        if entry is None:
+            continue
+        try:
+            entry[1].append(_validate_known(entry[0], r.data))
+        except (ValidationError, ValueError, TypeError):
+            # A record whose persisted `data` can't satisfy its strict model
+            # (missing required field, wrong type, non-mapping) is skipped —
+            # one bad record must never sink the whole metadata reconstruction.
+            continue
     return build_metadata(application, kinds["cube"][1], kinds["dimension"][1], kinds["member"][1],
                           kinds["variable"][1], kinds["form"][1], kinds["rule"][1])
 
