@@ -234,7 +234,7 @@ def _ct(name: str):
     return ChatBlockType(name)
 
 
-async def _retrieve_grounding(ctx: SkillContext, *, kinds: list[str], k: int) -> list[dict]:
+async def _retrieve_grounding(ctx: SkillContext, *, kinds: list[str] | None, k: int) -> list[dict]:
     """Best-effort RAG grounding chunks for the current request (spec: RAG feature).
 
     Retrieval is a garnish on artifact creation, never a gate: no active context

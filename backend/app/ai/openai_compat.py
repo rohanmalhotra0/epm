@@ -62,18 +62,20 @@ class OpenAICompatibleProvider(AIProvider):
 
     @property
     def embeddings_model(self) -> str:
-        # Precise RAG cache keying: vectors are re-embedded when this changes.
-        return os.environ.get("OPENAI_EMBEDDINGS_MODEL", "text-embedding-3-small")
+        # profile role model -> env -> built-in. Precise RAG cache keying: vectors
+        # are re-embedded when this changes.
+        return (self.config.role_models.get("embedding")
+                or os.environ.get("OPENAI_EMBEDDINGS_MODEL", "text-embedding-3-small"))
 
     async def embed(self, texts: list[str], *, model: str | None = None) -> list[list[float]]:
         """Embed texts via the OpenAI-compatible /embeddings endpoint (RAG grounding).
 
-        Model resolution: explicit argument -> OPENAI_EMBEDDINGS_MODEL env var
-        -> "text-embedding-3-small". Batched (<=100 inputs per request — large
-        RAG corpora would otherwise exceed the API's per-request input limits);
-        vectors are returned in input order.
+        Model resolution: explicit argument -> the provider's ``embeddings_model``
+        (profile role model -> OPENAI_EMBEDDINGS_MODEL env -> text-embedding-3-small).
+        Batched (<=100 inputs per request — large RAG corpora would otherwise
+        exceed the API's per-request input limits); vectors are in input order.
         """
-        model_id = model or os.environ.get("OPENAI_EMBEDDINGS_MODEL", "text-embedding-3-small")
+        model_id = model or self.embeddings_model
         vectors: list[list[float]] = []
         try:
             async with httpx.AsyncClient(timeout=60) as client:

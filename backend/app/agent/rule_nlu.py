@@ -13,7 +13,7 @@ from __future__ import annotations
 import re
 
 from ..artifacts.metadata import TenantMetadata
-from ..schemas.rule_spec import RuleSpecification, RuntimePrompt, RuntimePromptType
+from ..schemas.rule_spec import RuleSpecification, RuleType, RuntimePrompt, RuntimePromptType
 from . import outline_defaults as od
 from .form_nlu import find_members
 
@@ -48,6 +48,7 @@ def build_initial_rule_spec(
     cube = _infer_cube(text, md, mentioned, inferences, questions)
     name = _derive_name(text)
     prompts = _runtime_prompts(text, md, cube, inferences, questions)
+    rule_type = _infer_rule_type(text, inferences)
 
     referenced_members: list[str] = []
     referenced_dimensions: list[str] = []
@@ -64,12 +65,28 @@ def build_initial_rule_spec(
         name=name,
         application=application,
         cube=cube,
+        type=rule_type,
         purpose=text.strip()[:300] or None,
         runtime_prompts=prompts,
         referenced_dimensions=referenced_dimensions[:12],
         referenced_members=referenced_members[:12],
     )
     return spec, inferences, questions
+
+
+# Calc-script cues: explicit "calc script", or Essbase calc verbs the drafter
+# would emit as native calcscript rather than Groovy.
+_CALC_SCRIPT_RE = re.compile(
+    r"\bcalc(?:ulation)?\s*script\b|\bessbase\b|\b(?:fix|endfix|datacopy|agg|calc\s+dim|clearblock|cleardata)\b",
+    re.I)
+
+
+def _infer_rule_type(text: str, inferences: list[str]) -> RuleType:
+    if _CALC_SCRIPT_RE.search(text):
+        inferences.append("Drafting as an Essbase **calc script** (detected calc-script intent); "
+                          "the import package is typed accordingly.")
+        return RuleType.calc_script
+    return RuleType.business_rule
 
 
 # --- helpers ------------------------------------------------------------------

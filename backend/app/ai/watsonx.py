@@ -88,8 +88,10 @@ class WatsonxProvider(AIProvider):
 
     @property
     def embeddings_model(self) -> str:
-        # Precise RAG cache keying: vectors are re-embedded when this changes.
-        return os.environ.get("WATSONX_EMBEDDINGS_MODEL_ID") or DEFAULT_EMBEDDINGS_MODEL
+        # profile role model -> env -> built-in. Precise RAG cache keying: vectors
+        # are re-embedded when this changes.
+        return (self.config.role_models.get("embedding")
+                or os.environ.get("WATSONX_EMBEDDINGS_MODEL_ID") or DEFAULT_EMBEDDINGS_MODEL)
 
     def _chat_model(self, model: str | None) -> str:
         """explicit arg -> provider profile -> WATSONX_CHAT_MODEL_ID env -> built-in."""
@@ -129,11 +131,12 @@ class WatsonxProvider(AIProvider):
     async def embed(self, texts: list[str], *, model: str | None = None) -> list[list[float]]:
         """Embed texts via /ml/v1/text/embeddings (used for RAG grounding).
 
-        Model resolution: explicit argument -> WATSONX_EMBEDDINGS_MODEL_ID env
-        var -> the slate retriever default. Inputs are batched (the API caps
-        inputs per request); result vectors are concatenated in input order.
+        Model resolution: explicit argument -> the provider's ``embeddings_model``
+        (profile role model -> WATSONX_EMBEDDINGS_MODEL_ID env -> slate default).
+        Inputs are batched (the API caps inputs per request); result vectors are
+        concatenated in input order.
         """
-        model_id = model or os.environ.get("WATSONX_EMBEDDINGS_MODEL_ID") or DEFAULT_EMBEDDINGS_MODEL
+        model_id = model or self.embeddings_model
         url = f"{self.base_url}/ml/v1/text/embeddings"
         vectors: list[list[float]] = []
         try:

@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 from defusedxml import ElementTree as DET
 from sqlalchemy.orm import Session
 
+from ..artifacts.parser import parse_xml as _parse_form_xml
 from ..connector.metadata_export import _parse_csv as _parse_dimension_csv
 from ..connector.metadata_export import _strip_lcm_header
 from ..db.models import ContextVersion
@@ -57,6 +58,7 @@ _CUBE_COLUMN = re.compile(r"^Aggregation \((.+)\)$")
 _DIM_TYPES = {"account", "entity", "scenario", "version", "period", "attribute"}
 
 _FORMS_REFERENCED_NOTE = "Names referenced by navigation flows; definitions not included in this snapshot"
+_FORMS_UNPARSED_NOTE = "Form definition files present but none could be parsed"
 
 
 class SnapshotError(ValueError):
@@ -282,11 +284,20 @@ def _navigation_flow_refs(archive: _Archive, parts: tuple[str, ...]) -> set[str]
     return refs
 
 
+def _parse_form_definition(text: str, where: str, issues: list[str]):
+    """FormSpecification from a Data Forms definition file, or None + an issue."""
+    try:
+        return _parse_form_xml(text)
+    except Exception as exc:  # noqa: BLE001 — a bad definition must never abort the parse
+        issues.append(f"unparseable form definition {where}: {exc}")
+        return None
+
+
 def _parse_hp(archive: _Archive, key: str, application: str, records: list[dict]) -> dict:
     found: dict = {"dimensions": [], "cubes": [], "members": 0, "variables": 0,
                    "forms_referenced": set(), "dashboards_referenced": set(),
-                   "real_forms": 0, "nav_flows": False, "sub_var_files": False,
-                   "user_vars": None}
+                   "real_forms": 0, "forms_parsed": 0, "nav_flows": False,
+                   "sub_var_files": False, "user_vars": None}
     res = (key, "resource")
     cube_dims: dict[str, list[str]] = {}
 
@@ -367,20 +378,15 @@ def _parse_hp(archive: _Archive, key: str, application: str, records: list[dict]
     if uv_parts in archive.files:
         found["user_vars"] = user_vars
 
-    # Forms referenced by navigation flows (this snapshot generation carries no
-    # form definition files; references are still valuable context).
-    for parts in archive.under(*res, "Global Artifacts", "Navigation Flows"):
-        if not parts[-1].casefold().endswith(".xml"):
-            continue
-        found["nav_flows"] = True
-        for name in _navigation_flow_refs(archive, parts):
-            bucket = "dashboards_referenced" if "dashboard" in name.casefold() else "forms_referenced"
-            found[bucket].add(name)
-    for name in sorted(found["forms_referenced"] | found["dashboards_referenced"]):
-        data = {"name": name, "application": application, "referencedOnly": True, "source": _SOURCE}
-        records.append(_record("form", name, data, application=application))
-
-    # Real form definitions, smart lists, data maps: tolerate presence or absence.
+    # Real form definitions: richer exports include definition XML under Data
+    # Forms; the shipped fixture generation carries names only. Each file is
+    # parsed into a full definition when possible; a bad file keeps its
+    # name-only record plus an issue and never aborts the snapshot parse.
+    parsed_forms: set[str] = set()
+    # Every name that came from a definition FILE (parsed or not) — a bare
+    # nav-flow stub must never overwrite a file-derived record in the last-wins
+    # metadata dict, even when the definition XML failed to parse.
+    file_forms: set[str] = set()
     form_entries = [p for p in archive.under(*res, "Global Artifacts", "Data Forms")]
     form_entries += [p for p in archive.under(*res, "Cube")
                      if len(p) > len(res) + 2 and p[len(res) + 2] == "Data Forms"]
@@ -389,9 +395,39 @@ def _parse_hp(archive: _Archive, key: str, application: str, records: list[dict]
         folder = "/".join(parts[len(res):-1])
         cube = parts[len(res) + 1] if parts[len(res)] == "Cube" else None
         data = {"name": name, "application": application, "cube": cube, "folder": folder, "source": _SOURCE}
-        records.append(_record("form", name, data, cube=cube, application=application,
+        text = archive.read_text(parts)
+        spec = _parse_form_definition(text, "/".join(parts), archive.issues) if text is not None else None
+        if spec is not None:
+            definition = spec.model_dump(by_alias=True, exclude_none=True)
+            # The name stays out of the definition dict so reference-form
+            # cloning (parse_definition) can rename the copy cleanly.
+            definition.pop("name", None)
+            name = spec.name
+            data.update({"name": name, "cube": cube or spec.cube, "definition": definition})
+            parsed_forms.add(name.casefold())
+            found["forms_parsed"] += 1
+        records.append(_record("form", name, data, cube=data["cube"], application=application,
                                search=f"{name} {folder}"))
+        file_forms.add(name.casefold())
         found["real_forms"] += 1
+
+    # Forms referenced by navigation flows: still valuable when no definition
+    # was shipped, but a parsed definition of the same name always wins — the
+    # referenced-only stub is skipped, not duplicated.
+    for parts in archive.under(*res, "Global Artifacts", "Navigation Flows"):
+        if not parts[-1].casefold().endswith(".xml"):
+            continue
+        found["nav_flows"] = True
+        for name in _navigation_flow_refs(archive, parts):
+            bucket = "dashboards_referenced" if "dashboard" in name.casefold() else "forms_referenced"
+            found[bucket].add(name)
+    for name in sorted(found["forms_referenced"] | found["dashboards_referenced"]):
+        if name.casefold() in file_forms:
+            continue  # a definition file already produced a richer record
+        data = {"name": name, "application": application, "referencedOnly": True, "source": _SOURCE}
+        records.append(_record("form", name, data, application=application))
+
+    # Smart lists, data maps, valid intersections: tolerate presence or absence.
     for kind, folder in (("smartList", "Smart Lists"), ("dataMap", "Data Maps"),
                          ("validIntersection", "Valid Intersections")):
         for parts in archive.under(*res, "Global Artifacts", folder):
@@ -577,8 +613,8 @@ def _analyze_snapshot(data: bytes, filename: str | None = None) -> SnapshotBundl
 
     found: dict = {"dimensions": [], "cubes": [], "members": 0, "variables": 0,
                    "forms_referenced": set(), "dashboards_referenced": set(),
-                   "real_forms": 0, "nav_flows": False, "sub_var_files": False,
-                   "user_vars": None}
+                   "real_forms": 0, "forms_parsed": 0, "nav_flows": False,
+                   "sub_var_files": False, "user_vars": None}
     if hp is not None:
         found = _parse_hp(archive, hp.key, hp.application, records)
         if found["dimensions"]:
@@ -587,6 +623,8 @@ def _analyze_snapshot(data: bytes, filename: str | None = None) -> SnapshotBundl
             counts["variables"] = found["variables"]
         if found["user_vars"] is not None:
             counts["userVariables"] = found["user_vars"]
+        if found["real_forms"]:
+            counts["forms"] = found["real_forms"]
         if found["nav_flows"]:
             counts["formsReferenced"] = len(found["forms_referenced"])
             counts["dashboardsReferenced"] = len(found["dashboards_referenced"])
@@ -638,8 +676,10 @@ def _analyze_snapshot(data: bytes, filename: str | None = None) -> SnapshotBundl
     section("Substitution & User Variables", all_variables,
             CompletenessStatus.complete if all_variables else CompletenessStatus.unavailable)
     referenced = len(found["forms_referenced"] | found["dashboards_referenced"])
-    if found["real_forms"]:
+    if found["forms_parsed"]:
         section("Forms", found["real_forms"], CompletenessStatus.complete)
+    elif found["real_forms"]:
+        section("Forms", found["real_forms"], CompletenessStatus.partial, note=_FORMS_UNPARSED_NOTE)
     elif referenced:
         section("Forms", referenced, CompletenessStatus.derived, note=_FORMS_REFERENCED_NOTE)
     else:
@@ -672,7 +712,7 @@ def summarize_snapshot(analysis: SnapshotAnalysis) -> str:
     if analysis.dimensions:
         bits.append(f"{len(analysis.dimensions)} dimensions")
     labels = (("members", "members"), ("rules", "rules"), ("templates", "templates"),
-              ("variables", "variables"), ("formsReferenced", "referenced forms"),
+              ("variables", "variables"), ("forms", "forms"), ("formsReferenced", "referenced forms"),
               ("dashboardsReferenced", "referenced dashboards"), ("integrations", "integrations"),
               ("pipelines", "pipelines"), ("securityGroups", "security groups"), ("users", "users"))
     bits.extend(f"{analysis.counts[key]} {label}" for key, label in labels if analysis.counts.get(key))

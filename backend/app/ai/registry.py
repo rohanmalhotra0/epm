@@ -57,6 +57,7 @@ def provider_from_profile(profile: ProviderProfile) -> AIProvider:
         api_key=_resolve_key(profile.id, profile.provider_type),
         default_model=profile.default_model,
         models=profile.models or [],
+        role_models=profile.role_models or {},
     )
     return _class_for(profile.provider_type)(config)
 
