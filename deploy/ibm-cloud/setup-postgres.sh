@@ -33,7 +33,12 @@ echo "==> [1/5] Provisioning PostgreSQL '${PG_NAME}' (PAID, ~\$30-50/mo)"
 if ibmcloud resource service-instance "${PG_NAME}" >/dev/null 2>&1; then
   echo "    instance already exists"
 else
-  ibmcloud resource service-instance-create "${PG_NAME}" databases-for-postgresql "${PG_PLAN}" "${REGION}"
+  # ICD requires an explicit endpoint type. 'public' is TLS-encrypted and
+  # reachable from Code Engine's egress without extra VPC/VPE wiring; harden to
+  # 'private' later by reprovisioning with PG_ENDPOINTS=private once the project
+  # has private service endpoints.
+  ibmcloud resource service-instance-create "${PG_NAME}" databases-for-postgresql \
+    "${PG_PLAN}" "${REGION}" --service-endpoints "${PG_ENDPOINTS:-public}"
 fi
 
 echo "==> [2/5] Waiting for it to become active (~20-30 min — this is the slow part)"
