@@ -284,7 +284,7 @@ function CubeOverview({ projectId, cubes }: { projectId: string; cubes: string[]
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0, panX: 0, panY: 0 });
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -313,6 +313,11 @@ function CubeOverview({ projectId, cubes }: { projectId: string; cubes: string[]
   // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Leave typing alone — otherwise "-", "+", "0" and the arrow keys are
+      // swallowed by the diagram while the user edits an input or the chat.
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+
       const panStep = 20;
       const zoomStep = 0.2;
 
@@ -355,15 +360,27 @@ function CubeOverview({ projectId, cubes }: { projectId: string; cubes: string[]
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  // Pan is applied in viewBox user units, but the mouse moves in screen
+  // pixels — convert the drag delta or the content lags the cursor.
+  const screenToUser = (totalWidth: number, totalHeight: number) => {
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0 || rect.height === 0) return 1;
+    return 1 / Math.min(rect.width / totalWidth, rect.height / totalHeight);
+  };
+
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
     if (e.button !== 0) return;
     setIsDragging(true);
-    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    setDragStart({ x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y });
   };
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!isDragging) return;
-    setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+    const k = screenToUser(totalWidth, totalHeight);
+    setPan({
+      x: dragStart.panX + (e.clientX - dragStart.x) * k,
+      y: dragStart.panY + (e.clientY - dragStart.y) * k
+    });
   };
 
   const handleMouseUp = () => {
@@ -456,15 +473,19 @@ function CubeOverview({ projectId, cubes }: { projectId: string; cubes: string[]
           width="100%"
           style={{
             maxHeight: 600,
-            cursor: isDragging ? "grabbing" : "grab",
-            transition: isDragging ? "none" : "transform 0.1s ease-out"
+            cursor: isDragging ? "grabbing" : "grab"
           }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
         >
-          <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
+          {/* CSS transform (not the SVG attribute) so the zoom transition
+              actually animates; px units are viewBox user units here. */}
+          <g style={{
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            transition: isDragging ? "none" : "transform 0.1s ease-out"
+          }}>
             {cubesList.map(([cubeName, arch], idx) => {
               const col = idx % cols;
               const row = Math.floor(idx / cols);
@@ -493,7 +514,7 @@ function CubeOverview({ projectId, cubes }: { projectId: string; cubes: string[]
                     fontWeight={600}
                     textAnchor="middle"
                   >
-                    {cubeName}
+                    {cubeName.length > 18 ? cubeName.slice(0, 17) + "…" : cubeName}
                   </text>
 
                   {/* Application name */}
@@ -510,7 +531,7 @@ function CubeOverview({ projectId, cubes }: { projectId: string; cubes: string[]
                   {/* Dimension count */}
                   <text
                     x={cubeSize / 2}
-                    y={cubeSize / 2 + 10}
+                    y={98}
                     fill="#a8a8a8"
                     fontSize={32}
                     fontWeight={700}
@@ -521,7 +542,7 @@ function CubeOverview({ projectId, cubes }: { projectId: string; cubes: string[]
 
                   <text
                     x={cubeSize / 2}
-                    y={cubeSize / 2 + 32}
+                    y={118}
                     fill="#8d8d8d"
                     fontSize={12}
                     textAnchor="middle"
@@ -529,12 +550,13 @@ function CubeOverview({ projectId, cubes }: { projectId: string; cubes: string[]
                     dimensions
                   </text>
 
-                  {/* Dimension names (small list at bottom) */}
-                  {arch.dimensions.slice(0, 5).map((dim, i) => (
+                  {/* Dimension names: 4 rows + "+N more" fit the space below
+                      the count without rows landing on top of each other. */}
+                  {arch.dimensions.slice(0, dimCount > 5 ? 4 : 5).map((dim, i) => (
                     <text
                       key={i}
                       x={cubeSize / 2}
-                      y={cubeSize - 60 + i * 12}
+                      y={134 + i * 12}
                       fill="#6f6f6f"
                       fontSize={9}
                       textAnchor="middle"
@@ -546,12 +568,12 @@ function CubeOverview({ projectId, cubes }: { projectId: string; cubes: string[]
                   {dimCount > 5 && (
                     <text
                       x={cubeSize / 2}
-                      y={cubeSize - 8}
+                      y={cubeSize - 10}
                       fill="#6f6f6f"
                       fontSize={9}
                       textAnchor="middle"
                     >
-                      +{dimCount - 5} more
+                      +{dimCount - 4} more
                     </text>
                   )}
                 </g>

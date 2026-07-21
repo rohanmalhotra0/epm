@@ -54,7 +54,7 @@ function CubeCard({
   isHighlighted: boolean;
 }) {
   const color = STATUS_COLOR[d.status ?? "available"] || "#525252";
-  const scale = isExpanded ? 1.15 : (isHovered ? 1.05 : 1);
+  const scale = isExpanded ? 1.1 : (isHovered ? 1.05 : 1);
   const opacity = isHighlighted ? 1 : (isHovered ? 1 : 0.85);
 
   // Calculate dimensions list
@@ -76,10 +76,13 @@ function CubeCard({
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
     >
+      {/* transform-box: fill-box makes the CSS scale pivot on the card's own
+          center; the SVG attribute transform would pivot on the viewBox origin. */}
       <g
-        transform={`scale(${scale})`}
         style={{
-          transformOrigin: `${NODE_W/2}px ${NODE_H/2}px`,
+          transform: `scale(${scale})`,
+          transformBox: "fill-box",
+          transformOrigin: "center",
           transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
         }}
       >
@@ -138,9 +141,7 @@ function CubeCard({
           fontWeight={isExpanded ? 700 : 600}
           textAnchor="middle"
         >
-          {d.name.length > (isExpanded ? 20 : 16)
-            ? d.name.slice(0, isExpanded ? 19 : 15) + "…"
-            : d.name}
+          {d.name.length > 16 ? d.name.slice(0, 15) + "…" : d.name}
         </text>
 
         {/* Subtitle */}
@@ -154,8 +155,8 @@ function CubeCard({
           {d.type || "Custom"}
         </text>
 
-        {/* Member count badge */}
-        {d.memberCount != null && (
+        {/* Member count badge (hidden when expanded — the detail rows repeat it) */}
+        {d.memberCount != null && !isExpanded && (
           <>
             <rect
               x={NODE_W / 2 - 30}
@@ -184,9 +185,9 @@ function CubeCard({
           <>
             <line
               x1={12}
-              y1={86}
+              y1={58}
               x2={NODE_W - 12}
-              y2={86}
+              y2={58}
               stroke="#393939"
               strokeWidth={1}
             />
@@ -195,7 +196,7 @@ function CubeCard({
               <g key={i}>
                 <text
                   x={16}
-                  y={102 + i * 14}
+                  y={74 + i * 14}
                   fill="#8d8d8d"
                   fontSize={9}
                   textAnchor="start"
@@ -204,7 +205,7 @@ function CubeCard({
                 </text>
                 <text
                   x={NODE_W - 16}
-                  y={102 + i * 14}
+                  y={74 + i * 14}
                   fill="#f4f4f4"
                   fontSize={9}
                   fontWeight={600}
@@ -238,7 +239,7 @@ export function CubeArchitectureBlock({ data }: { data: CubeArchitecture; onActi
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0, panX: 0, panY: 0 });
   const svgRef = useRef<SVGSVGElement>(null);
 
   const z = zones(data);
@@ -250,7 +251,7 @@ export function CubeArchitectureBlock({ data }: { data: CubeArchitecture; onActi
   const cx = width / 2;
   const cy = height / 2;
   const cubeW = 200;
-  const cubeH = 90;
+  const cubeH = 120;
 
   // Filter dimensions based on search query
   const filteredDimensions = data.dimensions.filter(d =>
@@ -263,18 +264,26 @@ export function CubeArchitectureBlock({ data }: { data: CubeArchitecture; onActi
     return filteredDimensions.some(d => d.name === dimName);
   };
 
-  // Handle mouse events for pan
+  // Pan is applied in viewBox user units, but the mouse moves in screen
+  // pixels — convert the drag delta or the content lags the cursor.
+  const screenToUser = () => {
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0 || rect.height === 0) return 1;
+    return 1 / Math.min(rect.width / width, rect.height / height);
+  };
+
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
     if (e.button !== 0) return; // Only left click
     setIsDragging(true);
-    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    setDragStart({ x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y });
   };
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!isDragging) return;
+    const k = screenToUser();
     setPan({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y
+      x: dragStart.panX + (e.clientX - dragStart.x) * k,
+      y: dragStart.panY + (e.clientY - dragStart.y) * k
     });
   };
 
@@ -285,6 +294,11 @@ export function CubeArchitectureBlock({ data }: { data: CubeArchitecture; onActi
   // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Leave typing alone — otherwise "-", "+", "0" and the arrow keys are
+      // swallowed by the diagram while the user edits the search box or chat.
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+
       const panStep = 20;
       const zoomStep = 0.2;
 
@@ -329,20 +343,24 @@ export function CubeArchitectureBlock({ data }: { data: CubeArchitecture; onActi
 
   const place = (arr: DimensionNode[], zone: string) =>
     arr.map((d, i) => {
+      // Total span of n nodes has n-1 gaps, not n — subtract the trailing
+      // spacing or every row/column sits spacing/2 off the cube's center.
+      const rowSpan = arr.length * (NODE_W + spacing) - spacing;
+      const colSpan = arr.length * (NODE_H + spacing) - spacing;
       let x = 0;
       let y = 0;
       if (zone === "top") {
-        x = cx - ((arr.length * (NODE_W + spacing)) / 2) + i * (NODE_W + spacing);
+        x = cx - rowSpan / 2 + i * (NODE_W + spacing);
         y = 40;
       } else if (zone === "bottom") {
-        x = cx - ((arr.length * (NODE_W + spacing)) / 2) + i * (NODE_W + spacing);
+        x = cx - rowSpan / 2 + i * (NODE_W + spacing);
         y = height - NODE_H - 40;
       } else if (zone === "left") {
         x = 40;
-        y = cy - ((arr.length * (NODE_H + spacing)) / 2) + i * (NODE_H + spacing);
+        y = cy - colSpan / 2 + i * (NODE_H + spacing);
       } else {
         x = width - NODE_W - 40;
-        y = cy - ((arr.length * (NODE_H + spacing)) / 2) + i * (NODE_H + spacing);
+        y = cy - colSpan / 2 + i * (NODE_H + spacing);
       }
       return { d, x, y };
     });
@@ -448,15 +466,19 @@ export function CubeArchitectureBlock({ data }: { data: CubeArchitecture; onActi
             width="100%"
             style={{
               minHeight: 600,
-              cursor: isDragging ? "grabbing" : "grab",
-              transition: isDragging ? "none" : "transform 0.1s ease-out"
+              cursor: isDragging ? "grabbing" : "grab"
             }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
           >
-            <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
+            {/* CSS transform (not the SVG attribute) so the zoom transition
+                actually animates; px units are viewBox user units here. */}
+            <g style={{
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+              transition: isDragging ? "none" : "transform 0.1s ease-out"
+            }}>
               {/* Connection lines with animations */}
               {all.map(({ d, x, y }, i) => {
                 const highlighted = isHighlighted(d.name);
@@ -524,26 +546,26 @@ export function CubeArchitectureBlock({ data }: { data: CubeArchitecture; onActi
                 />
 
                 {/* Cube name */}
-                <text x={cx} y={cy + 2} fill="#f4f4f4" fontSize={18} fontWeight={700} textAnchor="middle">
+                <text x={cx} y={cy - 12} fill="#f4f4f4" fontSize={18} fontWeight={700} textAnchor="middle">
                   {data.cube}
                 </text>
 
                 {/* Application */}
-                <text x={cx} y={cy + 22} fill="#8d8d8d" fontSize={12} textAnchor="middle">
+                <text x={cx} y={cy + 8} fill="#8d8d8d" fontSize={12} textAnchor="middle">
                   {data.application}
                 </text>
 
                 {/* Dimension count badge */}
                 <rect
-                  x={cx - 40}
-                  y={cy + 32}
-                  width={80}
+                  x={cx - 48}
+                  y={cy + 20}
+                  width={96}
                   height={20}
                   rx={3}
                   fill="#4589ff"
                   opacity={0.2}
                 />
-                <text x={cx} y={cy + 46} fill="#4589ff" fontSize={11} fontWeight={600} textAnchor="middle">
+                <text x={cx} y={cy + 34} fill="#4589ff" fontSize={11} fontWeight={600} textAnchor="middle">
                   {data.dimensionCount} dimensions
                 </text>
               </g>
