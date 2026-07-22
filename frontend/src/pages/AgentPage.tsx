@@ -140,11 +140,52 @@ function InstallInstructions() {
             (Chrome reads the unpacked folder each time it starts, so don't delete it).
             Already have the repo? Point at its <code>extension/</code> folder instead.
           </li>
-          <li>Open <code>chrome://extensions</code> and turn on <b>Developer mode</b>.</li>
+          <li>Open <ChromeExtensionsLink /> and turn on <b>Developer mode</b>.</li>
           <li>Click <b>Load unpacked</b> and select the unzipped folder.</li>
           <li>Come back here and press <b>Re-check</b>.</li>
         </ol>
       </div>
     </section>
+  );
+}
+
+// A clickable `chrome://extensions` "link". Chrome blocks web pages from
+// navigating to chrome:// URLs, so a real <a href> would render but do nothing
+// on click — instead we copy the address and tell the user to paste it, which
+// is the only thing that actually works from a web page.
+function ChromeExtensionsLink() {
+  const ADDR = "chrome://extensions";
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(ADDR);
+      toast.success(
+        "Address copied",
+        "Paste it into a new Chrome tab — Chrome blocks opening chrome:// links from web pages.",
+      );
+    } catch {
+      toast.info("Copy this address", `${ADDR} — paste it into a new Chrome tab.`);
+    }
+  };
+  return (
+    <code
+      role="button"
+      tabIndex={0}
+      onClick={copy}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          copy();
+        }
+      }}
+      title="Click to copy — Chrome blocks opening chrome:// links from web pages"
+      style={{
+        cursor: "pointer",
+        textDecoration: "underline",
+        textUnderlineOffset: 2,
+        color: "var(--cds-link-primary,#78a9ff)",
+      }}
+    >
+      {ADDR}
+    </code>
   );
 }
