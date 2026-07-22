@@ -585,6 +585,395 @@ html.landing-doc {
   color: var(--lp-accent);
 }
 
+/* ---------- hero chat (reuses the .lp-term box; sans, not mono) ---------- */
+.lp-chat {
+  font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+}
+.lp-chat-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--lp-border-2);
+  background: var(--lp-layer-2);
+}
+.lp-chat-avatar {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--lp-accent);
+  color: #fff;
+  font-family: var(--lp-mono);
+  font-size: 10px;
+  font-weight: 600;
+}
+.lp-chat-avatar.sm {
+  width: 22px;
+  height: 22px;
+  font-size: 9px;
+}
+.lp-chat-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--lp-fg);
+}
+.lp-chat-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 300px;
+}
+.lp-msg {
+  display: flex;
+  gap: 10px;
+}
+.lp-msg.user {
+  justify-content: flex-end;
+}
+.lp-msg.bot {
+  align-items: flex-start;
+}
+.lp-msg-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+.lp-bubble {
+  border: 1px solid var(--lp-border);
+  background: var(--lp-layer-2);
+  padding: 9px 13px;
+  max-width: 90%;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--lp-fg);
+}
+.lp-msg.user .lp-bubble {
+  background: rgba(69, 137, 255, 0.1);
+  border-color: rgba(69, 137, 255, 0.28);
+}
+.lp-typing {
+  display: none;
+  gap: 5px;
+  align-items: center;
+}
+.lp-typing i {
+  width: 6px;
+  height: 6px;
+  background: var(--lp-faint);
+}
+.lp-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.lp-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--lp-muted);
+}
+.lp-step .lp-tick {
+  color: var(--lp-ok);
+}
+.lp-say {
+  font-size: 13px;
+  color: var(--lp-fg);
+  line-height: 1.5;
+}
+.lp-gate-q {
+  font-size: 12.5px;
+  color: var(--lp-fg);
+  margin: 8px 0 2px;
+}
+.lp-gate-btn.warn {
+  background: var(--lp-warn);
+  border-color: var(--lp-warn);
+  color: #fff;
+}
+/* streaming timeline for the chat (keyed off .running, like the old terminal) */
+.lp-chat.running [data-anim] {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: lp-line 320ms var(--lp-ease-prod) both;
+  animation-delay: var(--d, 0s);
+}
+.lp-chat.running .lp-typing {
+  display: flex;
+  overflow: hidden;
+  animation: lp-typing 1.7s both;
+}
+.lp-chat.running .lp-typing i {
+  animation: lp-bounce 1s ease-in-out infinite;
+}
+.lp-chat.running .lp-typing i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.lp-chat.running .lp-typing i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* inline form-preview block */
+.lp-fp {
+  border: 1px solid var(--lp-border);
+  background: var(--lp-bg);
+  font-family: var(--lp-mono);
+}
+.lp-fp-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--lp-border);
+  font-size: 11.5px;
+}
+.lp-fp-title {
+  color: var(--lp-fg);
+  font-weight: 600;
+}
+.lp-fp-valid {
+  margin-left: auto;
+  color: var(--lp-ok);
+  font-size: 10.5px;
+}
+.lp-fp-cube {
+  color: var(--lp-muted);
+  border: 1px solid var(--lp-border);
+  padding: 1px 7px;
+  font-size: 10px;
+}
+.lp-fp-sub {
+  padding: 8px 11px 0;
+  font-size: 11px;
+  color: var(--lp-faint);
+}
+.lp-fp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 11px;
+}
+.lp-fp-chips span {
+  font-size: 10px;
+  color: var(--lp-muted);
+  border: 1px solid var(--lp-border);
+  padding: 2px 7px;
+}
+.lp-fp-grid {
+  display: grid;
+  grid-template-columns: 96px repeat(var(--cols, 6), minmax(34px, 1fr));
+  gap: 1px;
+  background: var(--lp-border);
+  margin: 0 11px 11px;
+  overflow-x: auto;
+}
+.lp-fp-cell {
+  background: var(--lp-bg);
+  padding: 6px 8px;
+  font-size: 11px;
+  color: var(--lp-faint);
+  text-align: right;
+}
+.lp-fp-cell.rowh {
+  text-align: left;
+  color: var(--lp-muted);
+}
+.lp-fp-cell.hdr {
+  color: var(--lp-muted);
+  font-weight: 600;
+  background: var(--lp-layer);
+}
+.lp-fp-foot {
+  padding: 0 11px 10px;
+  font-size: 10.5px;
+  color: var(--lp-faint);
+}
+
+/* ---------- inline result blocks gallery (section 02) ---------- */
+.lp-blocks {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--lp-border);
+  border: 1px solid var(--lp-border);
+}
+.lp-block {
+  background: var(--lp-bg);
+  padding: 22px 20px;
+  transition:
+    background 0.16s ease,
+    transform 0.16s var(--lp-ease);
+}
+.lp-block:hover {
+  background: var(--lp-layer);
+  transform: translateY(-2px);
+}
+.lp-block-no {
+  font-family: var(--lp-mono);
+  font-size: 11px;
+  color: var(--lp-accent);
+  display: block;
+  margin-bottom: 12px;
+}
+.lp-block h3 {
+  font-size: 14.5px;
+  font-weight: 600;
+  margin: 0 0 7px;
+}
+.lp-block p {
+  font-size: 12.5px;
+  color: var(--lp-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ---------- narrated browser agent (section 04) ---------- */
+.lp-agent-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: clamp(28px, 4vw, 52px);
+  align-items: start;
+  margin-top: 6px;
+}
+.lp-agent-copy {
+  min-width: 0;
+}
+.lp-agent-copy .lp-lede {
+  margin-bottom: 18px;
+}
+.lp-agent-panel-wrap {
+  min-width: 0;
+}
+.lp-agent-honest {
+  margin-top: 22px;
+  max-width: 80ch;
+}
+
+.lp-panel {
+  border: 1px solid var(--lp-border-2);
+  background: var(--lp-layer);
+  font-family: var(--lp-mono);
+}
+.lp-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--lp-border-2);
+  background: var(--lp-layer-2);
+}
+.lp-panel-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--lp-ok);
+}
+/* the connected dot pulses only when motion is welcome (reduced-motion kills it) */
+.lp.reveal-on .lp-panel-dot {
+  animation: lp-beat 2s ease-out infinite;
+}
+.lp-panel-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--lp-fg);
+}
+.lp-panel-ctrls {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 6px;
+  color: var(--lp-faint);
+  font-size: 10px;
+}
+.lp-panel-ctrls i {
+  border: 1px solid var(--lp-border-2);
+  padding: 1px 5px;
+  font-style: normal;
+}
+.lp-panel-goal {
+  padding: 9px 11px;
+  font-size: 10.5px;
+  color: var(--lp-muted);
+  border-bottom: 1px solid var(--lp-border);
+}
+.lp-panel-feed {
+  padding: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.lp-narr {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 11px;
+}
+.lp-narr-t {
+  color: var(--lp-faint);
+}
+.lp-narr-mark {
+  color: var(--lp-ok);
+}
+.lp-narr.run .lp-narr-mark {
+  color: var(--lp-accent);
+}
+.lp-narr-text {
+  color: var(--lp-muted);
+}
+.lp-narr-ref {
+  color: var(--lp-accent);
+}
+.lp-panel-foot {
+  padding: 9px 11px;
+  border-top: 1px solid var(--lp-border);
+  font-size: 10px;
+  color: var(--lp-faint);
+}
+/* the enforced-hold card in the side panel */
+.lp-held {
+  border: 1px solid var(--lp-warn);
+  border-left: 2px solid var(--lp-warn);
+  background: rgba(250, 77, 86, 0.06);
+  padding: 10px 11px;
+}
+.lp-held-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lp-held-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--lp-warn);
+}
+.lp-held-env {
+  margin-left: auto;
+  font-size: 9px;
+  color: var(--lp-warn);
+  border: 1px solid var(--lp-warn);
+  padding: 1px 5px;
+}
+.lp-held-detail {
+  font-size: 10.5px;
+  color: var(--lp-muted);
+  margin: 7px 0 8px;
+  line-height: 1.5;
+}
+.lp-held-actions {
+  display: flex;
+  gap: 7px;
+}
+/* one-time warn heartbeat on the held card when the panel scrolls in */
+.lp.reveal-on .lp-agent-panel-wrap[data-reveal].in-view .lp-held {
+  animation: lp-pulse-warn 900ms var(--lp-ease) 0.4s 1;
+}
+
 /* ---------- generic section scaffolding ---------- */
 .lp-section {
   max-width: var(--lp-maxw);
@@ -1066,6 +1455,47 @@ html.landing-doc {
     box-shadow: inset 2px 0 0 0 var(--lp-accent), 0 0 0 0 rgba(69, 137, 255, 0);
   }
 }
+@keyframes lp-pulse-warn {
+  0% {
+    box-shadow: inset 2px 0 0 0 var(--lp-warn), 0 0 0 0 rgba(250, 77, 86, 0);
+  }
+  35% {
+    box-shadow: inset 2px 0 0 0 var(--lp-warn), 0 0 0 2px rgba(250, 77, 86, 0.55);
+  }
+  100% {
+    box-shadow: inset 2px 0 0 0 var(--lp-warn), 0 0 0 0 rgba(250, 77, 86, 0);
+  }
+}
+@keyframes lp-typing {
+  0% {
+    opacity: 0;
+    max-height: 0;
+  }
+  14% {
+    opacity: 1;
+    max-height: 20px;
+  }
+  72% {
+    opacity: 1;
+    max-height: 20px;
+  }
+  100% {
+    opacity: 0;
+    max-height: 0;
+    margin: 0;
+  }
+}
+@keyframes lp-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
 
 /* ---------- responsive ---------- */
 @media (max-width: 900px) {
@@ -1087,6 +1517,12 @@ html.landing-doc {
   .lp-features {
     grid-template-columns: 1fr;
   }
+  .lp-blocks {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .lp-agent-grid {
+    grid-template-columns: 1fr;
+  }
   .lp-repro {
     grid-template-columns: 1fr;
   }
@@ -1104,7 +1540,8 @@ html.landing-doc {
 }
 @media (max-width: 520px) {
   .lp-loop-row,
-  .lp-stats {
+  .lp-stats,
+  .lp-blocks {
     grid-template-columns: 1fr;
   }
   .lp-log {

@@ -1,81 +1,102 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import "../styles/landing.css";
 import { useScrollReveal, usePrefersReducedMotion } from "../hooks/useScrollReveal";
-import { TrustBoundaryDiagram } from "./marketingDiagrams";
+import { TrustBoundaryDiagram, BrowserAgentDiagram } from "./marketingDiagrams";
 
 /**
- * Public marketing / landing page — the ONLY page (besides /docs) served
- * without the Google auth gate. main.tsx renders it at "/" when the path is not
- * under /app. The primary CTA links to "/app", which oauth2-proxy (the
- * epmw-auth front door) intercepts: an unauthenticated visitor is bounced to
- * Google and returned to /app once signed in. In local dev (no gate) the link
- * simply loads the app.
+ * Public marketing / landing page — served without the Google auth gate at "/"
+ * (see main.tsx). The primary CTA links to "/app", which oauth2-proxy intercepts
+ * and sends through Google, returning to /app once signed in.
  *
- * Design language — "a running instrument, not a stack of marketing blocks":
- * dark IBM Carbon industrial (flat #161616/#1c1c1c surfaces, hairline borders,
- * sharp corners, IBM Plex Sans + Mono, accent #4589ff used at most once per
- * viewport, Carbon green #24a148 reserved for live/verified). The hero streams
- * one real EPM change end-to-end and deliberately STOPS at the approval gate —
- * the product's core guarantee ("nothing deploys without you") shown as motion.
+ * The product has TWO surfaces and the page leads with both:
+ *   1. A ChatGPT-style chat workspace for Oracle EPM — you ask in plain language
+ *      and get back live, typed result blocks (form-preview grids, cube maps,
+ *      validation, deployment plans), not walls of text.
+ *   2. A Chrome extension — the Narrated Browser Agent — that drives Oracle EPM
+ *      Cloud's real web UI for you, narrating each step, with an enforced gate
+ *      that HOLDS destructive and production actions for your approval.
  *
- * All motion is plain CSS (transform/opacity/stroke only) plus one tiny
- * IntersectionObserver hook. Everything is fully legible at rest, so
- * prefers-reduced-motion (see landing.css) loses choreography, never content.
+ * Aesthetic: dark IBM Carbon industrial (flat surfaces, hairline borders, sharp
+ * corners, IBM Plex, accent #4589ff sparingly, Carbon green #24a148 for
+ * live/verified, red #fa4d56 for a held/denied action). All motion is plain CSS
+ * + one IntersectionObserver hook; every mockup is legible at rest, so
+ * prefers-reduced-motion loses choreography, never content. Faux UI is
+ * illustrative and aria-hidden.
  */
 
-// Where the "Sign in with Google" CTA sends the visitor. oauth2-proxy protects
-// everything under /app and redirects to Google, returning here afterwards. It
-// must be a real navigation (plain <a>), not an in-app <Link>, so it hits the
-// gate rather than the public router.
 const APP_ENTRY = "/app";
 
-// Cast helper for inline CSS custom properties (--d, --i, --w …), which
-// React.CSSProperties does not type.
 const v = (o: Record<string, string | number>): React.CSSProperties => o as unknown as React.CSSProperties;
 
 /* ------------------------------------------------------------------ content */
 
-const FEATURES = [
+// Section 01 — what a request renders back as.
+const ANATOMY = [
   {
-    no: "01",
-    title: "An AI copilot for EPM",
-    body: "Ask questions, draft forms and rules, and reason over your Planning application in plain language — grounded in your own metadata, not generic training data.",
+    asked: "“Create an Actuals form with level-zero descendants of Total Payroll in rows.”",
+    rendered: "A form-preview grid you can read — accounts in rows, months in columns, validated against your outline before anything ships.",
   },
   {
-    no: "02",
-    title: "A live Oracle EPM connection",
-    body: "Connect a Planning tenant with a password or OAuth 2.0 client credentials. Every call crosses one audited connector boundary; secrets stay in an encrypted local store.",
+    asked: "“Visualize OEP_DCSH”",
+    rendered: "An interactive cube map — every dimension, its coverage and sizing — rendered inline in the conversation.",
   },
   {
-    no: "03",
-    title: "Forms, rules & reports as artifacts",
-    body: "Generate and edit data forms, rule specifications, and snapshot summaries as first-class, byte-reproducible artifacts alongside the conversation.",
+    asked: "“Draft a rule that copies Working to Final”",
+    rendered: "A script grounded on your real rules, with a visible “Grounded on” block — a proposal, never auto-run.",
+  },
+  {
+    asked: "“Deploy it to TEST”",
+    rendered: "An approval card. The model proposes; nothing changes on your tenant until you approve.",
   },
 ];
 
+// Section 02 — the typed result blocks the chat renders.
+const BLOCKS = [
+  { no: "01", name: "Form preview", body: "A live EPM-style grid — POV, rows, columns, and a validation status you can read at a glance." },
+  { no: "02", name: "Cube map", body: "An interactive view of a cube — its dimensions, coverage, and sizing — drawn inline." },
+  { no: "03", name: "Validation report", body: "Member existence, axis rules, sizing, and security, checked against your real outline." },
+  { no: "04", name: "Deployment plan", body: "The plan, its progress, and the result — marked verified only once confirmed." },
+  { no: "05", name: "Grounded-on", body: "The real rule scripts and templates a draft was generated from — no hidden context." },
+  { no: "06", name: "Diff", body: "Exactly what a refresh or snapshot merge changed, member by member." },
+  { no: "07", name: "Runtime-prompt form", body: "A rule's runtime prompts, rendered as a small form to fill in and submit." },
+  { no: "08", name: "Member search", body: "Resolve members exactly — identifier-first, with no fuzzy substitution." },
+];
+
+// Section 03 — the working loop, chat-native.
 const LOOP = [
-  { no: "01", name: "Propose", sub: "plain language → typed spec" },
-  { no: "02", name: "Validate", sub: "against live tenant metadata" },
+  { no: "01", name: "Propose", sub: "you ask in plain language" },
+  { no: "02", name: "Validate", sub: "checked against your tenant" },
   { no: "03", name: "Approve", sub: "you, explicitly — it stops here", gate: true },
-  { no: "04", name: "Deploy", sub: "byte-reproducible artifact" },
+  { no: "04", name: "Deploy", sub: "the reviewed artifact ships" },
   { no: "05", name: "Verify", sub: "read back · marked verified" },
 ];
 
-const STATS = [
-  { to: 0, suffix: "", label: "secrets ever sent to the model" },
-  { to: 0, suffix: "", label: "deploys without your approval" },
-  { to: 100, suffix: "%", label: "byte-reproducible artifacts" },
-  { to: 5, suffix: "", label: "validation gates per change" },
+// Section 04 — browser-agent capabilities + narration.
+const AGENT_CAPS: Array<[string, string]> = [
+  ["Grounds on the page", "Accessibility-tree first — it targets real elements by ref id, not blind pixel coordinates."],
+  ["Falls back to vision", "For canvas / JET data grids with no accessibility info: a screenshot and a vision model."],
+  ["Narrates every step", "Numbered click / type / scroll / navigate actions stream into a side panel, with optional spoken narration."],
+  ["Enforced safety gate", "Destructive targets and any write on a production tab are held for your approval. On by default."],
 ];
 
-// The model story (see docs/MODEL_CARD.md). EPM Wizard is model-agnostic AND
-// ships a specialist fine-tune, so lead with providers and present the fine-tune
-// as one option. Deliberately NOT a quality benchmark — the corpus is synthetic
-// and template-derived, so we state run facts ("converged"), never accuracy, and
-// carry the honest caveat below. No training cost/runtime on a public page.
+const NARRATION: Array<{ t: string; state: "ok" | "run"; text: string; ref?: string }> = [
+  { t: "00:00:01", state: "ok", text: "Opened Forms library", ref: "ref=12" },
+  { t: "00:00:03", state: "ok", text: "Selected “Actuals”", ref: "ref=42" },
+  { t: "00:00:05", state: "run", text: "Typing period range Jan–Dec…" },
+];
+
+// Section 07 — honest, on-message telemetry.
+const STATS = [
+  { to: 0, suffix: "", label: "secrets sent to the model" },
+  { to: 0, suffix: "", label: "destructive actions run without your approval" },
+  { to: 8, suffix: "", label: "typed result blocks rendered in chat" },
+  { to: 100, suffix: "%", label: "of actions are typed, allowlisted functions" },
+];
+
+// Section 08 — the model layer.
 const MODEL_SPEC: Array<[string, string]> = [
-  ["Providers", "Anthropic · any OpenAI-compatible endpoint · Gemini"],
+  ["Providers", "Anthropic · any OpenAI-compatible endpoint · Gemini · local"],
   ["EPM Coder v1", "A LoRA fine-tune on a Qwen2.5-32B-Instruct base"],
   ["Specialized for", "Plain-English request → validated FormSpecification"],
   ["Training set", "1,810 examples, each checked schema-valid · 3 epochs"],
@@ -89,31 +110,31 @@ const LEDGER: Array<{ t: string; tag: Tag; claim: string; how: string; gate?: bo
     tag: "policy",
     gate: true,
     claim: "Nothing deploys without your explicit approval.",
-    how: "Every modifying operation stops at an approval card. The model proposes; you approve.",
+    how: "Every modifying operation stops at an approval card in the chat. The model proposes; you approve.",
   },
   {
     t: "00:00:02",
     tag: "deny",
-    claim: "Secrets never reach the model.",
-    how: "Credentials live in a Fernet-encrypted local store and are scrubbed from logs, tool results, and errors.",
+    claim: "The browser agent holds destructive & production actions.",
+    how: "Deploy, delete, clear, run-rule, and any write on a production tab are held for approval in the side panel — read-only actions never pause.",
   },
   {
     t: "00:00:03",
+    tag: "deny",
+    claim: "Secrets never reach the model.",
+    how: "Credentials live in an encrypted local store and are scrubbed from logs, tool results, and errors.",
+  },
+  {
+    t: "00:00:04",
     tag: "deny",
     claim: "No shell, ever.",
     how: "Executable actions are typed, allowlisted functions — argument arrays with strict validation, never a shell string.",
   },
   {
-    t: "00:00:04",
+    t: "00:00:05",
     tag: "local",
     claim: "Your data stays on your machine.",
     how: "Projects, contexts, artifacts, and history live in one local data directory — not a hosted service.",
-  },
-  {
-    t: "00:00:05",
-    tag: "verify",
-    claim: "Production is deliberately slow.",
-    how: "PROD environments carry a badge; deploying requires a typed confirmation phrase plus passing validation.",
   },
 ];
 
@@ -139,10 +160,8 @@ function SignInButton({ variant }: { variant: "primary" | "nav" }) {
   );
 }
 
-/** A single count-up telemetry tile. Ramps 0 → `to` (easeOutCubic) the first
- *  time it scrolls into view; renders the final value immediately when motion
- *  is reduced or IntersectionObserver is missing. Tabular figures + a reserved
- *  width keep it from reflowing as digits change. */
+/** Count-up telemetry tile. Ramps 0 → `to` on first view; renders the final
+ *  value immediately under reduced motion. */
 function Stat({ to, suffix, label, reduce }: { to: number; suffix: string; label: string; reduce: boolean }) {
   const numRef = useRef<HTMLSpanElement>(null);
   useEffect(() => {
@@ -191,84 +210,154 @@ function Stat({ to, suffix, label, reduce }: { to: number; suffix: string; label
   );
 }
 
-/* ------------------------------------------------------------- hero terminal */
+/* --------------------------------------------------------------- hero chat */
 
-/** The scripted, self-running session. Delays (in seconds) form a single CSS
- *  timeline keyed off the `.running` class; at rest every line is printed and
- *  the sequence rests on the approval gate. Decorative → aria-hidden; the real
- *  value proposition lives in the readable hero copy beside it. */
-function HeroTerminal({ replayKey, running }: { replayKey: number; running: boolean }) {
-  const spec: Array<[string, string]> = [
-    ["form", "Revenue"],
-    ["driver", "Working_Days"],
-    ["cube", "OEP_FS"],
-    ["scope", "FY26 · Forecast"],
-  ];
-  const checks = [
-    'dimension "Account" exists',
-    "member path resolved · no fuzzy match",
-    "no direct write · artifact only",
-    "reproducible · sha256:9f2a…d1",
-  ];
+/** A ChatGPT-style conversation that streams a real EPM request end-to-end and
+ *  rests on an in-chat approval card — the product's core guarantee, shown as
+ *  motion. Decorative → aria-hidden; a readable summary sits in .lp-sr-only, and
+ *  the value proposition lives in the hero copy beside it. Streaming is a single
+ *  CSS timeline keyed off `.running`; at rest the whole exchange is printed and
+ *  resting on the approval card. */
+function HeroChat({ replayKey, running }: { replayKey: number; running: boolean }) {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "…"];
+  const accounts = ["Salaries", "Overtime", "Benefits", "Bonus"];
   return (
-    <div className={`lp-term${running ? " running" : ""}`} key={replayKey} aria-hidden="true">
-      <div className="lp-term-bar">
-        <span className="lp-term-dots">
-          <i />
-          <i />
-          <i />
-        </span>
-        <span className="lp-term-tab">session · epm-wizard</span>
-        <span className="lp-term-status">
-          <b data-st="local">LOCAL</b>
-          <b data-st="work">WORKING</b>
-          <b data-st="ok">AWAITING&nbsp;YOU</b>
+    <div className={`lp-term lp-chat${running ? " running" : ""}`} key={replayKey} aria-hidden="true">
+      <div className="lp-chat-head">
+        <span className="lp-chat-avatar">EW</span>
+        <span className="lp-chat-name">EPM Wizard</span>
+        <span className="lp-chat-status lp-term-status">
+          <b data-st="local">THINKING</b>
+          <b data-st="work">RENDERING</b>
+          <b data-st="ok">AWAITING YOU</b>
         </span>
       </div>
-      <div className="lp-term-body">
-        <div className="lp-tline lp-cmd" style={v({ "--d": "0.15s" })}>
-          <span className="lp-prompt">$</span>
-          <span className="lp-type" style={v({ "--w": "46ch" })}>
-            add a Working Days driver to the Revenue form
-          </span>
+
+      <div className="lp-chat-body">
+        <div className="lp-msg user" data-anim style={v({ "--d": "0.2s" })}>
+          <div className="lp-bubble">
+            Create an Actuals form with level-zero descendants of Total Payroll in rows, Jan–Dec in columns.
+          </div>
         </div>
 
-        <div className="lp-tline lp-note" style={v({ "--d": "1.45s" })}>
-          <span className="lp-c">//</span> proposing spec
-        </div>
-        {spec.map(([k, val], i) => (
-          <div className="lp-tline lp-spec" key={k} style={v({ "--d": `${1.7 + i * 0.12}s` })}>
-            <span className="lp-k">{k}</span>
-            <span className="lp-v">{val}</span>
-          </div>
-        ))}
+        <div className="lp-msg bot">
+          <span className="lp-chat-avatar sm">EW</span>
+          <div className="lp-msg-col">
+            <div className="lp-typing">
+              <i />
+              <i />
+              <i />
+            </div>
+            <div className="lp-steps">
+              <div className="lp-step" data-anim style={v({ "--d": "1.7s" })}>
+                <span className="lp-tick">✓</span> Recognizing intent
+              </div>
+              <div className="lp-step" data-anim style={v({ "--d": "2.0s" })}>
+                <span className="lp-tick">✓</span> Retrieving context
+              </div>
+              <div className="lp-step" data-anim style={v({ "--d": "2.3s" })}>
+                <span className="lp-tick">✓</span> Validating against tenant
+              </div>
+            </div>
+            <div className="lp-say" data-anim style={v({ "--d": "2.8s" })}>
+              Here&rsquo;s the form — 24 accounts × 12 months.
+              <span className="lp-cursor" />
+            </div>
 
-        <div className="lp-tline lp-note" style={v({ "--d": "2.5s" })}>
-          <span className="lp-c">//</span> validating against tenant
-        </div>
-        <div className="lp-tline" style={v({ "--d": "2.7s" })}>
-          <span className="lp-scan" />
-        </div>
-        {checks.map((c, i) => (
-          <div className="lp-tline lp-check" key={c} style={v({ "--d": `${3.7 + i * 0.2}s` })}>
-            <span className="lp-tick">✓</span>
-            <span>{c}</span>
-          </div>
-        ))}
+            {/* inline form-preview block */}
+            <div className="lp-fp" data-anim style={v({ "--d": "3.3s" })}>
+              <div className="lp-fp-head">
+                <span className="lp-fp-title">Form preview — 25-01 Actuals</span>
+                <span className="lp-fp-valid">● valid</span>
+                <span className="lp-fp-cube">OEP_FS</span>
+              </div>
+              <div className="lp-fp-sub">Vision · Forms / Payroll</div>
+              <div className="lp-fp-chips">
+                <span>Rows · Account: Lvl-0 of Total Payroll (24)</span>
+                <span>Columns · Period: Jan–Dec</span>
+                <span>POV · Entity: Total Entity</span>
+              </div>
+              <div className="lp-fp-grid" style={v({ "--cols": months.length })}>
+                <span className="lp-fp-cell hdr rowh" />
+                {months.map((m) => (
+                  <span className="lp-fp-cell hdr" key={m}>
+                    {m}
+                  </span>
+                ))}
+                {accounts.map((a) => (
+                  <Fragment key={a}>
+                    <span className="lp-fp-cell rowh">{a}</span>
+                    {months.map((m) => (
+                      <span className="lp-fp-cell" key={`${a}-${m}`}>
+                        —
+                      </span>
+                    ))}
+                  </Fragment>
+                ))}
+              </div>
+              <div className="lp-fp-foot">~288 cells · 24 rows × 12 months</div>
+            </div>
 
-        <div className="lp-tline lp-gate" style={v({ "--d": "4.7s" })}>
-          <div className="lp-gate-head">
-            <span className="lp-gate-badge">APPROVAL REQUIRED</span>
-            <span className="lp-gate-meta">1 modifying op</span>
+            {/* inline approval block */}
+            <div className="lp-gate" data-anim style={v({ "--d": "4.3s" })}>
+              <div className="lp-gate-head">
+                <span className="lp-gate-badge">APPROVAL REQUIRED</span>
+                <span className="lp-gate-meta">deploy · TEST</span>
+              </div>
+              <div className="lp-gate-q">Deploy 25-01 Actuals to Vision (TEST)?</div>
+              <div className="lp-gate-actions">
+                <span className="lp-gate-btn primary">Approve &amp; deploy</span>
+                <span className="lp-gate-btn">Preview package</span>
+                <span className="lp-cursor" />
+              </div>
+              <div className="lp-gate-foot">nothing deploys until you say so</div>
+            </div>
           </div>
-          <div className="lp-gate-actions">
-            <span className="lp-gate-btn primary">Approve</span>
-            <span className="lp-gate-btn">Diff</span>
-            <span className="lp-cursor" />
-          </div>
-          <div className="lp-gate-foot">nothing deploys until you say so</div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------- browser-agent side panel */
+
+function AgentPanel() {
+  return (
+    <div className="lp-panel" aria-hidden="true">
+      <div className="lp-panel-head">
+        <span className="lp-panel-dot" />
+        <span className="lp-panel-name">Narrated Browser Agent</span>
+        <span className="lp-panel-ctrls">
+          <i>▶</i>
+          <i>❚❚</i>
+          <i>■</i>
+        </span>
+      </div>
+      <div className="lp-panel-goal">Goal · Open the Actuals form and set Scenario to Forecast</div>
+      <div className="lp-panel-feed">
+        {NARRATION.map((n) => (
+          <div className={`lp-narr${n.state === "run" ? " run" : ""}`} key={n.t}>
+            <span className="lp-narr-t">{n.t}</span>
+            <span className="lp-narr-mark">{n.state === "run" ? "●" : "✓"}</span>
+            <span className="lp-narr-text">
+              {n.text}
+              {n.ref ? <span className="lp-narr-ref"> {n.ref}</span> : null}
+            </span>
+          </div>
+        ))}
+        <div className="lp-held">
+          <div className="lp-held-head">
+            <span className="lp-held-badge">HELD FOR APPROVAL</span>
+            <span className="lp-held-env">PROD</span>
+          </div>
+          <div className="lp-held-detail">target: “Deploy” · context: production tenant (planning-prod…)</div>
+          <div className="lp-held-actions">
+            <span className="lp-gate-btn warn">Approve action</span>
+            <span className="lp-gate-btn">Skip</span>
+          </div>
+        </div>
+      </div>
+      <div className="lp-panel-foot">accessibility-tree grounding · screenshot fallback · 3 steps</div>
     </div>
   );
 }
@@ -280,9 +369,7 @@ export function LandingPage() {
   const reduce = usePrefersReducedMotion();
   const [replayKey, setReplayKey] = useState(0);
 
-  // Left scroll-progress rail (wide screens only). Only wired when motion is
-  // welcome; otherwise the rail is hidden (see landing.css) and we never touch
-  // scroll. rAF-throttled, writes a single 0..1 custom property.
+  // Left scroll-progress rail (wide screens, motion only).
   useEffect(() => {
     if (reduce) return;
     const root = rootRef.current;
@@ -321,7 +408,8 @@ export function LandingPage() {
             <span>EPM&nbsp;Wizard</span>
           </Link>
           <nav className="lp-nav-links">
-            <a href="#product">Product</a>
+            <a href="#chat">Chat</a>
+            <a href="#agent">Browser Agent</a>
             <a href="#security">Security</a>
             <Link to="/docs">Docs</Link>
           </nav>
@@ -331,24 +419,25 @@ export function LandingPage() {
 
       <main>
         {/* -------------------------------------------------------- hero */}
-        <section className="lp-hero">
+        <section className="lp-hero" id="chat">
           <div className="lp-hero-inner">
             <div className="lp-hero-copy">
               <p className="lp-eyebrow">
                 <span className="lp-eyebrow-tick" />
-                LOCAL-FIRST · ORACLE EPM · §000
+                CHAT · BROWSER AGENT · ORACLE EPM
               </p>
               <h1 className="lp-title">
-                Describe the change.
+                Chat with your EPM app.
                 <br />
-                Watch it validate.
+                Or let it drive the screen.
                 <br />
-                Ship the artifact.
+                You approve everything.
               </h1>
               <p className="lp-sub">
-                An AI workspace for Oracle EPM implementation. Plain-language intent becomes a structured spec, checked by
-                deterministic code against your live tenant — local-first, secrets never leave your machine, and nothing
-                deploys without your approval.
+                A ChatGPT-style workspace for Oracle EPM (Hyperion Planning). Ask in plain language and get back live,
+                typed result blocks — form-preview grids, cube maps, validation, deployment plans — not walls of text. A
+                companion Chrome extension drives Oracle EPM Cloud&rsquo;s real UI for you and narrates each step, with an
+                enforced gate that holds destructive and production actions for your approval.
               </p>
               <div className="lp-actions">
                 <SignInButton variant="primary" />
@@ -359,11 +448,17 @@ export function LandingPage() {
                   </span>
                 </Link>
               </div>
-              <p className="lp-fineprint">Secrets never reach the model. Your data never leaves your machine.</p>
+              <p className="lp-fineprint">Try it in Demo Mode — no Oracle tenant, no API key.</p>
             </div>
 
             <div className="lp-hero-term-wrap">
-              <HeroTerminal replayKey={replayKey} running={!reduce} />
+              <HeroChat replayKey={replayKey} running={!reduce} />
+              <p className="lp-sr-only">
+                Example conversation: a user asks EPM Wizard to create an Actuals form with level-zero descendants of
+                Total Payroll in rows and January to December in columns. The assistant recognizes the intent, retrieves
+                context, validates against the tenant, and renders a form-preview grid, then presents an approval card to
+                deploy to the test environment — nothing is deployed until the user approves.
+              </p>
               {!reduce && (
                 <button type="button" className="lp-replay" onClick={() => setReplayKey((k) => k + 1)}>
                   ↺ replay
@@ -374,42 +469,44 @@ export function LandingPage() {
           <div className="lp-ruler" aria-hidden="true" />
         </section>
 
-        {/* ---------------------------------------- anatomy of a change */}
-        <section id="product" className="lp-section lp-anatomy">
+        {/* --------------------------------- what the chat renders (anatomy) */}
+        <section className="lp-section lp-anatomy">
           <p className="lp-kicker" data-reveal>
-            01 / anatomy of a change
+            01 / the chat, and what it renders
           </p>
           <h2 className="lp-h2" data-reveal>
-            What you just watched, mapped to what actually ran
+            You ask in plain language. It answers in interfaces.
           </h2>
           <div className="lp-anatomy-grid">
-            {[
-              {
-                said: "“add a Working Days driver to the Revenue form”",
-                ran: "The model interprets intent and proposes a typed FormSpecification — it never writes the artifact itself.",
-              },
-              {
-                said: "validating against tenant",
-                ran: "Deterministic code resolves every member exactly against your live metadata. No fuzzy substitution, no guesses.",
-              },
-              {
-                said: "APPROVAL REQUIRED",
-                ran: "Modifying operations are refused at the connector boundary unless you approve upstream. The pause is the point.",
-              },
-              {
-                said: "sha256:9f2a…d1",
-                ran: "The package that ships is byte-for-byte reproducible with a SHA-256 checksum — not whatever the model last said.",
-              },
-            ].map((row, i) => (
-              <div className="lp-anatomy-row" data-reveal style={v({ "--i": i })} key={row.said}>
+            {ANATOMY.map((row, i) => (
+              <div className="lp-anatomy-row" data-reveal style={v({ "--i": i })} key={row.asked}>
                 <div className="lp-anatomy-said">
-                  <span className="lp-anatomy-label">on screen</span>
-                  <code>{row.said}</code>
+                  <span className="lp-anatomy-label">you asked</span>
+                  <code>{row.asked}</code>
                 </div>
                 <div className="lp-anatomy-ran">
-                  <span className="lp-anatomy-label">under the hood</span>
-                  <p>{row.ran}</p>
+                  <span className="lp-anatomy-label">the chat rendered</span>
+                  <p>{row.rendered}</p>
                 </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ------------------------------------------ inline blocks gallery */}
+        <section className="lp-section lp-blocks-section">
+          <p className="lp-kicker" data-reveal>
+            02 / inline result blocks
+          </p>
+          <h2 className="lp-h2" data-reveal>
+            Typed, interactive results — not walls of text
+          </h2>
+          <div className="lp-blocks">
+            {BLOCKS.map((b, i) => (
+              <div className="lp-block" data-reveal style={v({ "--i": i % 4 })} key={b.no}>
+                <span className="lp-block-no">{b.no}</span>
+                <h3>{b.name}</h3>
+                <p>{b.body}</p>
               </div>
             ))}
           </div>
@@ -418,10 +515,10 @@ export function LandingPage() {
         {/* ------------------------------------------ the loop, 5 stages */}
         <section className="lp-section lp-loop">
           <p className="lp-kicker" data-reveal>
-            02 / the working loop
+            03 / the working loop
           </p>
           <h2 className="lp-h2" data-reveal>
-            Five stages, from a sentence to a verified deployment
+            From a sentence to a verified change
           </h2>
           <ol className="lp-loop-row" data-reveal>
             {LOOP.map((s, i) => (
@@ -433,52 +530,65 @@ export function LandingPage() {
             ))}
           </ol>
           <p className="lp-loop-note" data-reveal>
-            The language model only reaches stage one. Everything that has to be correct and reproducible is deterministic
-            code — and stage three is a hard stop that waits for you.
+            The model proposes; deterministic, tested code disposes. Stage three is a hard stop that waits for you — in
+            the chat, and again in the browser agent.
           </p>
         </section>
 
-        {/* --------------------------------------------- telemetry band */}
-        <section className="lp-section lp-stats-section">
+        {/* ------------------------------------------ narrated browser agent */}
+        <section className="lp-section lp-agent" id="agent">
           <p className="lp-kicker" data-reveal>
-            03 / telemetry
+            04 / the narrated browser agent
           </p>
-          <h2 className="lp-sr-only">Telemetry</h2>
-          <div className="lp-stats">
-            {STATS.map((s) => (
-              <Stat key={s.label} to={s.to} suffix={s.suffix} label={s.label} reduce={reduce} />
-            ))}
+          <h2 className="lp-h2" data-reveal>
+            It can take the wheel — and narrate every move.
+          </h2>
+          <div className="lp-agent-grid">
+            <div className="lp-agent-copy">
+              <p className="lp-lede" data-reveal>
+                Install the Chrome extension and EPM Wizard drives Oracle EPM Cloud&rsquo;s actual web UI for you. It reads
+                the page&rsquo;s accessibility tree to target real elements, narrates each step in a side panel, and stops
+                at an enforced safety gate before anything destructive or production-facing runs.
+              </p>
+              <dl className="lp-spec-sheet" data-reveal>
+                {AGENT_CAPS.map(([k, val], i) => (
+                  <div className="lp-spec-row" style={v({ "--i": i })} key={k}>
+                    <dt>{k}</dt>
+                    <dd>{val}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+            <div className="lp-agent-panel-wrap" data-reveal>
+              <AgentPanel />
+              <p className="lp-sr-only">
+                Illustrative side panel: the agent opens the Forms library, selects Actuals, begins typing a period range,
+                then holds a “Deploy” action on a production tenant for your approval before it runs.
+              </p>
+            </div>
           </div>
-        </section>
-
-        {/* ---------------------------------------------- what it does */}
-        <section className="lp-section lp-features-section">
-          <p className="lp-kicker" data-reveal>
-            04 / what it does
+          <figure className="lp-arch-fig" data-reveal>
+            <BrowserAgentDiagram />
+          </figure>
+          <p className="lp-fineprint lp-agent-honest" data-reveal>
+            The browser agent is a real, loadable extension. Oracle-specific UI hardening is still in progress and it has
+            not been validated against a live tenant — keep the safety gate on and supervise it.
           </p>
-          <h2 className="lp-sr-only">What it does</h2>
-          <div className="lp-features">
-            {FEATURES.map((f, i) => (
-              <div className="lp-feature" data-reveal style={v({ "--i": i })} key={f.no}>
-                <span className="lp-feature-no">{f.no}</span>
-                <h3>{f.title}</h3>
-                <p>{f.body}</p>
-              </div>
-            ))}
-          </div>
         </section>
 
         {/* ------------------------------------ architecture / trust boundary */}
         <section id="security" className="lp-section lp-arch">
           <p className="lp-kicker" data-reveal>
-            05 / architecture
+            05 / security
           </p>
           <h2 className="lp-h2" data-reveal>
             Where does my password go? It stops here.
           </h2>
           <p className="lp-lede" data-reveal>
-            Everything that touches a secret stays on your machine. Only deterministic code crosses the connector boundary
-            to your tenant — carrying metadata and artifacts, never credentials, and never the model.
+            Local-first by design: your projects and history stay on your machine, and everything that touches a secret
+            stays there too. Only deterministic code crosses the connector boundary to your tenant — carrying metadata
+            and artifacts, never credentials, and never the model. The browser agent runs in your browser, under your own
+            signed-in session.
           </p>
           <figure className="lp-arch-fig" data-reveal>
             <TrustBoundaryDiagram />
@@ -507,28 +617,16 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* ---------------------------------------- reproducibility strip */}
-        <section className="lp-section lp-repro-section">
+        {/* --------------------------------------------- telemetry band */}
+        <section className="lp-section lp-stats-section">
           <p className="lp-kicker" data-reveal>
-            07 / reproducibility
+            07 / telemetry
           </p>
-          <h2 className="lp-sr-only">Reproducibility</h2>
-          <div className="lp-repro" data-reveal>
-            <div className="lp-repro-log">
-              <div className="lp-repro-line">
-                <span className="lp-prompt">$</span> epmw build --artifact RevenueForm
-              </div>
-              <div className="lp-repro-line dim">packaging FormSpecification … ok</div>
-              <div className="lp-repro-line dim">normalizing member order … ok</div>
-              <div className="lp-repro-line dim">writing form.xml (deterministic) … ok</div>
-              <div className="lp-repro-line">
-                <span className="lp-repro-key">sha256</span> 9f2a4c7e…d1 RevenueForm.zip
-              </div>
-              <div className="lp-repro-line ok">✓ identical across 3 runs · byte-for-byte reproducible</div>
-            </div>
-            <p className="lp-repro-note">
-              The same spec always produces the same bytes. No testimonials — just a checksum you can reproduce.
-            </p>
+          <h2 className="lp-sr-only">Telemetry</h2>
+          <div className="lp-stats">
+            {STATS.map((s) => (
+              <Stat key={s.label} to={s.to} suffix={s.suffix} label={s.label} reduce={reduce} />
+            ))}
           </div>
         </section>
 
@@ -541,9 +639,9 @@ export function LandingPage() {
             Bring your own model — or run ours
           </h2>
           <p className="lp-lede" data-reveal>
-            EPM Wizard is model-agnostic: connect Anthropic, any OpenAI-compatible endpoint, or Gemini, and the
-            assistant reasons over your own metadata. It also ships a specialist fine-tune — EPM Coder — trained
-            to turn plain-English requests into validated form specifications.
+            EPM Wizard is model-agnostic: connect Anthropic, any OpenAI-compatible endpoint, or Gemini, and the assistant
+            reasons over your own metadata. It also ships a specialist fine-tune — EPM Coder — trained to turn
+            plain-English requests into validated form specifications.
           </p>
           <dl className="lp-spec-sheet">
             {MODEL_SPEC.map(([k, val], i) => (
@@ -554,19 +652,19 @@ export function LandingPage() {
             ))}
           </dl>
           <p className="lp-model-note" data-reveal>
-            EPM Coder v1 is a pipeline-validation checkpoint trained on a synthetic corpus — proof the training
-            loop works end-to-end, not a production-quality benchmark. Until it&rsquo;s measured on real tenants,
-            the assistant defaults to a stock model grounded in your own metadata.
+            EPM Coder v1 is a pipeline-validation checkpoint trained on a synthetic corpus — proof the training loop works
+            end-to-end, not a production-quality benchmark. Until it&rsquo;s measured on real tenants, the assistant
+            defaults to a stock model grounded in your own metadata.
           </p>
         </section>
 
         {/* ------------------------------------------------ get started */}
         <section className="lp-section lp-cta">
           <div className="lp-cta-card" data-reveal>
-            <h2>Start with a demo application — no key, no tenant.</h2>
+            <h2>Start in Demo Mode — no key, no tenant.</h2>
             <p>
-              Demo Mode works the moment you sign in: a deterministic local provider and a fixture Planning application,
-              nothing external contacted. Bring your own model and tenant when you&rsquo;re ready.
+              Sign in and EPM Wizard opens on a fixture Planning application with a deterministic local provider — nothing
+              external is contacted. Bring your own model and tenant when you&rsquo;re ready.
             </p>
             <div className="lp-actions">
               <SignInButton variant="primary" />

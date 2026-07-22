@@ -506,6 +506,17 @@
 .docs-next p {
   margin-bottom: 16px;
 }
+/* inline prose links (e.g. the "back to the landing page" link) pick up the
+   accent so they read as links against the dark prose, matching the shell. */
+.docs-main p a {
+  color: var(--d-accent);
+  text-decoration: none;
+  transition: color 0.14s ease;
+}
+.docs-main p a:hover {
+  color: var(--d-accent-hover);
+  text-decoration: underline;
+}
 
 /* footer */
 .docs-footer {

@@ -143,3 +143,69 @@ export function TrustBoundaryDiagram() {
     </svg>
   );
 }
+
+/**
+ * Browser-agent flow: how the Narrated Browser Agent grounds on Oracle's real
+ * web UI (accessibility tree first, screenshot + vision as a fallback), decides
+ * an action, and stops at the enforced safety gate — destructive or production
+ * writes are HELD for the user; everything else runs and is narrated.
+ */
+export function BrowserAgentDiagram() {
+  const seg = (i: number): React.CSSProperties => ({ "--seg": i }) as unknown as React.CSSProperties;
+  const mono = "'IBM Plex Mono', monospace";
+  return (
+    <svg
+      className="md-svg"
+      viewBox="0 0 860 372"
+      role="img"
+      aria-label="Browser-agent flow. The agent grounds on Oracle EPM Cloud's real web page two ways: it reads the accessibility tree (roles, names, stable ref ids) as the primary path, and falls back to a screenshot plus a vision model for canvas data grids. It picks a target element, then a production-safety gate checks whether the action is destructive or a write on a production tab. If so it is held for your approval; otherwise it runs and each step is narrated in the side panel."
+    >
+      <defs>
+        <marker id="ba-arrow" viewBox="0 0 10 10" refX={9} refY={5} markerWidth={7} markerHeight={7} orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill={C.line} />
+        </marker>
+        <marker id="ba-warn" viewBox="0 0 10 10" refX={9} refY={5} markerWidth={7} markerHeight={7} orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill={C.warn} />
+        </marker>
+        <marker id="ba-ok" viewBox="0 0 10 10" refX={9} refY={5} markerWidth={7} markerHeight={7} orient="auto-start-reverse">
+          <path d="M 0 1 L 9 5 L 0 9 z" fill={C.human} />
+        </marker>
+      </defs>
+
+      <text x={24} y={34} fill={C.muted} fontSize={11} letterSpacing="0.1em" fontFamily={mono}>
+        ORACLE EPM CLOUD — THE REAL WEB UI
+      </text>
+
+      {/* grounding inputs */}
+      <Box x={24} y={60} w={210} label="Accessibility tree" sub="roles · names · ref ids" stroke={C.code} />
+      <Box x={24} y={250} w={210} label="Screenshot → vision" sub="canvas / JET-grid fallback" stroke={C.llm} />
+
+      {/* decide */}
+      <Box x={300} y={158} w={200} label="Agent picks a target" sub="ref=42 · click / type" stroke={C.code} />
+
+      {/* gate */}
+      <Box x={566} y={158} w={180} label="Safety gate" sub="destructive or prod?" stroke={C.code} />
+
+      {/* outcomes */}
+      <Box x={566} y={40} w={180} h={52} label="You approve" sub="held for you" stroke={C.human} />
+      <Box x={566} y={272} w={180} label="Runs &amp; narrates" sub="step shown in panel" stroke={C.code} />
+
+      {/* grounding -> decide */}
+      <path className="md-draw" style={seg(0)} pathLength={1} d="M 234 88 L 268 88 L 268 178 L 300 178" fill="none" stroke={C.line} strokeWidth={1.5} markerEnd="url(#ba-arrow)" />
+      <path className="md-draw" style={seg(1)} pathLength={1} d="M 234 278 L 268 278 L 268 198 L 300 198" fill="none" stroke={C.line} strokeWidth={1.5} strokeDasharray="4 3" markerEnd="url(#ba-arrow)" />
+      <text x={250} y={80} fill={C.sub} fontSize={9.5} fontFamily={mono}>primary</text>
+      <text x={250} y={300} fill={C.llm} fontSize={9.5} fontFamily={mono}>fallback</text>
+
+      {/* decide -> gate */}
+      <path className="md-draw" style={seg(2)} pathLength={1} d="M 500 186 L 566 186" fill="none" stroke={C.line} strokeWidth={1.5} markerEnd="url(#ba-arrow)" />
+
+      {/* gate -> held (up) */}
+      <path className="md-draw" style={seg(3)} pathLength={1} d="M 656 158 L 656 92" fill="none" stroke={C.warn} strokeWidth={1.5} strokeDasharray="4 3" markerEnd="url(#ba-warn)" />
+      <text x={664} y={128} fill={C.warn} fontSize={10} fontFamily={mono}>held</text>
+
+      {/* gate -> passes (down) */}
+      <path className="md-draw" style={seg(3)} pathLength={1} d="M 656 214 L 656 272" fill="none" stroke={C.human} strokeWidth={1.5} markerEnd="url(#ba-ok)" />
+      <text x={664} y={248} fill={C.human} fontSize={10} fontFamily={mono}>passes</text>
+    </svg>
+  );
+}
