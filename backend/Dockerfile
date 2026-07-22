@@ -35,4 +35,6 @@ RUN mkdir -p /data
 EXPOSE 8000
 
 # Migrations + seeding run on startup (app lifespan).
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Bind "::" (dual-stack), not 0.0.0.0: Fly's private 6PN network is IPv6-only,
+# and the frontend's nginx reaches this app at an fdaa:: address.
+CMD ["uvicorn", "app.main:app", "--host", "::", "--port", "8000"]
