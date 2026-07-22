@@ -391,6 +391,43 @@ def test_essbase_data_entries_are_excluded():
     assert not any("essbase payload" in str(r).lower() for r in bundle.records)
 
 
+def test_large_essbase_data_does_not_trip_size_cap():
+    # REGRESSION: the uncompressed-size cap was computed over the whole archive,
+    # so a real whole-application export — dominated by the huge Essbase cube-data
+    # slices the parser deliberately skips and never reads — was rejected with
+    # "archive exceeds the uncompressed size cap" even though its actual metadata
+    # is tiny. Essbase Data must not count toward the cap.
+    bundle = _assert_contract(_zip_bytes({
+        f"{_DIMS}/Account.csv": _acct_csv(),
+        f"{_HP}/resource/Essbase Data/Plan1/data.txt": "0" * (500 * 1024 * 1024),
+    }))
+    assert bundle is not None
+    assert bundle.analysis.application == _APP
+    assert "Account" in bundle.analysis.dimensions
+
+
+def test_many_essbase_data_entries_do_not_trip_entry_cap():
+    # REGRESSION companion: the entry-count cap was computed over the whole
+    # archive too, so a snapshot with more than _MAX_ENTRIES Essbase data files
+    # (routine for a real cube export) was rejected as "too many entries" even
+    # though those entries are never retained or read.
+    files: dict[str, object] = {f"{_DIMS}/Account.csv": _acct_csv()}
+    files.update({f"{_HP}/resource/Essbase Data/Plan1/p{i}.pag": "x"
+                  for i in range(snapshot_mod._MAX_ENTRIES + 50)})
+    bundle = _assert_contract(_zip_bytes(files))
+    assert bundle is not None
+    assert bundle.analysis.application == _APP
+
+
+def test_bomb_in_retained_path_still_rejected():
+    # The cap change must not weaken zip-bomb protection: a huge blob in a path
+    # we actually retain (not Essbase Data / not archive junk) is still rejected.
+    bomb = _zip_bytes({f"{_DIMS}/Account.csv": _acct_csv(),
+                       "junk/big.txt": "0" * (500 * 1024 * 1024)})
+    with pytest.raises(SnapshotError, match="uncompressed size cap"):
+        analyze_snapshot(bomb)
+
+
 # --- content edge cases -------------------------------------------------------
 
 
