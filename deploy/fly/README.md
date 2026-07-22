@@ -131,6 +131,21 @@ fly deploy --app epmw-backend --image <registry.fly.io/...:deployment-XXXX>
 ./deploy/fly/deploy-fly.sh teardown
 ```
 
+**Auto-deploy on push to `main`.** Once the apps exist (i.e. you have run
+`deploy-fly.sh` at least once), the `.github/workflows/fly-deploy.yml` GitHub
+Action ships a fresh image on every push to `main` — no need to run the script
+by hand again. It deploys the backend and frontend independently, only when
+that app's files change. It does **not** bootstrap (create apps/volume or set
+secrets); that stays this script's job. One-time setup:
+
+```bash
+fly tokens create deploy --name gha-epm   # org-scoped deploy token
+```
+
+Add the token as a repository secret named `FLY_API_TOKEN` (GitHub →
+*Settings → Secrets and variables → Actions*). You can also trigger a deploy
+manually from the Actions tab (**Run workflow**), which redeploys both apps.
+
 ## 5. Verify
 
 ```bash
