@@ -42,6 +42,19 @@ def list_projects(session: Session, owner: str = "local") -> list[ProjectOut]:
         .order_by(Project.created_at.asc())
         .all()
     )
+    if not projects and owner != "local":
+        # Multi-user: first request from a new user. The seeded default project
+        # belongs to "local", so a fresh Google-authenticated user sees nothing
+        # and the UI has no project to create chats in. Provision theirs here.
+        project = Project(
+            name="My Project",
+            description="Your workspace. Sign in to an Oracle EPM environment to begin.",
+            is_default=False,
+            owner_id=owner,
+        )
+        session.add(project)
+        session.flush()
+        projects = [project]
     return [_to_out(session, p) for p in projects]
 
 
