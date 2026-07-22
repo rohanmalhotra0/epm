@@ -67,6 +67,17 @@ once (corpus export and dry runs don't need it):
 pip install -e '.[finetune]'
 ```
 
+**Pick a fine-tunable base first.** Together's servable catalog is larger than
+its fine-tunable one, so the default base (`Qwen/Qwen2.5-Coder-32B-Instruct`) may
+be rejected with a 404 at job-create time. Probe what your account can actually
+fine-tune (free — the check runs before any billing):
+
+```bash
+python -m scripts.launch_finetune --list-models
+```
+
+Pass one of the reported `fineTunable` ids to `--model` below.
+
 Then set the key and pass `--launch`. `--follow` polls the job to completion:
 
 ```bash

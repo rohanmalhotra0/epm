@@ -35,6 +35,10 @@ Usage (from backend/):
 
     # Check an existing job:
     TOGETHER_API_KEY=... python -m scripts.launch_finetune --status ft-abc123
+
+    # Discover which base models the account can fine-tune (not all servable
+    # models are fine-tunable — the default base may need overriding via --model):
+    TOGETHER_API_KEY=... python -m scripts.launch_finetune --list-models
 """
 
 from __future__ import annotations
@@ -52,6 +56,23 @@ from pathlib import Path
 # fine-tuning-models list.
 DEFAULT_BASE_MODEL = "Qwen/Qwen2.5-Coder-32B-Instruct"
 DEFAULT_TRAIN_PATH = "data/training/synthetic.jsonl"
+# Together's servable catalog is much larger than its fine-tunable one, and the
+# API exposes no "list fine-tunable models" call — so --list-models probes these
+# EPM-relevant coder/instruct bases against the account and reports which accept
+# fine-tuning. Editable as Together's list churns; probing is free (the check
+# happens before any training is billed).
+_CANDIDATE_MODELS = [
+    "Qwen/Qwen2.5-Coder-32B-Instruct",
+    "Qwen/Qwen2.5-Coder-14B-Instruct",
+    "Qwen/Qwen2.5-Coder-7B-Instruct",
+    "Qwen/Qwen2.5-72B-Instruct",
+    "Qwen/Qwen2.5-32B-Instruct",
+    "Qwen/Qwen2.5-14B-Instruct",
+    "Qwen/Qwen2.5-7B-Instruct",
+    "Qwen/Qwen3-32B",
+    "Qwen/Qwen3-14B",
+    "Qwen/Qwen3-8B",
+]
 # Below this a paid run is almost certainly not worth it; --force overrides.
 _MIN_EXAMPLES = 10
 # Terminal Together job states (anything else is still in flight). Together's
@@ -167,6 +188,24 @@ class TogetherClient:
     def get_finetune(self, job_id: str) -> dict:
         return _normalize_job(self._client.fine_tuning.retrieve(job_id))
 
+    def supports_finetune(self, model: str) -> bool:
+        """True if the account can fine-tune ``model``.
+
+        The SDK has no list endpoint, so we ask for the model's training limits:
+        a supported model returns limits, an unsupported one raises 404.
+        """
+        try:
+            self._client.fine_tuning.get_model_limits(model=model)
+            return True
+        except Exception:
+            return False
+
+
+def list_finetunable_models(client: TogetherClient,
+                            candidates: list[str] | None = None) -> list[str]:
+    """Probe ``candidates`` and return the subset the account can fine-tune."""
+    return [m for m in (candidates or _CANDIDATE_MODELS) if client.supports_finetune(m)]
+
 
 def _build_synthetic(train_path: Path, val_split: float) -> dict:
     """Generate a fresh synthetic corpus at ``train_path`` (demo fixtures only)."""
@@ -195,6 +234,15 @@ def run(args: argparse.Namespace) -> dict:
         base_model=args.model, n_epochs=args.epochs, batch_size=args.batch_size,
         learning_rate=args.learning_rate, lora=not args.no_lora, suffix=args.suffix,
     )
+
+    # Probe which base models the account can fine-tune, then exit.
+    if args.list_models:
+        if not api_key:
+            raise SystemExit("Set $TOGETHER_API_KEY (or --api-key) to list models.")
+        supported = list_finetunable_models(TogetherClient(api_key))
+        return {"action": "list-models", "fineTunable": supported,
+                "probed": _CANDIDATE_MODELS,
+                "note": "Pass one of fineTunable to --model when you --launch."}
 
     # Status-only lookup short-circuits everything else.
     if args.status:
@@ -289,6 +337,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--follow", action="store_true", help="poll the job to completion")
     p.add_argument("--poll-interval", type=float, default=15.0, help="seconds between polls")
     p.add_argument("--status", default=None, help="look up an existing job id and exit")
+    p.add_argument("--list-models", action="store_true",
+                   help="probe which base models the account can fine-tune, then exit")
     p.add_argument("--api-key", default=None, help="Together key (else $TOGETHER_API_KEY)")
     p.add_argument("--force", action="store_true",
                    help="launch even if the corpus is below the minimum size")

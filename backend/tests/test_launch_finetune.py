@@ -14,6 +14,7 @@ from scripts.launch_finetune import (
     build_job_payload,
     build_parser,
     count_examples,
+    list_finetunable_models,
     poll_until_terminal,
     resolve_api_key,
     run,
@@ -52,6 +53,10 @@ class FakeClient:
     def get_finetune(self, job_id) -> dict:
         status = self._statuses.pop(0) if len(self._statuses) > 1 else self._statuses[0]
         return {"id": job_id, "status": status, "output_name": "acct/epm-coder"}
+
+    def supports_finetune(self, model) -> bool:
+        # Pretend only the 14B coder is fine-tunable on this account.
+        return model == "Qwen/Qwen2.5-Coder-14B-Instruct"
 
 
 # ---- pure helpers ----------------------------------------------------------
@@ -185,6 +190,28 @@ def test_follow_polls_until_terminal():
     fake = FakeClient(statuses=["running", "running", "completed"])
     job = poll_until_terminal(fake, "ft-1", interval=0, sleep=lambda _s: None)
     assert job["status"] == "completed"
+
+
+def test_list_finetunable_models_filters_by_support():
+    fake = FakeClient()
+    supported = list_finetunable_models(
+        fake, ["Qwen/Qwen2.5-Coder-32B-Instruct", "Qwen/Qwen2.5-Coder-14B-Instruct"])
+    assert supported == ["Qwen/Qwen2.5-Coder-14B-Instruct"]
+
+
+def test_list_models_action(monkeypatch):
+    monkeypatch.setattr("scripts.launch_finetune.TogetherClient", lambda *a, **k: FakeClient())
+    monkeypatch.setattr("scripts.launch_finetune._CANDIDATE_MODELS",
+                        ["Qwen/Qwen2.5-Coder-32B-Instruct", "Qwen/Qwen2.5-Coder-14B-Instruct"])
+    summary = run(_parse("--list-models", "--api-key", "k"))
+    assert summary["action"] == "list-models"
+    assert summary["fineTunable"] == ["Qwen/Qwen2.5-Coder-14B-Instruct"]
+
+
+def test_list_models_needs_key(monkeypatch):
+    monkeypatch.delenv("TOGETHER_API_KEY", raising=False)
+    with pytest.raises(SystemExit, match="list models"):
+        run(_parse("--list-models"))
 
 
 def test_status_lookup(monkeypatch):
