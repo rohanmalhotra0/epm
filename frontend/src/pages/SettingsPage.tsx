@@ -12,7 +12,7 @@ import { useUi } from "../store/ui";
 import { DiagnosticsPanel } from "../components/DiagnosticsPanel";
 import { toast } from "../store/toast";
 
-const PROVIDER_TYPES = ["mock", "watsonx", "anthropic", "openai", "openrouter", "gemini", "ollama", "generic"];
+const PROVIDER_TYPES = ["mock", "together", "watsonx", "anthropic", "openai", "openrouter", "gemini", "ollama", "generic"];
 
 export function SettingsPage() {
   const pid = useUi((s) => s.currentProjectId) ?? undefined;
@@ -39,6 +39,12 @@ export function SettingsPage() {
     setNp({ ...emptyProvider, name: "Local Ollama", providerType: "ollama", baseUrl: "http://localhost:11434/v1" });
     setDiscovered([]);
     toast.info("Local model preset applied", "Ollama needs no API key. Click Detect models to list what's installed.");
+  };
+
+  const applyTogetherPreset = () => {
+    setNp({ ...emptyProvider, name: "Together AI", providerType: "together", baseUrl: "https://api.together.xyz/v1" });
+    setDiscovered([]);
+    toast.info("Together AI preset applied", "Paste your Together API key, then Detect models. Set a Vision role model (e.g. a Qwen-VL) for screenshots.");
   };
 
   const detectModels = async () => {
@@ -107,11 +113,14 @@ export function SettingsPage() {
       <div className="stat-tile" style={{ marginTop: 12, maxWidth: 640 }}>
         <div style={{ fontWeight: 600, marginBottom: 8 }}>Add provider</div>
         <div className="action-row" style={{ marginTop: 0, marginBottom: 10 }}>
+          <Button size="sm" kind={np.providerType === "together" ? "primary" : "tertiary"} onClick={applyTogetherPreset}>
+            Together AI
+          </Button>
           <Button size="sm" kind={np.providerType === "ollama" ? "primary" : "tertiary"} onClick={applyOllamaPreset}>
             Local model (Ollama)
           </Button>
           <span style={{ fontSize: 11.5, color: "var(--cds-text-secondary, #8d8d8d)", alignSelf: "center" }}>
-            Runs on your machine — no API key, nothing leaves your computer.
+            Together = cheap hosted open models. Ollama = fully local, nothing leaves your computer.
           </span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>

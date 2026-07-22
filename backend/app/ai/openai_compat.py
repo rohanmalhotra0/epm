@@ -23,6 +23,7 @@ from .base import (
 _DEFAULT_BASE = {
     "openai": "https://api.openai.com/v1",
     "openrouter": "https://openrouter.ai/api/v1",
+    "together": "https://api.together.xyz/v1",
     "ollama": "http://localhost:11434/v1",
     "generic": "http://localhost:8080/v1",
 }

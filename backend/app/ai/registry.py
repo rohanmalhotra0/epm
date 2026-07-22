@@ -23,6 +23,7 @@ _ENV_KEYS = {
     "anthropic": ["ANTHROPIC_API_KEY", "CLAUDE_API_KEY"],
     "openai": ["OPENAI_API_KEY"],
     "openrouter": ["OPENROUTER_API_KEY"],
+    "together": ["TOGETHER_API_KEY"],
     "gemini": ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
     "watsonx": ["WATSONX_API_KEY", "IBM_CLOUD_API_KEY"],
 }
