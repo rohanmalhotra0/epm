@@ -192,15 +192,17 @@ export function BrowserAgentDiagram() {
 
       {/* grounding -> decide */}
       <path className="md-draw" style={seg(0)} pathLength={1} d="M 234 88 L 268 88 L 268 178 L 300 178" fill="none" stroke={C.line} strokeWidth={1.5} markerEnd="url(#ba-arrow)" />
-      <path className="md-draw" style={seg(1)} pathLength={1} d="M 234 278 L 268 278 L 268 198 L 300 198" fill="none" stroke={C.line} strokeWidth={1.5} strokeDasharray="4 3" markerEnd="url(#ba-arrow)" />
+      {/* fallback path stays dashed in every state — a static stroke, not routed
+          through the md-draw reveal whose stroke-dasharray:1 would flatten it. */}
+      <path d="M 234 278 L 268 278 L 268 198 L 300 198" fill="none" stroke={C.line} strokeWidth={1.5} strokeDasharray="4 3" markerEnd="url(#ba-arrow)" />
       <text x={250} y={80} fill={C.sub} fontSize={9.5} fontFamily={mono}>primary</text>
       <text x={250} y={300} fill={C.llm} fontSize={9.5} fontFamily={mono}>fallback</text>
 
       {/* decide -> gate */}
       <path className="md-draw" style={seg(2)} pathLength={1} d="M 500 186 L 566 186" fill="none" stroke={C.line} strokeWidth={1.5} markerEnd="url(#ba-arrow)" />
 
-      {/* gate -> held (up) */}
-      <path className="md-draw" style={seg(3)} pathLength={1} d="M 656 158 L 656 92" fill="none" stroke={C.warn} strokeWidth={1.5} strokeDasharray="4 3" markerEnd="url(#ba-warn)" />
+      {/* gate -> held (up); static dashed so the "held / blocked" cue survives */}
+      <path d="M 656 158 L 656 92" fill="none" stroke={C.warn} strokeWidth={1.5} strokeDasharray="4 3" markerEnd="url(#ba-warn)" />
       <text x={664} y={128} fill={C.warn} fontSize={10} fontFamily={mono}>held</text>
 
       {/* gate -> passes (down) */}

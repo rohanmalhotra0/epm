@@ -551,8 +551,8 @@ html.landing-doc {
   color: var(--lp-muted);
 }
 .lp-gate-btn.primary {
-  background: var(--lp-accent);
-  border-color: var(--lp-accent);
+  background: var(--lp-cta);
+  border-color: var(--lp-cta);
   color: #fff;
 }
 .lp-cursor {
@@ -604,7 +604,7 @@ html.landing-doc {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--lp-accent);
+  background: var(--lp-cta);
   color: #fff;
   font-family: var(--lp-mono);
   font-size: 10px;

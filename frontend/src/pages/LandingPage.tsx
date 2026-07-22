@@ -606,7 +606,9 @@ export function LandingPage() {
           <div className="lp-ledger">
             {LEDGER.map((r, i) => (
               <div className={`lp-log${r.gate ? " gate" : ""}`} data-reveal style={v({ "--i": i })} key={r.claim}>
-                <span className="lp-log-t">{r.t}</span>
+                <span className="lp-log-t" aria-hidden="true">
+                  {r.t}
+                </span>
                 <span className={`lp-log-tag tag-${r.tag}`}>{r.tag.toUpperCase()}</span>
                 <div className="lp-log-text">
                   <b>{r.claim}</b>
