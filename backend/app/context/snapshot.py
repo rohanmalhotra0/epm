@@ -123,14 +123,20 @@ def _open_archive(data: bytes, issues: list[str]) -> _Archive:
         zf = zipfile.ZipFile(io.BytesIO(data))
     except (zipfile.BadZipFile, zipfile.LargeZipFile) as exc:
         raise SnapshotError("not a valid zip archive") from exc
-    infos = [i for i in zf.infolist() if not i.is_dir()]
-    if len(infos) > _MAX_ENTRIES:
-        raise SnapshotError(f"archive has too many entries ({len(infos)} > {_MAX_ENTRIES})")
-    total = sum(i.file_size for i in infos)
-    if total > _MAX_TOTAL_UNCOMPRESSED:
-        raise SnapshotError("archive exceeds the uncompressed size cap")
     files: dict[tuple[str, ...], zipfile.ZipInfo] = {}
-    for info in sorted(infos, key=lambda i: i.filename):
+    # The zip-bomb caps (entry count + total uncompressed bytes) apply to the
+    # entries we actually RETAIN and read — not the raw archive. A real whole-
+    # application export is dominated by the Essbase cube-data slices, which are
+    # skipped below and never decompressed; counting them toward the caps
+    # rejected legitimate snapshots ("archive exceeds the uncompressed size cap"
+    # / "too many entries") for data the parser never even opens. Skipped
+    # entries cannot be a zip bomb because read() is never called on them, and
+    # retained entries stay bounded per-entry by _MAX_TEXT_ENTRY in read_text().
+    kept = 0
+    total = 0
+    for info in sorted(zf.infolist(), key=lambda i: i.filename):
+        if info.is_dir():
+            continue
         name = info.filename.replace("\\", "/")
         parts = tuple(p for p in name.split("/") if p and p != ".")
         if not parts:
@@ -140,6 +146,12 @@ def _open_archive(data: bytes, issues: list[str]) -> _Archive:
             continue
         if "Essbase Data" in parts or _is_archive_junk(parts):
             continue
+        kept += 1
+        if kept > _MAX_ENTRIES:
+            raise SnapshotError(f"archive has too many entries (> {_MAX_ENTRIES})")
+        total += info.file_size
+        if total > _MAX_TOTAL_UNCOMPRESSED:
+            raise SnapshotError("archive exceeds the uncompressed size cap")
         files[parts] = info
     # Tolerate a single wrapping root directory ("Artifact Snapshot/HP-App/…"),
     # but never strip a component folder ("HP-App/…") itself.
