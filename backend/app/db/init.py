@@ -126,6 +126,32 @@ def _seed_from_env(session: Session, project: Project) -> None:
             )
         )
 
+    # Together AI (the Fly.io / cheap-open-model deployment): when
+    # TOGETHER_API_KEY is injected, auto-seed a ready-to-use provider so the
+    # hosted app runs on Together out of the box. Model ids are env-overridable
+    # (Together's catalog changes — verify with "Detect models" in Settings).
+    # The key is resolved from the env at call time, never copied into the DB.
+    together_key = bool(os.environ.get("TOGETHER_API_KEY"))
+    if together_key and not session.query(ProviderProfile).filter_by(provider_type="together").first():
+        code_model = os.environ.get("TOGETHER_CODE_MODEL") or "Qwen/Qwen2.5-Coder-32B-Instruct"
+        chat_model = os.environ.get("TOGETHER_CHAT_MODEL") or code_model
+        vision_model = os.environ.get("TOGETHER_VISION_MODEL") or "Qwen/Qwen2.5-VL-72B-Instruct"
+        embed_model = os.environ.get("TOGETHER_EMBEDDINGS_MODEL") or "BAAI/bge-base-en-v1.5"
+        base = os.environ.get("TOGETHER_URL") or "https://api.together.xyz/v1"
+        session.add(
+            ProviderProfile(
+                name="Together AI (from environment)",
+                provider_type="together",
+                base_url=base,
+                default_model=chat_model,
+                models=[chat_model, code_model],
+                role_models={"chat": chat_model, "fast": chat_model, "structured": code_model,
+                             "code": code_model, "vision": vision_model, "embedding": embed_model},
+                enabled=True,
+                has_key=True,  # resolved from env (TOGETHER_API_KEY) at call time
+            )
+        )
+
 
 def initialize(seed: bool = True) -> None:
     run_migrations()
