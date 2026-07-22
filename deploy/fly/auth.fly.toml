@@ -42,7 +42,9 @@ primary_region = "iad"
   # SECRETS (set via `fly secrets set -a epmw-auth`, see README §6):
   #   OAUTH2_PROXY_CLIENT_ID      — OAuth client id
   #   OAUTH2_PROXY_CLIENT_SECRET  — OAuth client secret
-  #   OAUTH2_PROXY_COOKIE_SECRET  — 32-byte base64 (openssl rand -base64 32)
+  #   OAUTH2_PROXY_COOKIE_SECRET  — 32 bytes, URL-safe base64. MUST be
+  #     openssl rand -base64 32 | tr -- '+/' '-_'
+  #     (plain base64 with +/ is not decoded and crash-loops the proxy)
 
 [http_service]
   internal_port = 4180
