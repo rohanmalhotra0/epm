@@ -76,6 +76,25 @@ def create_project(
     return _to_out(session, project)
 
 
+def update_project(
+    session: Session, project_id: str, name: str | None = None, description: str | None = None
+) -> ProjectOut | None:
+    """Rename / re-describe a project. Only non-None fields are applied; a blank
+    name is rejected so the UI can't strand a project with an empty label."""
+    project = session.get(Project, project_id)
+    if project is None:
+        return None
+    if name is not None:
+        cleaned = name.strip()
+        if not cleaned:
+            raise ValueError("name must not be empty")
+        project.name = cleaned
+    if description is not None:
+        project.description = description
+    session.flush()
+    return _to_out(session, project)
+
+
 def set_active_environment(session: Session, project_id: str, environment_id: str | None) -> None:
     project = session.get(Project, project_id)
     if project is None:

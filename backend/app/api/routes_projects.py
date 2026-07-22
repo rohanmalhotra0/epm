@@ -38,6 +38,26 @@ def create_project(
     return svc.create_project(session, body.name, body.description, owner=owner)
 
 
+@router.patch("/{project_id}", response_model=ProjectOut)
+def update_project(
+    body: dict,
+    project: Project = Depends(require_project),
+    session: Session = Depends(get_db),
+) -> ProjectOut:
+    # Plain-dict body (like the providers PATCH) so renaming doesn't require a
+    # codegen'd schema. Only `name`/`description` are honored. require_project
+    # enforces ownership; a missing project already 404s there.
+    try:
+        updated = svc.update_project(
+            session, project.id, name=body.get("name"), description=body.get("description")
+        )
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    if updated is None:
+        raise HTTPException(404, "project not found")
+    return updated
+
+
 @router.post("/import", response_model=ProjectOut, status_code=201)
 async def import_project(
     file: UploadFile = File(...),

@@ -240,7 +240,13 @@ function SignInScreen({
         <select
           className="signin-input"
           value={authMode}
-          onChange={(e) => setAuthMode(e.target.value as "password" | "oauth")}
+          onChange={(e) => {
+            // Clear any stale field-validation error: switching modes changes
+            // which fields are required, so a prior "…required" message no
+            // longer applies until the next submit.
+            setError("");
+            setAuthMode(e.target.value as "password" | "oauth");
+          }}
         >
           <option value="password" style={{ color: "#000" }}>
             Username &amp; password
