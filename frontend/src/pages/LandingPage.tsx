@@ -69,6 +69,19 @@ const STATS = [
   { to: 5, suffix: "", label: "validation gates per change" },
 ];
 
+// The model story (see docs/MODEL_CARD.md). EPM Wizard is model-agnostic AND
+// ships a specialist fine-tune, so lead with providers and present the fine-tune
+// as one option. Deliberately NOT a quality benchmark — the corpus is synthetic
+// and template-derived, so we state run facts ("converged"), never accuracy, and
+// carry the honest caveat below. No training cost/runtime on a public page.
+const MODEL_SPEC: Array<[string, string]> = [
+  ["Providers", "Anthropic · any OpenAI-compatible endpoint · Gemini"],
+  ["EPM Coder v1", "A LoRA fine-tune on a Qwen2.5-32B-Instruct base"],
+  ["Specialized for", "Plain-English request → validated FormSpecification"],
+  ["Training set", "1,810 examples, each checked schema-valid · 3 epochs"],
+  ["Result", "Converged cleanly · eval loss 0.011 → 0.0038"],
+];
+
 type Tag = "policy" | "deny" | "local" | "verify";
 const LEDGER: Array<{ t: string; tag: Tag; claim: string; how: string; gate?: boolean }> = [
   {
@@ -141,6 +154,7 @@ function Stat({ to, suffix, label, reduce }: { to: number; suffix: string; label
       return;
     }
     el.textContent = `0${suffix}`;
+    let raf = 0;
     const io = new IntersectionObserver(
       (entries, obs) => {
         for (const entry of entries) {
@@ -152,15 +166,18 @@ function Stat({ to, suffix, label, reduce }: { to: number; suffix: string; label
             const p = Math.min(1, (now - start) / dur);
             const eased = 1 - Math.pow(1 - p, 3);
             el.textContent = `${Math.round(to * eased)}${suffix}`;
-            if (p < 1) requestAnimationFrame(step);
+            raf = p < 1 ? requestAnimationFrame(step) : 0;
           };
-          requestAnimationFrame(step);
+          raf = requestAnimationFrame(step);
         }
       },
       { threshold: 0.4 },
     );
     io.observe(el);
-    return () => io.disconnect();
+    return () => {
+      io.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, [to, suffix, reduce]);
 
   return (
@@ -191,7 +208,7 @@ function HeroTerminal({ replayKey, running }: { replayKey: number; running: bool
     'dimension "Account" exists',
     "member path resolved · no fuzzy match",
     "no direct write · artifact only",
-    "reproducible · sha256:9f2a…c1",
+    "reproducible · sha256:9f2a…d1",
   ];
   return (
     <div className={`lp-term${running ? " running" : ""}`} key={replayKey} aria-hidden="true">
@@ -205,7 +222,7 @@ function HeroTerminal({ replayKey, running }: { replayKey: number; running: bool
         <span className="lp-term-status">
           <b data-st="local">LOCAL</b>
           <b data-st="work">WORKING</b>
-          <b data-st="ok">APPROVED</b>
+          <b data-st="ok">AWAITING&nbsp;YOU</b>
         </span>
       </div>
       <div className="lp-term-body">
@@ -380,7 +397,7 @@ export function LandingPage() {
                 ran: "Modifying operations are refused at the connector boundary unless you approve upstream. The pause is the point.",
               },
               {
-                said: "sha256:9f2a…c1",
+                said: "sha256:9f2a…d1",
                 ran: "The package that ships is byte-for-byte reproducible with a SHA-256 checksum — not whatever the model last said.",
               },
             ].map((row, i) => (
@@ -426,6 +443,7 @@ export function LandingPage() {
           <p className="lp-kicker" data-reveal>
             03 / telemetry
           </p>
+          <h2 className="lp-sr-only">Telemetry</h2>
           <div className="lp-stats">
             {STATS.map((s) => (
               <Stat key={s.label} to={s.to} suffix={s.suffix} label={s.label} reduce={reduce} />
@@ -438,6 +456,7 @@ export function LandingPage() {
           <p className="lp-kicker" data-reveal>
             04 / what it does
           </p>
+          <h2 className="lp-sr-only">What it does</h2>
           <div className="lp-features">
             {FEATURES.map((f, i) => (
               <div className="lp-feature" data-reveal style={v({ "--i": i })} key={f.no}>
@@ -493,6 +512,7 @@ export function LandingPage() {
           <p className="lp-kicker" data-reveal>
             07 / reproducibility
           </p>
+          <h2 className="lp-sr-only">Reproducibility</h2>
           <div className="lp-repro" data-reveal>
             <div className="lp-repro-log">
               <div className="lp-repro-line">
@@ -510,6 +530,34 @@ export function LandingPage() {
               The same spec always produces the same bytes. No testimonials — just a checksum you can reproduce.
             </p>
           </div>
+        </section>
+
+        {/* ------------------------------------------------ the model */}
+        <section className="lp-section lp-model-section">
+          <p className="lp-kicker" data-reveal>
+            08 / the model layer
+          </p>
+          <h2 className="lp-h2" data-reveal>
+            Bring your own model — or run ours
+          </h2>
+          <p className="lp-lede" data-reveal>
+            EPM Wizard is model-agnostic: connect Anthropic, any OpenAI-compatible endpoint, or Gemini, and the
+            assistant reasons over your own metadata. It also ships a specialist fine-tune — EPM Coder — trained
+            to turn plain-English requests into validated form specifications.
+          </p>
+          <dl className="lp-spec-sheet">
+            {MODEL_SPEC.map(([k, val], i) => (
+              <div className="lp-spec-row" data-reveal style={v({ "--i": i })} key={k}>
+                <dt>{k}</dt>
+                <dd>{val}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="lp-model-note" data-reveal>
+            EPM Coder v1 is a pipeline-validation checkpoint trained on a synthetic corpus — proof the training
+            loop works end-to-end, not a production-quality benchmark. Until it&rsquo;s measured on real tenants,
+            the assistant defaults to a stock model grounded in your own metadata.
+          </p>
         </section>
 
         {/* ------------------------------------------------ get started */}

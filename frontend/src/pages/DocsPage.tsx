@@ -24,6 +24,7 @@ const NAV = [
   { id: "approval", label: "The approval model" },
   { id: "security", label: "Security & trust" },
   { id: "artifacts", label: "Artifacts & reproducibility" },
+  { id: "model", label: "The model" },
   { id: "reference", label: "Reference" },
 ] as const;
 
@@ -291,6 +292,45 @@ export function DocsPage() {
               PDF, or Markdown; <code>/context export</code> produces a portable <code>.epwcontext</code> zip — manifest,
               checksums, no secrets — that a teammate can import, and the Data tab exports the whole project as a zip for
               backup or moving machines.
+            </p>
+          </section>
+
+          {/* ---- the model ---- */}
+          <section id="model" className="docs-section">
+            <h2 data-reveal>The model</h2>
+            <p data-reveal>
+              EPM Wizard runs on any provider you configure (Anthropic, any OpenAI-compatible endpoint, or
+              Gemini), and it also ships its own fine-tuned <em>coder</em> — a LoRA fine-tune of
+              Qwen2.5-32B-Instruct specialized for one job: turning a plain-English request into a schema-valid{" "}
+              <code>FormSpecification</code>, and applying natural-language edits to an existing spec.
+            </p>
+            <div className="docs-cards" data-reveal>
+              <div className="docs-card">
+                <b>Base &amp; method</b>
+                <span>Qwen2.5-32B-Instruct base · LoRA (rank 16), supervised fine-tuning</span>
+              </div>
+              <div className="docs-card">
+                <b>Training set</b>
+                <span>1,810 examples, each checked schema-valid · 3 epochs</span>
+              </div>
+              <div className="docs-card">
+                <b>Result</b>
+                <span>Converged cleanly — eval loss 0.011 → 0.0038</span>
+              </div>
+            </div>
+            <p data-reveal>
+              Every training label was produced against real tenant metadata and kept only when the
+              deterministic validator reported no blocking errors, so the labels are guaranteed schema-valid.
+            </p>
+            <blockquote className="docs-quote" data-reveal>
+              v1 is a pipeline-validation checkpoint. It was trained on a synthetic, template-derived corpus from
+              a single demo application, so the low loss reflects the regularity of that data — not a measure of
+              real-world quality, which has not yet been evaluated.
+            </blockquote>
+            <p data-reveal>
+              Until v1 is measured against real specs and shown to beat a stock model with retrieval grounding,
+              EPM Wizard defaults to a stock model grounded in your own metadata. The full training run,
+              hyperparameters, and limitations live in <code>docs/MODEL_CARD.md</code>.
             </p>
           </section>
 

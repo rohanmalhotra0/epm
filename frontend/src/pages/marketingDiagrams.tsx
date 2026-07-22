@@ -101,8 +101,11 @@ export function TrustBoundaryDiagram() {
       {/* llm -> code : proposes a spec */}
       <path className="md-draw" style={seg(2)} pathLength={1} d="M 236 292 L 374 292 L 374 214" fill="none" stroke={C.line} strokeWidth={1.5} markerEnd="url(#md-arrow)" />
 
-      {/* secret store -> language model : DENIED */}
-      <line className="md-draw md-draw-deny" style={seg(1)} pathLength={1} x1={138} y1={214} x2={138} y2={264} stroke={C.warn} strokeWidth={1.5} strokeDasharray="4 3" />
+      {/* secret store -> language model : DENIED. Static dashed line (not
+          routed through the md-draw reveal, whose stroke-dasharray:1 would
+          override "4 3" and render it solid), so the "blocked" dashes show in
+          every state. */}
+      <line className="md-draw-deny" x1={138} y1={214} x2={138} y2={264} stroke={C.warn} strokeWidth={1.5} strokeDasharray="4 3" />
       <g>
         <circle cx={138} cy={239} r={9} fill={C.panel} stroke={C.warn} strokeWidth={1.5} />
         <line x1={132} y1={245} x2={144} y2={233} stroke={C.warn} strokeWidth={1.5} />

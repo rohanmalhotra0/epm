@@ -9,6 +9,9 @@
   --d-accent: var(--epmw-accent, #4589ff);
   --d-accent-hover: var(--epmw-accent-hover, #6ea6ff);
   --d-accent-soft: rgba(69, 137, 255, 0.12);
+  /* deeper Carbon blue for button fill so white text clears WCAG AA (~5.2:1) */
+  --d-cta: #0f62fe;
+  --d-cta-hover: #0353e9;
   --d-ok: #24a148;
   --d-warn: #fa4d56;
   --d-bg: #161616;
@@ -16,7 +19,8 @@
   --d-layer-2: #202020;
   --d-fg: #f4f4f4;
   --d-muted: #a8a8a8;
-  --d-faint: #6f6f6f;
+  /* text-legible faint (~4.9:1 on #161616); pure hairlines use --d-border. */
+  --d-faint: #8d8d8d;
   --d-border: #2a2a2a;
   --d-border-2: #393939;
   --d-mono: "IBM Plex Mono", ui-monospace, monospace;
@@ -107,8 +111,8 @@
   font-size: 13px;
   font-weight: 600;
   color: #fff;
-  background: var(--d-accent);
-  border: 1px solid var(--d-accent);
+  background: var(--d-cta);
+  border: 1px solid var(--d-cta);
   padding: 8px 15px;
   text-decoration: none;
   transition:
@@ -117,8 +121,8 @@
     transform 0.14s var(--d-ease);
 }
 .docs-signin:hover {
-  background: var(--d-accent-hover);
-  border-color: var(--d-accent-hover);
+  background: var(--d-cta-hover);
+  border-color: var(--d-cta-hover);
   transform: translateY(-1px);
 }
 .docs-signin svg {
