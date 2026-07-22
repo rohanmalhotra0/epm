@@ -29,7 +29,21 @@
         <input id="voiceToggle" type="checkbox" />
         Speak narration (Web Speech TTS)
       </label>
+      <label class="row">
+        <input id="guardToggle" type="checkbox" checked />
+        Enforce production-safety gate (recommended)
+      </label>
       <button id="saveConfig" class="secondary">Save settings</button>
+    </section>
+
+    <section id="confirm" class="confirm hidden" role="alertdialog" aria-live="assertive">
+      <div class="confirm-title">⚠ Confirm before it runs</div>
+      <div class="confirm-reason" id="confirmReason"></div>
+      <div class="confirm-detail" id="confirmDetail"></div>
+      <div class="confirm-actions">
+        <button id="rejectBtn" class="secondary">Skip</button>
+        <button id="approveBtn" class="danger-solid">Approve &amp; run</button>
+      </div>
     </section>
 
     <section class="goalbar">

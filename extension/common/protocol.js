@@ -11,7 +11,8 @@ export const CMD = Object.freeze({
   RESUME: "resume",
   STOP: "stop",
   GET_STATE: "getState",
-  SET_CONFIG: "setConfig", // { backendUrl, projectId }
+  SET_CONFIG: "setConfig", // { backendUrl, projectId, enforceGuardrails }
+  CONFIRM: "confirm",      // { id, approve } — resolve a held destructive action
 });
 
 // SW -> panel events
@@ -23,6 +24,18 @@ export const EVT = Object.freeze({
   STATUS: "status",     // { status }
   ERROR: "error",       // { message }
   LOG: "log",           // { line }
+  CONFIRM: "confirm",   // { id, reason, label, action } destructive action held for approval
+});
+
+// Web page (EPM Wizard site) <-> extension, bridged by content/site-bridge.js
+// over window CustomEvents so the page never needs the (unstable) extension id.
+export const SITE = Object.freeze({
+  // page -> extension
+  PING: "epmw:ping",             // detail: {}
+  CONFIGURE: "epmw:configure",   // detail: { backendUrl?, projectId?, goal? }
+  LAUNCH: "epmw:launch",         // detail: { backendUrl?, projectId?, goal? }
+  // extension -> page
+  READY: "epmw:extension",       // detail: { installed:true, version }
 });
 
 // SW -> content script requests (chrome.tabs.sendMessage)
@@ -37,12 +50,14 @@ export const STATUS = Object.freeze({
   IDLE: "idle",
   RUNNING: "running",
   PAUSED: "paused",
+  CONFIRM: "confirm",   // a destructive action is held, awaiting human approval
   DONE: "done",
   ERROR: "error",
 });
 
 export const DEFAULT_CONFIG = Object.freeze({
-  // The FastAPI backend. Same-origin dev default; override in the panel.
+  // The FastAPI backend. Same-origin dev default; the EPM Wizard site overrides
+  // this to its own origin automatically via the handshake (SITE.CONFIGURE).
   backendUrl: "http://localhost:8000",
   // Optional EPM Wizard project id → selects that project's active provider.
   projectId: "",
@@ -50,4 +65,19 @@ export const DEFAULT_CONFIG = Object.freeze({
   maxSteps: 25,
   // Pause between steps (ms) so a human can watch.
   stepDelayMs: 700,
+  // ENFORCED guardrail: hold destructive/irreversible actions (deploy, delete,
+  // clear, run-rule, …) and any write while on a PROD tenant for explicit human
+  // approval before they execute. This is a hard gate, not a prompt hint.
+  enforceGuardrails: true,
 });
+
+// Origins the EPM Wizard web app is served from — the site-bridge content
+// script runs only here, and only these origins may configure/launch the agent.
+export const SITE_ORIGINS = Object.freeze([
+  "https://epmw-auth.fly.dev",
+  "https://epmw-frontend.fly.dev",
+  "http://localhost:3000",
+  "http://localhost:8000",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:8000",
+]);
