@@ -74,7 +74,11 @@ ensure_volume() {
   # app needs it for artifacts, contexts, secrets, RAG indexes and backups.
   local app="$1"
   local count
-  count="$("$FLY" volumes list -a "$app" 2>/dev/null | awk -v v="$BACKEND_VOLUME" '$2==v || $1==v {n++} END{print n+0}')"
+  # Match the volume NAME in ANY column — `fly volumes list` puts NAME in a
+  # different column than a bare $1/$2 check assumed, so the old check never
+  # matched and every run created a duplicate volume.
+  count="$("$FLY" volumes list -a "$app" 2>/dev/null \
+    | awk -v v="$BACKEND_VOLUME" '{for(i=1;i<=NF;i++) if($i==v){n++; break}} END{print n+0}')"
   if [ "$count" -ge 1 ]; then
     info "Volume '$BACKEND_VOLUME' already exists on '$app' — reusing."
   else
