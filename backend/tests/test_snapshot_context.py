@@ -270,6 +270,27 @@ def test_analyze_tolerates_wrapping_root_directory():
     assert bundle.analysis.counts["members"] == 4
 
 
+def test_analyze_ignores_archive_tool_metadata_alongside_wrapper():
+    """Compressing the snapshot FOLDER (macOS Finder, and some Windows/third-party
+    tools) drops a ``__MACOSX/`` tree plus ``.DS_Store``/``._*`` siblings next to
+    the ``Artifact Snapshot/`` wrapper. Those extra top-level entries must be
+    ignored so the single-wrapper strip still fires — otherwise a genuine snapshot
+    reads as "not an EPM LCM snapshot" and the upload fails."""
+    files = {f"Artifact Snapshot/{path}": text for path, text in _snapshot_files("ACME_PLN").items()}
+    files["__MACOSX/Artifact Snapshot/._Export.xml"] = "resource-fork bytes, not xml"
+    files["__MACOSX/._Artifact Snapshot"] = "resource-fork bytes"
+    files["Artifact Snapshot/.DS_Store"] = "\x00\x00 finder metadata"
+    files["Artifact Snapshot/HP-ACME_PLN/._resource"] = "resource-fork bytes"
+    files["Artifact Snapshot/Thumbs.db"] = "windows thumbnail cache"
+    bundle = analyze_snapshot(_zip_bytes(files), filename="Artifact Snapshot.zip")
+    assert bundle.analysis.application == "ACME_PLN"
+    assert bundle.analysis.counts["members"] == 4
+    assert {c.product for c in bundle.analysis.components} == {"HP", "CALC", "AIF", "HUB"}
+    # The junk never becomes a component or a parse issue.
+    assert not any("MACOSX" in c.key or c.key.startswith(".") for c in bundle.analysis.components)
+    assert bundle.analysis.issues == []
+
+
 def test_analyze_detects_app_from_folder_when_export_missing():
     data = _make_snapshot_zip(**{"Export.xml": None, "Import.xml": None})
     bundle = analyze_snapshot(data)

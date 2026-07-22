@@ -53,6 +53,14 @@ _SOURCE = "snapshot"
 # Folder prefixes whose LCM product code differs from the folder name.
 _PRODUCT_BY_PREFIX = {"FDMEE": "AIF", "HSS": "HUB"}
 _COMPONENT_DIR = re.compile(r"^[A-Z][A-Z0-9]*-.+")
+# Archive-tool metadata that rides along when a user compresses the snapshot
+# FOLDER: macOS Finder adds a "__MACOSX/" tree plus AppleDouble "._*" siblings;
+# other tools drop ".DS_Store", "Thumbs.db", "desktop.ini". Left in, each is an
+# extra top-level entry that defeats the single-wrapper strip below — so the real
+# "Artifact Snapshot/" wrapper is never unwrapped and the archive reads as "not
+# an EPM LCM snapshot". Dropped up front, exactly like Essbase Data.
+_JUNK_DIRS = {"__MACOSX", ".Spotlight-V100", ".Trashes", ".fseventsd", ".TemporaryItems"}
+_JUNK_FILES = {".DS_Store", "Thumbs.db", "desktop.ini"}
 _TEMPLATE_REF = re.compile(r'%Template\(\s*name\s*:=\s*"([^"]+)"')
 _CUBE_COLUMN = re.compile(r"^Aggregation \((.+)\)$")
 _DIM_TYPES = {"account", "entity", "scenario", "version", "period", "attribute"}
@@ -63,6 +71,11 @@ _FORMS_UNPARSED_NOTE = "Form definition files present but none could be parsed"
 
 class SnapshotError(ValueError):
     """The upload is not a usable LCM snapshot zip (routes map this to HTTP 400)."""
+
+
+def _is_archive_junk(parts: tuple[str, ...]) -> bool:
+    """Metadata added by the tool that made the zip, not part of the snapshot."""
+    return bool(_JUNK_DIRS.intersection(parts)) or parts[-1] in _JUNK_FILES or parts[-1].startswith("._")
 
 
 @dataclass
@@ -125,7 +138,7 @@ def _open_archive(data: bytes, issues: list[str]) -> _Archive:
         if name.startswith("/") or ".." in parts or ":" in parts[0]:
             issues.append(f"skipped unsafe path: {info.filename}")
             continue
-        if "Essbase Data" in parts:
+        if "Essbase Data" in parts or _is_archive_junk(parts):
             continue
         files[parts] = info
     # Tolerate a single wrapping root directory ("Artifact Snapshot/HP-App/…"),
