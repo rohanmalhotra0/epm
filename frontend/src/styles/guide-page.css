@@ -60,6 +60,9 @@
 .guide-hero {
   border-bottom: 1px solid var(--cds-border-subtle, #393939);
   background-image:
+    linear-gradient(rgba(128, 128, 128, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(128, 128, 128, 0.09) 1px, transparent 1px); /* fallback */
+  background-image:
     linear-gradient(color-mix(in srgb, var(--cds-text-primary, #f4f4f4) 5%, transparent) 1px, transparent 1px),
     linear-gradient(90deg, color-mix(in srgb, var(--cds-text-primary, #f4f4f4) 5%, transparent) 1px, transparent 1px);
   background-size: 48px 48px;
@@ -112,7 +115,7 @@
 .guide-term {
   margin-top: 40px;
   max-width: 640px;
-  border: 1px solid var(--cds-border-subtle, #393939);
+  border: 1px solid #393939; /* fixed-dark box keeps a dark border in both themes */
   border-left: 3px solid var(--epmw-accent, #4589ff);
   background: #161616;
   padding: 14px 18px;
@@ -142,7 +145,8 @@
   border-bottom: 1px solid var(--cds-border-subtle, #393939);
 }
 .guide-section:last-child { border-bottom: none; }
-.guide-section h2 {
+/* .guide-page qualifier: outranks global .page h2 instead of tying on import order */
+.guide-page .guide-section h2 {
   font-size: clamp(22px, 3vw, 30px);
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -165,6 +169,7 @@
   font-size: 56px;
   font-weight: 300;
   line-height: 1;
+  color: rgba(128, 128, 128, 0.35); /* fallback where color-mix() is unsupported */
   color: color-mix(in srgb, var(--cds-text-primary, #f4f4f4) 16%, transparent);
   user-select: none;
 }
@@ -213,7 +218,7 @@
 
 .guide-diagram {
   margin: 20px 0 4px;
-  border: 1px solid var(--cds-border-subtle, #393939);
+  border: 1px solid #393939; /* fixed-dark box keeps a dark border in both themes */
   background: #161616; /* diagrams use a fixed dark palette, like the cube map */
   border-radius: 2px;
   overflow-x: auto;

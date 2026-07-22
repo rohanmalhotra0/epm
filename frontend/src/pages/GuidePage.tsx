@@ -317,7 +317,7 @@ export function GuidePage() {
           be correct and reproducible: validation against canonical Pydantic schemas and real tenant metadata, exact
           member resolution with no fuzzy substitution, safe XML via ElementTree, byte-reproducible zips with SHA-256
           checksums, deployment, verification. There is no <code>subprocess.run(model_output, shell=True)</code>{" "}
-          anywhere in the codebase — every executable action maps to a typed, allowlisted function.
+          anywhere in the codebase — every executable action maps to a typed, allowlisted backend function.
         </p>
         <div className="guide-diagram">
           <PipelineDiagram />
@@ -359,7 +359,8 @@ export function GuidePage() {
               <Micro>Under the hood</Micro>
               <p>
                 All EPM traffic crosses one connector boundary with three implementations: a <b>Demo</b> connector
-                (local fixtures, simulated jobs), an <b>Oracle REST</b> connector (documented Planning REST API), and a
+                (local fixtures, simulated jobs), an <b>Oracle REST</b> connector (documented Planning REST API, used
+                for read-only metadata and rule execution), and a
                 restricted <b>EPM Automate runner</b> — strict command allowlist, subprocess argument arrays (never a
                 shell), timeouts, output redaction. Operations are classified{" "}
                 <code>readOnly | execution | modifying | destructive</code>, and there is no generic command endpoint.
@@ -375,14 +376,15 @@ export function GuidePage() {
               <Micro>Do this</Micro>
               <p>
                 A <b>context</b> is the local knowledge of your application — cubes, dimensions, members, forms, rules.
-                Build one from the chat or the Contexts tab:
+                It is stored on your machine and reused automatically. Build one from the chat or the Contexts tab:
               </p>
               <Chat>
                 <code>/context</code>
               </Chat>
               <Chat>What cubes and dimensions exist?</Chat>
               <p>
-                A quick context captures the application inventory through the connector. Each section is honestly
+                A quick context captures the application inventory through the connector — cubes, dimension outlines,
+                members, forms, and the business-rule list. Each section is honestly
                 marked <code>complete | partial | derived | unavailable | notRequested</code> — the assistant never
                 pretends to know more than it fetched.
               </p>
@@ -390,14 +392,15 @@ export function GuidePage() {
                 REST cannot supply everything, so feed it an <b>LCM Artifact Snapshot</b> zip — the file{" "}
                 <code>epmautomate exportSnapshot</code> then <code>downloadFile &quot;Artifact Snapshot&quot;</code>{" "}
                 produces. Attach it with the paperclip or upload it on the Contexts tab, then merge it onto the live
-                context (or import it standalone):
+                context — recommended, since you keep the live inventory and gain the snapshot detail — or import it as
+                a standalone context:
               </p>
               <Chat>
                 <code>/context merge snapshot</code>
               </Chat>
               <p>
                 A snapshot unlocks Calc Manager rule bodies and runtime prompts, full member hierarchies with formulas,
-                substitution and user variables, complete form definitions, and the FDMEE inventory.
+                substitution and user variables, complete form definitions and references, and the FDMEE inventory.
               </p>
             </div>
             <div>
@@ -406,7 +409,8 @@ export function GuidePage() {
                 The zip is parsed deterministically and entirely in memory, with zip-slip and zip-bomb guards. The
                 application, cubes, and dimensions come from the zip&rsquo;s own <code>Export.xml</code> and folder
                 manifest — never assumed — so any Planning application works. Every extracted record is tagged{" "}
-                <code>source: &quot;snapshot&quot;</code>.
+                <code>source: &quot;snapshot&quot;</code>. A merge produces a new version with{" "}
+                <code>mode: hybrid</code>; a standalone import produces <code>mode: snapshot</code>.
               </p>
               <p>
                 Contexts are versioned and append-only: building, refreshing, or merging creates a new version; prior
@@ -430,7 +434,10 @@ export function GuidePage() {
           <div className="stage-cols">
             <div>
               <Micro>Do this</Micro>
-              <p>Forms are conversational. Describe one, get a preview grid in the chat, refine it in short edits:</p>
+              <p>
+                Forms are conversational. Describe one and a preview grid renders in the chat — it looks like the EPM
+                form it will become. Refine it in short edits; the preview updates each time:
+              </p>
               <Chat>Create an Actuals form with level-zero descendants of Total Payroll in rows</Chat>
               <Chat>move Entity to POV</Chat>
               <Chat>hide March</Chat>
@@ -438,16 +445,17 @@ export function GuidePage() {
               <p>Business rules start the same way:</p>
               <Chat>Create a business rule that copies Working to Final</Chat>
               <p>
-                A visible <b>&ldquo;Grounded on&rdquo;</b> block lists the real rule scripts, templates, and variables
-                the draft is based on, then the script streams in — always labelled a proposal. <b>Save as artifact</b>{" "}
-                keeps it and produces a deterministic Calc Manager import package that you review and import through
-                Migration yourself.
+                A visible <b>&ldquo;Grounded on&rdquo;</b> block lists the real rule scripts, templates, forms, and
+                variables the draft is based on, then the script streams in — always labelled a proposal.{" "}
+                <b>Save as artifact</b> keeps it and produces a downloadable, deterministic Calc Manager import package
+                that you review and import through Migration yourself.
               </p>
             </div>
             <div>
               <Micro>Under the hood</Micro>
               <p>
-                Retrieval runs over the active context version. It is deterministic pure-Python <b>BM25</b>, fully
+                Retrieval runs over the active context version — rule scripts, templates, forms, variables, and naming
+                digests, including everything a snapshot contributed. It is deterministic pure-Python <b>BM25</b>, fully
                 offline — it works in Demo Mode — and upgrades to hybrid lexical + embedding scoring when the configured
                 provider exposes embeddings (any OpenAI-compatible endpoint). The per-version index is cached on disk,
                 and an embedding failure falls back silently to lexical scoring, so grounding never blocks creation.
@@ -505,14 +513,15 @@ export function GuidePage() {
               <Micro>Do this</Micro>
               <p>
                 After deployment the form is read back from the tenant and marked <b>verified</b> only when it is
-                confirmed to exist. Every run and deployment lands on the <b>Deployments</b> tab and in the local audit
-                history.
+                confirmed to exist. Every run and deployment lands on the <b>Deployments</b> tab with its verification
+                result, and in the local audit history.
               </p>
             </div>
             <div>
               <Micro>Take it with you</Micro>
               <p>
-                Context reports export as Word, PDF, or Markdown from the Contexts tab, ready to hand to a client.{" "}
+                Context reports export any version as Word, PDF, or Markdown from the Contexts tab, ready to hand to a
+                client.{" "}
                 <code>/context export</code> produces a portable <code>.epwcontext</code> zip — manifest, checksums, no
                 secrets — that a teammate can import. The Data tab exports and imports the whole project as a zip, for
                 backup or moving machines.
@@ -534,7 +543,8 @@ export function GuidePage() {
             <h3>Spreadsheets</h3>
             <p>
               Drop an <code>.xlsx</code> or <code>.csv</code> onto the chat. The sheet is analyzed and classified — a
-              chart of accounts (merge the hierarchy, render a metadata CSV), a form layout, or a data table (a load-file
+              chart of accounts (Member/Parent or Level 1..N columns; merge the hierarchy, render a metadata CSV), a
+              form layout (period column headers like Jan, Feb, Q1 over a label column), or a data table (a load-file
               plan you can review, reconciled against the tenant). Nothing in the file is ever executed.
             </p>
             <Chat>Create a form from my spreadsheet layout</Chat>
@@ -588,8 +598,9 @@ export function GuidePage() {
           <div className="ledger-row">
             <div className="ledger-claim">Secrets never reach the model.</div>
             <div className="ledger-how">
-              API keys and passwords live in a Fernet-encrypted local secret store, not SQLite. A centralized redactor
-              scrubs every log line, tool result, error, and diagnostics bundle; messages that look like pasted
+              Secrets are never sent to the model, logged, or written into chat history, context packages, or generated
+              artifacts. API keys and passwords live in a Fernet-encrypted local secret store, not SQLite. A centralized
+              redactor scrubs every log line, tool result, error, and diagnostics bundle; messages that look like pasted
               credentials are redacted before storage.
             </div>
           </div>
@@ -603,10 +614,11 @@ export function GuidePage() {
           <div className="ledger-row">
             <div className="ledger-claim">Everything stays local.</div>
             <div className="ledger-how">
-              One data directory holds the SQLite database (Alembic-migrated), the encrypted secret store, artifact
-              packages, <code>.epwcontext</code> exports, uploaded snapshots, and the per-version RAG index cache.
-              Schemas are owned by Pydantic and code-generated into the TypeScript and Zod types this UI uses, with a
-              drift test keeping them in lockstep.
+              Projects, conversations, contexts, artifacts, and deployment history live in one data directory: the
+              SQLite database (Alembic-migrated), the encrypted secret store, artifact packages,{" "}
+              <code>.epwcontext</code> exports, uploaded snapshots, and the per-version RAG index cache. Data survives
+              browser refresh and container restarts. Schemas are owned by Pydantic and code-generated into the
+              TypeScript and Zod types this UI uses, with a drift test keeping them in lockstep.
             </div>
           </div>
         </div>
