@@ -8,8 +8,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ChatPage } from "./pages/ChatPage";
 import { AboutPage, ArtifactsPage, ContextsPage, DeploymentsPage } from "./pages/SimplePages";
 import { SettingsPage } from "./pages/SettingsPage";
-import { HowToPage } from "./pages/HowToPage";
-import { HowItWorksPage } from "./pages/HowItWorksPage";
+import { GuidePage } from "./pages/GuidePage";
 import { SkillsPage } from "./pages/SkillsPage";
 import { ExplorerPage } from "./pages/ExplorerPage";
 import { DataPage } from "./pages/DataPage";
@@ -87,8 +86,10 @@ export function App() {
                 <Route path="/skills" element={<SkillsPage />} />
                 <Route path="/explorer" element={<ExplorerPage />} />
                 <Route path="/data" element={<DataPage />} />
-                <Route path="/how-to" element={<HowToPage />} />
-                <Route path="/how-it-works" element={<HowItWorksPage />} />
+                <Route path="/guide" element={<GuidePage />} />
+                {/* Old documentation URLs redirect to the merged guide. */}
+                <Route path="/how-to" element={<Navigate to="/guide" replace />} />
+                <Route path="/how-it-works" element={<Navigate to="/guide" replace />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />

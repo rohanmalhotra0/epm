@@ -10,7 +10,6 @@ import {
   Compass,
   DataTable,
   Document,
-  FlowData,
   Help,
   Light,
   Notebook,
@@ -115,8 +114,7 @@ export function CommandPalette({
         { key: "skills", group: "actions", label: "Skills", icon: <SkillLevel size={16} />, run: () => goto("/skills") },
         { key: "explorer", group: "actions", label: "Explorer", icon: <Compass size={16} />, run: () => goto("/explorer") },
         { key: "data", group: "actions", label: "Data", icon: <DataTable size={16} />, run: () => goto("/data") },
-        { key: "how-to", group: "actions", label: "How to use", icon: <Help size={16} />, run: () => goto("/how-to") },
-        { key: "how-it-works", group: "actions", label: "How it works", icon: <FlowData size={16} />, run: () => goto("/how-it-works") },
+        { key: "guide", group: "actions", label: "Guide", icon: <Help size={16} />, run: () => goto("/guide") },
         { key: "settings", group: "actions", label: "Settings", icon: <Settings size={16} />, run: () => goto("/settings") },
         {
           key: "toggle-theme",
