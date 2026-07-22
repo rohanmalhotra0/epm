@@ -50,11 +50,12 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# Base coder model to LoRA. Per OPENCLAW_PLAN.md §1/§2 we fine-tune only the
-# coder, and only onto a base confirmed for Together Serverless Multi-LoRA —
-# override with --model once eligibility is verified against the live
-# fine-tuning-models list.
-DEFAULT_BASE_MODEL = "Qwen/Qwen2.5-Coder-32B-Instruct"
+# Default base to LoRA. The plan aimed at Qwen2.5-Coder-32B, but Together
+# returns 404 "not available for fine-tuning" for the whole Coder family
+# (confirm anytime with --list-models), so the default is the closest
+# fine-tunable base: same 32B size and Qwen2.5 generation, a strong coder.
+# Override with --model (e.g. Qwen/Qwen2.5-14B-Instruct for a cheaper run).
+DEFAULT_BASE_MODEL = "Qwen/Qwen2.5-32B-Instruct"
 DEFAULT_TRAIN_PATH = "data/training/synthetic.jsonl"
 # Together's servable catalog is much larger than its fine-tunable one, and the
 # API exposes no "list fine-tunable models" call — so --list-models probes these
@@ -191,13 +192,20 @@ class TogetherClient:
     def supports_finetune(self, model: str) -> bool:
         """True if the account can fine-tune ``model``.
 
-        The SDK has no list endpoint, so we ask for the model's training limits:
-        a supported model returns limits, an unsupported one raises 404.
+        The SDK has no list endpoint, so we ask for the model's training
+        limits: a fine-tunable model returns them; one that isn't raises
+        404/400. Only those "not eligible" statuses mean False — auth, network,
+        or a wrong method name must propagate, not masquerade as "unsupported".
+        A broad ``except`` here previously swallowed an ``AttributeError`` (the
+        method is ``model_limits(model_name=...)``, not ``get_model_limits``)
+        and made --list-models report every model as un-fine-tunable.
         """
+        from together import BadRequestError, NotFoundError
+
         try:
-            self._client.fine_tuning.get_model_limits(model=model)
+            self._client.fine_tuning.model_limits(model_name=model)
             return True
-        except Exception:
+        except (NotFoundError, BadRequestError):
             return False
 
 
