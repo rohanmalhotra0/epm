@@ -37,4 +37,8 @@ EXPOSE 8000
 # Migrations + seeding run on startup (app lifespan).
 # Bind "::" (dual-stack), not 0.0.0.0: Fly's private 6PN network is IPv6-only,
 # and the frontend's nginx reaches this app at an fdaa:: address.
-CMD ["uvicorn", "app.main:app", "--host", "::", "--port", "8000"]
+# Empty host = bind BOTH 0.0.0.0 and [::]. Fly needs both families: health
+# checks and the edge proxy connect over private IPv4, while .internal 6PN
+# DNS (frontend nginx -> backend) is IPv6-only. A bare "::" binds IPv6-only
+# (asyncio sets IPV6_V6ONLY), which passes traffic but fails every check.
+CMD ["uvicorn", "app.main:app", "--host", "", "--port", "8000"]

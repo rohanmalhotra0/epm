@@ -59,8 +59,11 @@ class OpenAICompatibleProvider(AIProvider):
             if resp.status_code == 401:
                 raise ProviderError("The provider rejected the API key.", category="authentication")
             resp.raise_for_status()
-            data = resp.json().get("data", [])
-            return [m.get("id") for m in data if m.get("id")]
+            payload = resp.json()
+            # OpenAI-style APIs wrap the catalog in {"data": [...]}; Together
+            # returns a bare top-level list.
+            data = payload.get("data", []) if isinstance(payload, dict) else payload
+            return [m.get("id") for m in data if isinstance(m, dict) and m.get("id")]
         except httpx.HTTPError as exc:
             raise ProviderError(f"Could not list models: {exc}") from exc
 
