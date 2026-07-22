@@ -29,13 +29,16 @@ primary_region = "iad"
   # Pass identity upstream; nginx reads X-Forwarded-Email and forwards it on.
   OAUTH2_PROXY_PASS_USER_HEADERS = "true"
   OAUTH2_PROXY_SET_XAUTHREQUEST = "true"
-  # ---- Public landing page, gated app -------------------------------------
-  # The frontend serves a PUBLIC marketing landing at "/" and the actual app
-  # under "/app". These routes reach the upstream WITHOUT auth: the landing
-  # page and the static bundle it needs to render. Everything else (notably
-  # "/app" and "/api") still requires a Google login. Regexes match the request
-  # path (RE2). TOML literal (single-quoted) string so backslashes pass through.
-  OAUTH2_PROXY_SKIP_AUTH_ROUTES = '^/$,^/assets/,^/favicon,^/apple-touch-icon,^/icon-,^/site\.webmanifest'
+  # ---- Public landing page + docs, gated app ------------------------------
+  # The frontend serves a PUBLIC marketing landing at "/" and public product
+  # documentation at "/docs" (both rendered by the SPA outside the /app tree).
+  # These routes reach the upstream WITHOUT auth: the landing/docs pages and the
+  # static bundle they need to render. Everything else (notably "/app" and
+  # "/api") still requires a Google login. Regexes match the request path (RE2);
+  # "^/docs(/|$)" covers the docs page and any future docs sub-paths without
+  # matching look-alike prefixes. TOML literal (single-quoted) string so
+  # backslashes pass through.
+  OAUTH2_PROXY_SKIP_AUTH_ROUTES = '^/$,^/docs(/|$),^/assets/,^/favicon,^/apple-touch-icon,^/icon-,^/site\.webmanifest'
   # The landing IS our sign-in page, so skip oauth2-proxy's own button page and
   # send a gated request (e.g. the landing's "Sign in with Google" → /app)
   # straight to Google, returning to the originally requested path afterwards.
