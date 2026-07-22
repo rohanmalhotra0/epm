@@ -144,4 +144,24 @@ describe("SettingsPage provider form", () => {
       expect(body.roleModels).toEqual({ code: "only-code" });
     });
   });
+
+  it("sends roleModels.vision in the create-provider payload", async () => {
+    renderPage();
+    fireEvent.change(screen.getAllByPlaceholderText("Name")[0], { target: { value: "Vision" } });
+    fireEvent.change(screen.getByPlaceholderText("Vision model (screenshots)"), {
+      target: { value: "qwen2.5-vl:7b" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add provider" }));
+
+    const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
+    await vi.waitFor(() => {
+      const post = fetchMock.mock.calls.find(
+        (c) => String(c[0]) === "/api/providers" && (c[1] as RequestInit)?.method === "POST",
+      );
+      expect(post).toBeTruthy();
+      const body = JSON.parse(String((post![1] as RequestInit).body));
+      expect(body.roleModels).toEqual({ vision: "qwen2.5-vl:7b" });
+      expect(body.visionModel).toBeUndefined();
+    });
+  });
 });
