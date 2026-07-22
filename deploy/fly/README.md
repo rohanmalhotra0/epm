@@ -216,6 +216,24 @@ covers them automatically if you set one), then send them
 `https://epmw-auth.fly.dev`. They sign in with Google/GitHub in the browser —
 nothing to install.
 
+## 8. Browser-agent extension access
+
+The extension authenticates two ways, both handled by the config already in
+`auth.fly.toml`:
+
+- **Integrated** (drive the agent while signed in on the website): the session
+  cookie rides along on the extension's requests. This needs
+  `OAUTH2_PROXY_COOKIE_SAMESITE = "none"` (set) so the cookie is sent on the
+  extension's cross-site background requests.
+- **Autonomous** (no website tab): the user generates a personal API token on
+  the app's **Browser Agent** page and pastes it into the extension's settings.
+  The token authenticates the `^/api/ext/*` routes, which `auth.fly.toml` skips
+  from the Google gate — safe because the backend *requires* a valid
+  `Authorization: Bearer epmw_…` token there and ignores any identity header.
+
+No extra deploy step beyond redeploying `auth.fly.toml` after pulling these
+changes (`fly deploy --config deploy/fly/auth.fly.toml --app epmw-auth`).
+
 ---
 
 ## Cost

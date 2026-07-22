@@ -12,8 +12,9 @@ const $ = (id) => document.getElementById(id);
 const els = {
   statusDot: $("statusDot"), statusText: $("statusText"),
   settings: $("settings"), settingsToggle: $("settingsToggle"),
-  backendUrl: $("backendUrl"), projectId: $("projectId"),
+  backendUrl: $("backendUrl"), projectId: $("projectId"), apiToken: $("apiToken"),
   voiceToggle: $("voiceToggle"), guardToggle: $("guardToggle"), saveConfig: $("saveConfig"),
+  testConn: $("testConn"), signIn: $("signIn"), connStatus: $("connStatus"),
   goal: $("goal"), startBtn: $("startBtn"), pauseBtn: $("pauseBtn"),
   resumeBtn: $("resumeBtn"), stopBtn: $("stopBtn"),
   feed: $("feed"), emptyHint: $("emptyHint"),
@@ -34,7 +35,10 @@ const VOICE_KEY = "epmw.voice";
 
 // The workbook inspector reads the backend URL from live config (falling back to
 // whatever is typed in the settings field).
-initInspector({ getBackendUrl: () => currentConfig.backendUrl || els.backendUrl.value.trim() });
+initInspector({ getConfig: () => ({
+  backendUrl: currentConfig.backendUrl || els.backendUrl.value.trim(),
+  apiToken: currentConfig.apiToken || els.apiToken.value.trim(),
+}) });
 
 function connect() {
   const p = chrome.runtime.connect({ name: PANEL_PORT });
@@ -58,6 +62,7 @@ function onMessage({ type, data }) {
     case EVT.ERROR: appendLine(data.message, "error"); hideThinking(); break;
     case EVT.LOG: appendLine(data.line, "log"); break;
     case EVT.CONFIRM: onConfirmRequest(data); break;
+    case EVT.CONN: onConnResult(data); break;
     default: break;
   }
 }
@@ -68,6 +73,7 @@ function applyState(state) {
     currentConfig = state.config;
     els.backendUrl.value = state.config.backendUrl || "";
     els.projectId.value = state.config.projectId || "";
+    els.apiToken.value = state.config.apiToken || "";
     els.guardToggle.checked = state.config.enforceGuardrails !== false;
   }
   // Re-render the persisted steps (e.g. after a worker restart / panel reopen).
@@ -239,14 +245,43 @@ els.tabAgent.addEventListener("click", () => showTab("agent"));
 els.tabInspect.addEventListener("click", () => showTab("inspect"));
 
 els.settingsToggle.addEventListener("click", () => els.settings.classList.toggle("hidden"));
-els.saveConfig.addEventListener("click", () => {
-  send(CMD.SET_CONFIG, {
+
+function currentSettings() {
+  return {
     backendUrl: els.backendUrl.value.trim(),
     projectId: els.projectId.value.trim(),
+    apiToken: els.apiToken.value.trim(),
     enforceGuardrails: els.guardToggle.checked,
-  });
+  };
+}
+
+els.saveConfig.addEventListener("click", () => {
+  send(CMD.SET_CONFIG, currentSettings());
   els.settings.classList.add("hidden");
 });
+
+// Test connection: save first (so the SW tests the fields as shown), then probe.
+els.testConn.addEventListener("click", () => {
+  send(CMD.SET_CONFIG, currentSettings());
+  showConn("pending", "Testing connection…");
+  send(CMD.TEST_CONNECTION);
+});
+
+// Open the EPM Wizard website so the user can sign in (integrated mode).
+els.signIn.addEventListener("click", () => {
+  const url = (els.backendUrl.value.trim() || currentConfig.backendUrl || "").replace(/\/+$/, "");
+  if (!url) { showConn("err", "Set the Backend URL first."); return; }
+  chrome.tabs.create({ url });
+});
+
+function showConn(kind, message) {
+  els.connStatus.textContent = message;
+  els.connStatus.className = "conn-status " + kind;
+}
+
+function onConnResult(result) {
+  showConn(result.ok ? "ok" : "err", result.message || (result.ok ? "Connected." : "Connection failed."));
+}
 
 els.voiceToggle.addEventListener("change", () => {
   chrome.storage.local.set({ [VOICE_KEY]: els.voiceToggle.checked });

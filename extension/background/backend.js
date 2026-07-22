@@ -34,29 +34,90 @@ async function readSse(response, onEvent, signal) {
   }
 }
 
+// Build the fetch init + URL for an authenticated backend call. Two modes:
+//   • Autonomous  — an API token is set: call the token-gated /api/ext routes
+//     with an Authorization: Bearer header. No cookies (works with no website
+//     tab open).
+//   • Integrated  — no token: call the normal routes with credentials:"include"
+//     so the website's login-gate session cookie authenticates the request.
+function authedRequest(config, subpath, init = {}) {
+  const base = (config.backendUrl || "").replace(/\/+$/, "");
+  const token = (config.apiToken || "").trim();
+  const headers = { ...(init.headers || {}) };
+  let path = subpath;
+  let credentials = "omit";
+  if (token) {
+    path = subpath.replace("/api/", "/api/ext/");
+    headers["authorization"] = `Bearer ${token}`;
+  } else {
+    credentials = "include";
+  }
+  return { url: `${base}${path}`, init: { ...init, headers, credentials } };
+}
+
+// Turn a fetch failure / bad status into a human, actionable message instead of
+// a raw "Backend 404". `mode` is "autonomous" (token) or "integrated" (cookie).
+function diagnose({ status, url, mode, networkErr }) {
+  if (networkErr) {
+    return `Can't reach the backend at ${url}. Check the Backend URL in Settings ` +
+           `(it should be the EPM Wizard app's address) and your connection.`;
+  }
+  if (status === 401 || status === 403) {
+    return mode === "autonomous"
+      ? "API token was rejected (invalid, revoked, or for a different backend). " +
+        "Generate a fresh token on the app's Browser Agent page and paste it in Settings."
+      : "Not signed in. Open the EPM Wizard website and sign in (then press Test " +
+        "connection), or paste an API token in Settings to run without the website.";
+  }
+  if (status === 404) {
+    return `Reached a server at ${url}, but it has no agent API there. Point the ` +
+           `Backend URL at the EPM Wizard app itself (not a bare host or a different site).`;
+  }
+  if (status >= 500) return `Backend error (${status}). Try again shortly.`;
+  return `Backend ${status}.`;
+}
+
+// Probe reachability + auth. Resolves { ok, mode, owner?, message }.
+export async function testConnection(config) {
+  const mode = (config.apiToken || "").trim() ? "autonomous" : "integrated";
+  const { url, init } = authedRequest(config, "/api/whoami", { method: "GET" });
+  let res;
+  try {
+    res = await fetch(url, init);
+  } catch (err) {
+    return { ok: false, mode, message: diagnose({ networkErr: err, url, mode }) };
+  }
+  if (res.ok) {
+    let owner;
+    try { owner = (await res.json()).owner; } catch { /* ignore */ }
+    return {
+      ok: true, mode, owner,
+      message: mode === "autonomous"
+        ? `Connected with your API token${owner ? ` as ${owner}` : ""}.`
+        : `Connected via the website session${owner && owner !== "local" ? ` as ${owner}` : ""}.`,
+    };
+  }
+  return { ok: false, mode, message: diagnose({ status: res.status, url, mode }) };
+}
+
 // Stream a single agent step. Calls handlers.onToken/onStep/onError/onDone.
 export async function streamStep(config, body, handlers, signal) {
-  const url = `${config.backendUrl.replace(/\/+$/, "")}/api/agent/step`;
+  const mode = (config.apiToken || "").trim() ? "autonomous" : "integrated";
+  const { url, init } = authedRequest(config, "/api/agent/step", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+    signal,
+  });
   let response;
   try {
-    response = await fetch(url, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-      // Send the session cookie so requests survive an oauth2-proxy login gate:
-      // point backendUrl at the public entry (the auth app when the gate is up,
-      // else the frontend) and, while signed in in this browser, the cookie
-      // authenticates the call. Harmless when there's no gate.
-      credentials: "include",
-      signal,
-    });
+    response = await fetch(url, init);
   } catch (err) {
-    handlers.onError?.(`Cannot reach backend at ${url}: ${err.message}`);
+    handlers.onError?.(diagnose({ networkErr: err, url, mode }));
     return;
   }
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    handlers.onError?.(`Backend ${response.status}: ${text.slice(0, 200)}`);
+    handlers.onError?.(diagnose({ status: response.status, url, mode }));
     return;
   }
   await readSse(response, ({ event, data }) => {

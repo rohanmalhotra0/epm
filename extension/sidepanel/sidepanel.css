@@ -128,12 +128,19 @@ button.danger-solid:hover { background: var(--err-hover); border-color: var(--er
 }
 .settings label { display: flex; flex-direction: column; gap: 5px; color: var(--muted); font-size: 12px; }
 .settings label.row { flex-direction: row; align-items: center; gap: 8px; color: var(--text); font-size: 13px; cursor: pointer; }
-.settings input[type="text"] {
+.settings input[type="text"], .settings input[type="password"] {
   background: var(--field); border: none; border-bottom: 1px solid var(--border-strong);
   color: var(--text); border-radius: 0; padding: 9px 10px; font: inherit; font-size: 13px;
 }
-.settings input[type="text"]::placeholder { color: var(--faint); }
-.settings input[type="text"]:focus { outline: 2px solid var(--focus); outline-offset: -2px; }
+.settings input::placeholder { color: var(--faint); }
+.settings input[type="text"]:focus, .settings input[type="password"]:focus { outline: 2px solid var(--focus); outline-offset: -2px; }
+.settings .hint { color: var(--faint); font-weight: 400; }
+.settings .field-help { color: var(--faint); font-size: 11px; line-height: 1.45; }
+.settings-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.conn-status { font-size: 12px; padding: 8px 10px; border-radius: 2px; line-height: 1.45; }
+.conn-status.pending { background: var(--layer-2); color: var(--muted); }
+.conn-status.ok { background: rgba(66,190,101,.12); color: var(--ok); border-left: 2px solid var(--ok); }
+.conn-status.err { background: rgba(250,77,86,.12); color: var(--err); border-left: 2px solid var(--err); }
 .settings .secondary { align-self: flex-start; }
 
 /* Carbon-style checkbox */

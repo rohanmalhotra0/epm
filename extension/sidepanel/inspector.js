@@ -17,7 +17,7 @@ function el(tag, opts = {}, kids = []) {
   return n;
 }
 
-export function initInspector({ getBackendUrl }) {
+export function initInspector({ getConfig }) {
   const dropZone = $("dropZone");
   const fileInput = $("wbFile");
   const statusEl = $("inspectStatus");
@@ -33,24 +33,34 @@ export function initInspector({ getBackendUrl }) {
     if (!file) return;
     results.innerHTML = "";
     setStatus(`Inspecting ${file.name}…`);
-    const base = (getBackendUrl() || "").replace(/\/+$/, "");
+    const cfg = getConfig() || {};
+    const base = (cfg.backendUrl || "").replace(/\/+$/, "");
     if (!base) { setStatus("Set a Backend URL in ⚙ Settings first.", true); return; }
     const form = new FormData();
     form.append("file", file, file.name);
+
+    // Match the agent's auth: token → token-gated /api/ext route (Bearer, no
+    // cookie); no token → integrated route with the website session cookie.
+    const token = (cfg.apiToken || "").trim();
+    const path = token ? "/api/ext/spreadsheet/inspect" : "/api/spreadsheet/inspect";
+    const opts = { method: "POST", body: form };
+    if (token) opts.headers = { authorization: `Bearer ${token}` };
+    else opts.credentials = "include";
+
     let res;
     try {
-      res = await fetch(`${base}/api/spreadsheet/inspect`, {
-        method: "POST", body: form, credentials: "include",
-      });
+      res = await fetch(`${base}${path}`, opts);
     } catch (err) {
-      setStatus(`Cannot reach the backend at ${base}: ${err.message}`, true);
+      setStatus(`Can't reach the backend at ${base}: ${err.message}`, true);
       return;
     }
     if (!res.ok) {
       let detail = `${res.status}`;
       try { const b = await res.json(); detail = b.detail || detail; } catch { /* keep */ }
       if (res.status === 401 || res.status === 403) {
-        detail = "not authorized — sign in to EPM Wizard in this browser first";
+        detail = token
+          ? "API token was rejected — generate a fresh one on the Browser Agent page."
+          : "not signed in — open EPM Wizard and sign in, or add an API token in ⚙ Settings.";
       }
       setStatus(`Inspect failed: ${detail}`, true);
       return;

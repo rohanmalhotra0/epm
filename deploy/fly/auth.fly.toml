@@ -38,7 +38,14 @@ primary_region = "iad"
   # "^/docs(/|$)" covers the docs page and any future docs sub-paths without
   # matching look-alike prefixes. TOML literal (single-quoted) string so
   # backslashes pass through.
-  OAUTH2_PROXY_SKIP_AUTH_ROUTES = '^/$,^/docs(/|$),^/assets/,^/favicon,^/apple-touch-icon,^/icon-,^/site\.webmanifest'
+  # NOTE: "^/api/ext(/|$)" lets the browser-agent extension's TOKEN-gated routes
+  # (/api/ext/*) reach the backend WITHOUT a Google session — that's how the
+  # extension runs autonomously. It is safe to skip the login gate here because
+  # the backend REQUIRES a valid "Authorization: Bearer epmw_…" token on those
+  # routes (see backend get_owner_from_token) and never trusts a client identity
+  # header on them. The interactive app (/app, the rest of /api) still needs a
+  # Google login.
+  OAUTH2_PROXY_SKIP_AUTH_ROUTES = '^/$,^/docs(/|$),^/api/ext(/|$),^/assets/,^/favicon,^/apple-touch-icon,^/icon-,^/site\.webmanifest'
   # The landing IS our sign-in page, so skip oauth2-proxy's own button page and
   # send a gated request (e.g. the landing's "Sign in with Google" → /app)
   # straight to Google, returning to the originally requested path afterwards.
@@ -58,6 +65,13 @@ primary_region = "iad"
   # Cookie hardening.
   OAUTH2_PROXY_COOKIE_SECURE = "true"
   OAUTH2_PROXY_COOKIE_EXPIRE = "168h"
+  # SameSite=None so the session cookie is sent on the browser-agent extension's
+  # cross-site background requests ("integrated" mode — drive the agent while
+  # signed in on the website, no token). Requires Secure=true (set above).
+  # oauth2-proxy keeps its own CSRF state cookie, so relaxing SameSite here does
+  # not open the login flow to CSRF. Users who only use token ("autonomous")
+  # mode don't rely on this.
+  OAUTH2_PROXY_COOKIE_SAMESITE = "none"
   # SECRETS (set via `fly secrets set -a epmw-auth`, see README §6):
   #   OAUTH2_PROXY_CLIENT_ID      — OAuth client id
   #   OAUTH2_PROXY_CLIENT_SECRET  — OAuth client secret

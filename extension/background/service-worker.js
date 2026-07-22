@@ -10,7 +10,7 @@
 // Port re-hydrates the panel on (re)connect. A run that is interrupted by a
 // worker restart lands in PAUSED and can be resumed (history is preserved).
 
-import { streamStep } from "./backend.js";
+import { streamStep, testConnection } from "./backend.js";
 import * as cdp from "./cdp.js";
 import { assessAction } from "./guardrails.js";
 import { CMD, CS, DEFAULT_CONFIG, EVT, PANEL_PORT, STATUS } from "../common/protocol.js";
@@ -42,10 +42,27 @@ function freshState() {
   return { status: STATUS.IDLE, goal: "", pendingGoal: "", steps: [], tabId: null, config: { ...DEFAULT_CONFIG } };
 }
 
+// Durable config lives in storage.local so the API token + backend URL survive a
+// browser restart (session storage, where run state lives, is cleared then).
+const DURABLE_KEY = "epmw.durable";
+const DURABLE_FIELDS = ["backendUrl", "projectId", "apiToken", "enforceGuardrails"];
+
+async function persistDurable(patch) {
+  const keep = {};
+  for (const k of DURABLE_FIELDS) if (k in patch) keep[k] = patch[k];
+  if (!Object.keys(keep).length) return;
+  const cur = (await chrome.storage.local.get(DURABLE_KEY))[DURABLE_KEY] || {};
+  await chrome.storage.local.set({ [DURABLE_KEY]: { ...cur, ...keep } });
+}
+
 async function loadState() {
   if (state) return state;
   const stored = await chrome.storage.session.get(STATE_KEY);
   state = stored[STATE_KEY] || freshState();
+  // Overlay durable config (token, backend URL, …) so it persists across
+  // browser restarts even though run state is ephemeral session storage.
+  const dur = (await chrome.storage.local.get(DURABLE_KEY))[DURABLE_KEY] || {};
+  state.config = { ...state.config, ...dur };
   // A run interrupted by a worker restart resumes from PAUSED, never RUNNING —
   // and never stuck mid-confirmation (the held promise died with the worker).
   if (state.status === STATUS.RUNNING || state.status === STATUS.CONFIRM) {
@@ -100,7 +117,10 @@ async function handleSiteMessage(msg, sender) {
   const patch = {};
   if (typeof data.backendUrl === "string" && data.backendUrl) patch.backendUrl = data.backendUrl;
   if (typeof data.projectId === "string") patch.projectId = data.projectId;
-  if (Object.keys(patch).length) state.config = { ...state.config, ...patch };
+  if (Object.keys(patch).length) {
+    state.config = { ...state.config, ...patch };
+    await persistDurable(patch);   // remember the site's backend URL / project
+  }
   if (typeof data.goal === "string" && data.goal) state.pendingGoal = data.goal;
   await saveState();
   sendState();
@@ -127,9 +147,15 @@ async function handlePanelMessage(msg) {
       break;
     case CMD.SET_CONFIG:
       state.config = { ...state.config, ...(msg.data || {}) };
+      await persistDurable(msg.data || {});
       await saveState();
       sendState();
       break;
+    case CMD.TEST_CONNECTION: {
+      const result = await testConnection(state.config);
+      broadcast(EVT.CONN, result);
+      break;
+    }
     case CMD.START:
       await startRun(msg.data?.goal || "");
       break;

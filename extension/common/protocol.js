@@ -11,8 +11,9 @@ export const CMD = Object.freeze({
   RESUME: "resume",
   STOP: "stop",
   GET_STATE: "getState",
-  SET_CONFIG: "setConfig", // { backendUrl, projectId, enforceGuardrails }
+  SET_CONFIG: "setConfig", // { backendUrl, projectId, apiToken, enforceGuardrails }
   CONFIRM: "confirm",      // { id, approve } — resolve a held destructive action
+  TEST_CONNECTION: "testConnection", // check backend reachability + auth
 });
 
 // SW -> panel events
@@ -25,6 +26,7 @@ export const EVT = Object.freeze({
   ERROR: "error",       // { message }
   LOG: "log",           // { line }
   CONFIRM: "confirm",   // { id, reason, label, action } destructive action held for approval
+  CONN: "conn",         // { ok, mode, owner, message } result of TEST_CONNECTION
 });
 
 // Web page (EPM Wizard site) <-> extension, bridged by content/site-bridge.js
@@ -61,6 +63,12 @@ export const DEFAULT_CONFIG = Object.freeze({
   backendUrl: "http://localhost:8000",
   // Optional EPM Wizard project id → selects that project's active provider.
   projectId: "",
+  // Optional personal API token (epmw_…) for AUTONOMOUS use — drives the
+  // token-gated /api/ext routes without a signed-in website tab. When empty the
+  // agent uses INTEGRATED auth: the website session cookie (credentials:include)
+  // authenticates the call while you're signed in. Generate one on the app's
+  // Browser Agent page.
+  apiToken: "",
   // Safety rail for the scaffold so a loop can't run away.
   maxSteps: 25,
   // Pause between steps (ms) so a human can watch.

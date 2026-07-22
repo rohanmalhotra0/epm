@@ -1,10 +1,22 @@
 import { useEffect, useState } from "react";
-import { Button, InlineNotification, TextArea } from "@carbon/react";
-import { Bot, CheckmarkFilled, Download, Launch } from "@carbon/icons-react";
+import { Button, InlineNotification, TextArea, TextInput } from "@carbon/react";
+import { Add, Bot, CheckmarkFilled, Copy, Download, Launch, TrashCan } from "@carbon/icons-react";
 import { useUi } from "../store/ui";
 import { toast } from "../store/toast";
+import { api, ApiError } from "../api/client";
 import { detectExtension, launchAgent, type ExtensionInfo } from "../agent/extensionBridge";
 import "../styles/feature-pages.css";
+
+interface ExtToken {
+  id: string;
+  name: string;
+  prefix: string;
+  createdAt: string;
+  lastUsedAt?: string | null;
+}
+interface ExtTokenCreated extends ExtToken {
+  token: string;
+}
 
 // Set VITE_EXTENSION_STORE_URL at build time once the extension is published;
 // until then the page shows the "load unpacked" developer path only.
@@ -89,6 +101,9 @@ export function AgentPage() {
           <InstallInstructions />
         )}
 
+        {/* autonomous access */}
+        <TokenManager />
+
         {/* safety */}
         <InlineNotification
           kind="info"
@@ -99,6 +114,130 @@ export function AgentPage() {
         />
       </div>
     </div>
+  );
+}
+
+// Personal API tokens for driving the extension autonomously (no signed-in
+// website tab). Integrated mode needs none of this — it rides the website
+// session — so this is framed as the optional "standalone" path.
+function TokenManager() {
+  const [tokens, setTokens] = useState<ExtToken[] | null>(null);
+  const [name, setName] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [fresh, setFresh] = useState<ExtTokenCreated | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    try {
+      setTokens(await api<ExtToken[]>("/api/ext-tokens"));
+      setError(null);
+    } catch (e) {
+      setError(e instanceof ApiError ? `Couldn't load tokens (${e.status}).` : String(e));
+      setTokens([]);
+    }
+  };
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
+  const create = async () => {
+    setCreating(true);
+    try {
+      const t = await api<ExtTokenCreated>("/api/ext-tokens", {
+        method: "POST",
+        body: JSON.stringify({ name: name.trim() || "Browser agent" }),
+      });
+      setFresh(t);
+      setName("");
+      await load();
+    } catch (e) {
+      toast.error("Couldn't create token", e instanceof ApiError ? e.message : String(e));
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const revoke = async (id: string) => {
+    try {
+      await api(`/api/ext-tokens/${id}`, { method: "DELETE" });
+      if (fresh?.id === id) setFresh(null);
+      await load();
+    } catch (e) {
+      toast.error("Couldn't revoke token", e instanceof ApiError ? e.message : String(e));
+    }
+  };
+
+  const copy = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success("Token copied", "Paste it into the extension's Settings → API token.");
+    } catch {
+      toast.info("Copy the token", "Select and copy the token text shown above.");
+    }
+  };
+
+  return (
+    <section className="token-card">
+      <div className="token-head">
+        <b>Autonomous access (API token)</b>
+        <span className="token-sub">
+          Optional. Generate a token to run the agent <em>without</em> keeping this website open —
+          paste it into the extension's <b>Settings → API token</b>. When you launch from here while
+          signed in, no token is needed.
+        </span>
+      </div>
+
+      {fresh && (
+        <div className="token-fresh">
+          <div className="token-fresh-title">
+            <CheckmarkFilled size={16} /> Copy your token now — it won't be shown again
+          </div>
+          <div className="token-fresh-row">
+            <code className="token-value mono">{fresh.token}</code>
+            <Button size="sm" kind="tertiary" renderIcon={Copy} onClick={() => copy(fresh.token)}>
+              Copy
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="token-create">
+        <TextInput
+          id="token-name"
+          labelText="Token name (optional)"
+          placeholder="e.g. My laptop"
+          value={name}
+          size="sm"
+          onChange={(e) => setName(e.target.value)}
+        />
+        <Button size="sm" renderIcon={Add} onClick={create} disabled={creating}>
+          Generate token
+        </Button>
+      </div>
+
+      {error && <div className="token-error">{error}</div>}
+
+      {tokens && tokens.length > 0 && (
+        <ul className="token-list">
+          {tokens.map((t) => (
+            <li key={t.id}>
+              <span className="token-prefix mono">{t.prefix}…</span>
+              <span className="token-name">{t.name}</span>
+              <span className="token-when">
+                {t.lastUsedAt ? `used ${new Date(t.lastUsedAt).toLocaleDateString()}` : "never used"}
+              </span>
+              <Button
+                size="sm"
+                kind="ghost"
+                hasIconOnly
+                renderIcon={TrashCan}
+                iconDescription="Revoke"
+                tooltipPosition="left"
+                onClick={() => revoke(t.id)}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
