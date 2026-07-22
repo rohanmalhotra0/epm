@@ -4,9 +4,10 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter, Navigate, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { GuidePage } from "../src/pages/GuidePage";
+import { AppRoutes } from "../src/App";
 import { Sidebar } from "../src/components/Sidebar";
 import { useUi } from "../src/store/ui";
 
@@ -146,15 +147,11 @@ describe("guide navigation", () => {
 });
 
 describe("legacy documentation URLs", () => {
-  // Redirects wired exactly like App.tsx: old links must keep working.
+  // The app's REAL route table: these tests fail if App.tsx drops the redirects.
   function renderAt(initialPath: string) {
     return render(
       <MemoryRouter initialEntries={[initialPath]}>
-        <Routes>
-          <Route path="/guide" element={<GuidePage />} />
-          <Route path="/how-to" element={<Navigate to="/guide" replace />} />
-          <Route path="/how-it-works" element={<Navigate to="/guide" replace />} />
-        </Routes>
+        <AppRoutes />
       </MemoryRouter>,
     );
   }

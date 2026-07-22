@@ -38,6 +38,29 @@ function ChatRedirect() {
   return <div className="main-col" />;
 }
 
+/** The real route table, exported so tests exercise actual wiring (including redirects). */
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<ChatRedirect />} />
+      <Route path="/c/:id" element={<ChatPage />} />
+      <Route path="/contexts" element={<ContextsPage />} />
+      <Route path="/artifacts" element={<ArtifactsPage />} />
+      <Route path="/deployments" element={<DeploymentsPage />} />
+      <Route path="/skills" element={<SkillsPage />} />
+      <Route path="/explorer" element={<ExplorerPage />} />
+      <Route path="/data" element={<DataPage />} />
+      <Route path="/guide" element={<GuidePage />} />
+      {/* Old documentation URLs redirect to the merged guide. */}
+      <Route path="/how-to" element={<Navigate to="/guide" replace />} />
+      <Route path="/how-it-works" element={<Navigate to="/guide" replace />} />
+      <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/about" element={<AboutPage />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
 export function App() {
   const theme = useUi((s) => s.theme);
   const projectId = useUi((s) => s.currentProjectId);
@@ -77,23 +100,7 @@ export function App() {
           <Sidebar />
           <SignInGate>
             <ErrorBoundary resetKey={loc.pathname} label="this view">
-              <Routes>
-                <Route path="/" element={<ChatRedirect />} />
-                <Route path="/c/:id" element={<ChatPage />} />
-                <Route path="/contexts" element={<ContextsPage />} />
-                <Route path="/artifacts" element={<ArtifactsPage />} />
-                <Route path="/deployments" element={<DeploymentsPage />} />
-                <Route path="/skills" element={<SkillsPage />} />
-                <Route path="/explorer" element={<ExplorerPage />} />
-                <Route path="/data" element={<DataPage />} />
-                <Route path="/guide" element={<GuidePage />} />
-                {/* Old documentation URLs redirect to the merged guide. */}
-                <Route path="/how-to" element={<Navigate to="/guide" replace />} />
-                <Route path="/how-it-works" element={<Navigate to="/guide" replace />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/about" element={<AboutPage />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
+              <AppRoutes />
             </ErrorBoundary>
           </SignInGate>
         </div>

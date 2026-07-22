@@ -43,10 +43,13 @@ describe("CommandPalette", () => {
   it("shows quick actions when the query is empty", () => {
     renderPalette();
     expect(screen.getByText("Quick actions")).toBeInTheDocument();
-    for (const label of ["New chat", "Contexts", "Artifacts", "Deployments", "Skills", "Explorer", "Data", "Settings"]) {
+    for (const label of ["New chat", "Contexts", "Artifacts", "Deployments", "Skills", "Explorer", "Data", "Guide", "Settings"]) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
     expect(screen.getByText(/Toggle theme/)).toBeInTheDocument();
+    // the two pre-merge documentation entries are gone
+    expect(screen.queryByText("How to use")).toBeNull();
+    expect(screen.queryByText("How it works")).toBeNull();
   });
 
   it("runs the selected quick action on Enter", () => {
