@@ -15,7 +15,9 @@ app = "epmw-frontend"
 primary_region = "iad"
 
 [build]
-  dockerfile = "frontend/Dockerfile"
+  # Relative to THIS toml's dir (deploy/fly/); build context is the repo root
+  # (set by deploy-fly.sh) so the Dockerfile's COPY frontend/... resolves.
+  dockerfile = "../../frontend/Dockerfile"
 
 [env]
   # Backend's private 6PN address. Must match backend.fly.toml's `app` name.

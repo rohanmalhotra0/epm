@@ -102,12 +102,14 @@ set_backend_secrets() {
 }
 
 deploy_app() {
-  # Build from the repo root so the Dockerfiles' COPY paths resolve.
-  local app="$1" config="$2" dockerfile="$3"
+  # Build with the repo root as the build CONTEXT so the Dockerfiles' COPY paths
+  # resolve. The Dockerfile itself is named by each toml's [build].dockerfile
+  # (a ../../ path relative to deploy/fly/) — do NOT also pass --dockerfile here,
+  # flyctl lets the toml value win and would resolve a CLI path inconsistently.
+  local app="$1" config="$2"
   info "Deploying '$app'..."
   "$FLY" deploy "$REPO_ROOT" \
     --config "$config" \
-    --dockerfile "$REPO_ROOT/$dockerfile" \
     --app "$app" \
     --ha=false \
     --yes
@@ -148,11 +150,11 @@ do_deploy() {
   ensure_app "$BACKEND_APP"
   ensure_volume "$BACKEND_APP"
   set_backend_secrets "$BACKEND_APP"
-  deploy_app "$BACKEND_APP" "$SCRIPT_DIR/backend.fly.toml" "backend/Dockerfile"
+  deploy_app "$BACKEND_APP" "$SCRIPT_DIR/backend.fly.toml"
   harden_backend_private "$BACKEND_APP"
 
   ensure_app "$FRONTEND_APP"
-  deploy_app "$FRONTEND_APP" "$SCRIPT_DIR/frontend.fly.toml" "frontend/Dockerfile"
+  deploy_app "$FRONTEND_APP" "$SCRIPT_DIR/frontend.fly.toml"
   ensure_frontend_public "$FRONTEND_APP"
 
   ok "Deploy complete."

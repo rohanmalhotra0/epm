@@ -19,9 +19,11 @@ app = "epmw-backend"
 primary_region = "iad"
 
 [build]
-  # Path is relative to the build context (the repo root), which deploy-fly.sh
-  # sets explicitly. Kept here for `fly deploy` runs made from the repo root.
-  dockerfile = "backend/Dockerfile"
+  # flyctl resolves this path relative to THIS toml's directory (deploy/fly/),
+  # so reach back to the repo-root Dockerfile. The build CONTEXT is still the
+  # repo root (deploy-fly.sh passes it), so the Dockerfile's `COPY backend/...`
+  # / `COPY frontend/...` paths resolve.
+  dockerfile = "../../backend/Dockerfile"
 
 [env]
   EPMW_DATA_DIR = "/data"
