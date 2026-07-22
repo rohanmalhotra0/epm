@@ -78,8 +78,11 @@ def test_redaction_closes_known_bypasses():
     out = redact_text(url)
     assert "Mestro365!" not in out and "Rohanm@ibm.com" not in out
     assert out.startswith("https://") and "host.oraclecloud.com/api" in out
-    # common token formats beyond the OpenAI/Anthropic/AWS set
-    for token in ("ghp_" + "a" * 36, "xoxb-123456789012-abcdefghijklmnop",
+    # common token formats beyond the OpenAI/Anthropic/AWS set. Every synthetic
+    # token here is assembled from parts so no literal matches a real-secret
+    # scanner (the Slack `xoxb-` shape otherwise trips GitHub secret scanning).
+    for token in ("ghp_" + "a" * 36,
+                  "xoxb-" + "1" * 12 + "-" + "a" * 16,
                   "eyJhbGciOi." + "a" * 8 + "." + "b" * 8):
         assert REDACTION in redact_text(f"secret is {token}")
 
