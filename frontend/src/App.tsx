@@ -12,6 +12,7 @@ import { GuidePage } from "./pages/GuidePage";
 import { SkillsPage } from "./pages/SkillsPage";
 import { ExplorerPage } from "./pages/ExplorerPage";
 import { DataPage } from "./pages/DataPage";
+import { AgentPage } from "./pages/AgentPage";
 import { Toaster } from "./components/Toaster";
 import { CommandPalette } from "./components/CommandPalette";
 import { FirstRunTour } from "./components/FirstRunTour";
@@ -50,6 +51,7 @@ export function AppRoutes() {
       <Route path="/skills" element={<SkillsPage />} />
       <Route path="/explorer" element={<ExplorerPage />} />
       <Route path="/data" element={<DataPage />} />
+      <Route path="/agent" element={<AgentPage />} />
       <Route path="/guide" element={<GuidePage />} />
       {/* Old documentation URLs redirect to the merged guide. */}
       <Route path="/how-to" element={<Navigate to="/guide" replace />} />

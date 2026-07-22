@@ -10,7 +10,23 @@ It is a **real, loadable extension** that runs the full
 **not** a hardened Oracle-specific agent — the genuinely hard Oracle-UI
 heuristics are stubbed behind clean seams and marked below.
 
-No build step. Plain ES modules + one classic content script. Load it as-is.
+No build step. Plain ES modules + two classic content scripts. Load it as-is.
+
+**New in 0.2.0**
+
+- **Seamless site integration.** Launched from the EPM Wizard web app, the
+  extension auto-configures (backend URL + project id + goal) and opens its
+  panel — no manual setup. See _Site integration_ below.
+- **Enforced production-safety gate.** Destructive actions and any write on a
+  production tenant are *held* for explicit human approval before they execute —
+  a hard gate, not a prompt hint. See _Safety gate_ below.
+- **Store-ready packaging.** Icons, a privacy policy, a listing pack, and a
+  packaging script. See _Publishing_ below.
+
+> **Honesty note:** nothing here has been run against a live Oracle EPM tenant.
+> The Oracle-specific grounding (iframes, canvas/JET grids) is still stubbed.
+> Validate against a real Planning UI before trusting any driving behaviour, and
+> read the safety caveats before publishing publicly.
 
 ---
 
@@ -43,6 +59,80 @@ No build step. Plain ES modules + one classic content script. Load it as-is.
 > **Permissions note:** the manifest requests `debugger` for the CDP
 > screenshot/coordinate fallback. Chrome shows a *"… is debugging this browser"*
 > banner while attached — expected for the scaffold (see stubs below).
+
+---
+
+## Site integration (zero-setup launch)
+
+Launched from the EPM Wizard web app, the extension configures itself — no
+typing a backend URL or project id.
+
+- The app has a **Browser Agent** page (sidebar → *Browser Agent*, route
+  `/agent`). It detects whether the extension is installed and offers a one-click
+  **Launch agent on the current tab**.
+- On launch, the app hands the extension its **backend URL** (the app's own
+  origin, so the agent authenticates with your existing signed-in session) and
+  your **current project id**, plus an optional **goal** to prefill.
+- The transport is a content script (`content/site-bridge.js`) that runs only on
+  the EPM Wizard origins (see `manifest.json` matches) and relays `window`
+  CustomEvents to the service worker. The page never needs the extension's
+  (unstable) id. Contract: `common/protocol.js` → `SITE`; app side:
+  `frontend/src/agent/extensionBridge.ts`.
+
+Opening the side panel programmatically needs a user gesture the relayed message
+may not carry; if Chrome declines, the config is already saved and one click on
+the toolbar icon opens the fully-wired panel.
+
+To point the bridge at other origins, edit the second `content_scripts` entry in
+`manifest.json` and `SITE_ORIGINS` in `common/protocol.js`.
+
+## Safety gate (enforced)
+
+The system prompt *asks* the model not to fire destructive Oracle actions. That
+is advice, not a guarantee. `background/guardrails.js` turns it into a **hard
+gate**: before every action executes, the service worker consults the guardrail
+and, when it flags one, **holds** the action until you approve or skip it in the
+panel. Nothing destructive fires on the model's word alone.
+
+Two independent triggers:
+
+1. **Destructive target** — the element about to be clicked/typed has an
+   accessible name matching a destructive verb (deploy, delete, clear, drop,
+   *run rule*, *refresh database*, push/promote/publish, consolidate, …). Held
+   everywhere.
+2. **Production context** — the tab looks like a production tenant (URL/title
+   contains `prod`/`production`/`live`/…). On PROD, **any** write (click/type),
+   including blind coordinate clicks whose target can't be read, is held.
+
+Read-only actions (scroll, wait, screenshot, navigate, done) are never gated.
+The gate is on by default and can be toggled in the panel's **⚙ Settings**
+(*Enforce production-safety gate*). Tune the verb/PROD patterns at the top of
+`guardrails.js`.
+
+> This is a genuine guardrail but not a formal proof of safety: detection is by
+> accessible-name and URL heuristics. Keep it on, and still supervise real runs.
+
+## Publishing (Chrome Web Store)
+
+Store-readiness lives alongside the code:
+
+- **Icons** — `icons/icon{16,32,48,128}.png`, referenced by `icons` and
+  `action.default_icon`.
+- **Privacy policy** — `PRIVACY.md` (host it publicly; paste the URL in the
+  listing).
+- **Listing pack** — `STORE_LISTING.md`: summary, description, single-purpose
+  statement, per-permission justifications, data-usage disclosures, and a
+  pre-submission checklist.
+- **Package** — `scripts/package.sh` → `dist/epm-wizard-extension-<version>.zip`
+  (manifest at the archive root; docs/scripts excluded).
+
+```bash
+./scripts/package.sh   # build the upload zip
+```
+
+Read the review-risk note at the top of `STORE_LISTING.md` first: the `debugger`
++ broad-host permissions and UI-driving behaviour draw scrutiny, and this has not
+been validated on a live tenant.
 
 ---
 
@@ -123,6 +213,11 @@ twin lives at `POST /api/agent/step/once`.
 - Vision routing (screenshots → `AIMessage.images` → vision role model).
 - Streaming narration UI + optional Web-Speech voice.
 - MV3 worker-restart resilience (state persisted; resume from PAUSED).
+- **Enforced production-safety gate** — destructive / PROD-write actions are
+  held for explicit approval before executing (`background/guardrails.js`).
+- **Zero-setup site integration** — the EPM Wizard web app configures and
+  launches the agent (`content/site-bridge.js` ↔ `frontend/src/agent/`).
+- **Store-ready** — icons, privacy policy, listing pack, packaging script.
 
 **Stubbed / TODO — the multi-week Oracle ADF/JET hardening (~6–10 wks per §6):**
 - **iframes.** Oracle EPM renders forms/task-flows in nested iframes. The
@@ -149,8 +244,9 @@ twin lives at `POST /api/agent/step/once`.
   backend-side (`backend/app/agent/computer_use/`). EPM-specific compound
   gestures (POV member picker, form save workflow, drill-through) are *composed*
   from the primitive actions by the model — not yet encoded as skills, and not
-  yet evaluated against a real tenant. Safety gating (don't click Deploy-to-PROD)
-  is a prompt instruction only, not an enforced guardrail.
+  yet evaluated against a real tenant. Note: destructive/PROD actions are now
+  **held by an enforced client-side gate** (`guardrails.js`) — but that gate is
+  heuristic (accessible-name + URL matching), not a formal safety proof.
 - **Auth / session.** The extension assumes you're already logged into the EPM
   tab; it does not handle Oracle SSO, session timeouts, or re-auth prompts.
 

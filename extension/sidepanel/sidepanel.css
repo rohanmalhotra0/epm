@@ -38,6 +38,7 @@ body { display: flex; flex-direction: column; height: 100vh; }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
 .dot.running { background: var(--accent); box-shadow: 0 0 0 3px rgba(91,140,255,.2); }
 .dot.paused { background: var(--warn); }
+.dot.confirm { background: var(--warn); box-shadow: 0 0 0 3px rgba(240,180,41,.25); }
 .dot.done { background: var(--ok); }
 .dot.error { background: var(--err); }
 
@@ -71,7 +72,18 @@ button {
 button:disabled { opacity: .45; cursor: not-allowed; }
 button.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border: none; color: #fff; font-weight: 600; }
 button.danger { color: var(--err); }
+button.danger-solid { background: var(--err); border: none; color: #fff; font-weight: 600; }
 button.secondary { background: var(--panel-2); }
+
+/* Enforced-guardrail confirmation banner. */
+.confirm {
+  margin: 0; padding: 12px; background: rgba(240,180,41,.10);
+  border-bottom: 1px solid var(--warn); display: flex; flex-direction: column; gap: 8px;
+}
+.confirm-title { font-weight: 700; color: var(--warn); }
+.confirm-reason { color: var(--text); }
+.confirm-detail { color: var(--muted); font-size: 11px; font-family: ui-monospace, monospace; word-break: break-word; }
+.confirm-actions { display: flex; gap: 8px; justify-content: flex-end; }
 
 .feed { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
 .empty { color: var(--muted); text-align: center; padding: 24px 12px; }

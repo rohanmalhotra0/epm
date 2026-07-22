@@ -1,9 +1,15 @@
 {
   "manifest_version": 3,
   "name": "EPM Wizard — Narrated Browser Agent",
-  "version": "0.1.0",
-  "description": "Watches and narrates as it drives Oracle EPM Cloud's web UI. Accessibility-tree grounding + screenshot fallback, side-panel narration. (Scaffold.)",
+  "version": "0.2.0",
+  "description": "Narrated browser agent for Oracle EPM Cloud: watches, explains each step, and drives the UI with an enforced production-safety gate.",
   "minimum_chrome_version": "116",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": [
     "activeTab",
     "scripting",
@@ -27,12 +33,31 @@
       "js": ["content/content-script.js"],
       "run_at": "document_idle",
       "all_frames": false
+    },
+    {
+      "matches": [
+        "https://epmw-auth.fly.dev/*",
+        "https://epmw-frontend.fly.dev/*",
+        "http://localhost:3000/*",
+        "http://localhost:8000/*",
+        "http://127.0.0.1:3000/*",
+        "http://127.0.0.1:8000/*"
+      ],
+      "js": ["content/site-bridge.js"],
+      "run_at": "document_start",
+      "all_frames": false
     }
   ],
   "side_panel": {
     "default_path": "sidepanel/sidepanel.html"
   },
   "action": {
-    "default_title": "Open EPM Wizard agent panel"
+    "default_title": "Open EPM Wizard agent panel",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   }
 }

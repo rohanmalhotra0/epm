@@ -4,6 +4,7 @@ import { Modal, OverflowMenu, OverflowMenuItem, TextInput } from "@carbon/react"
 import {
   Add,
   Search,
+  Bot,
   Chat,
   ChevronDown,
   ChevronRight,
@@ -32,6 +33,7 @@ const NAV = [
   { to: "/artifacts", label: "Artifacts", icon: Folder },
   { to: "/deployments", label: "Deployments", icon: Rocket },
   { to: "/data", label: "Data", icon: DataBase },
+  { to: "/agent", label: "Browser Agent", icon: Bot },
   { to: "/guide", label: "Guide", icon: Help },
   { to: "/settings", label: "Settings", icon: Settings },
   { to: "/about", label: "About", icon: Information },

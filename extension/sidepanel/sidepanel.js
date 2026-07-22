@@ -12,17 +12,20 @@ const els = {
   statusDot: $("statusDot"), statusText: $("statusText"),
   settings: $("settings"), settingsToggle: $("settingsToggle"),
   backendUrl: $("backendUrl"), projectId: $("projectId"),
-  voiceToggle: $("voiceToggle"), saveConfig: $("saveConfig"),
+  voiceToggle: $("voiceToggle"), guardToggle: $("guardToggle"), saveConfig: $("saveConfig"),
   goal: $("goal"), startBtn: $("startBtn"), pauseBtn: $("pauseBtn"),
   resumeBtn: $("resumeBtn"), stopBtn: $("stopBtn"),
   feed: $("feed"), emptyHint: $("emptyHint"),
   thinking: $("thinking"), thinkingText: $("thinkingText"),
   stepCount: $("stepCount"),
+  confirm: $("confirm"), confirmReason: $("confirmReason"), confirmDetail: $("confirmDetail"),
+  approveBtn: $("approveBtn"), rejectBtn: $("rejectBtn"),
 };
 
 let port = connect();
 let renderedSteps = 0;
 let thinkingBuffer = "";
+let pendingConfirmId = null; // id of the destructive action currently held
 const VOICE_KEY = "epmw.voice";
 
 function connect() {
@@ -46,6 +49,7 @@ function onMessage({ type, data }) {
     case EVT.STATUS: setStatus(data.status); break;
     case EVT.ERROR: appendLine(data.message, "error"); hideThinking(); break;
     case EVT.LOG: appendLine(data.line, "log"); break;
+    case EVT.CONFIRM: onConfirmRequest(data); break;
     default: break;
   }
 }
@@ -55,13 +59,32 @@ function applyState(state) {
   if (state.config) {
     els.backendUrl.value = state.config.backendUrl || "";
     els.projectId.value = state.config.projectId || "";
+    els.guardToggle.checked = state.config.enforceGuardrails !== false;
   }
   // Re-render the persisted steps (e.g. after a worker restart / panel reopen).
   if (Array.isArray(state.steps)) {
     if (state.steps.length < renderedSteps) resetFeed();
     for (let i = renderedSteps; i < state.steps.length; i++) renderStep(state.steps[i]);
   }
-  if (state.goal && !els.goal.value) els.goal.value = state.goal;
+  // Prefill the goal — a run's goal, or one handed over by the web app.
+  if (!els.goal.value) els.goal.value = state.goal || state.pendingGoal || "";
+}
+
+// ── enforced-guardrail confirmation ──────────────────────────────────────────
+function onConfirmRequest({ id, reason, label, action }) {
+  pendingConfirmId = id;
+  els.confirmReason.textContent = reason || "This action was flagged as risky.";
+  els.confirmDetail.textContent = describeAction(action || {}) + (label ? ` · “${label}”` : "");
+  els.confirm.classList.remove("hidden");
+  hideThinking();
+  if (els.voiceToggle.checked) speak("Confirmation needed. " + (reason || ""));
+}
+
+function resolveConfirm(approve) {
+  if (pendingConfirmId == null) return;
+  send(CMD.CONFIRM, { id: pendingConfirmId, approve });
+  pendingConfirmId = null;
+  els.confirm.classList.add("hidden");
 }
 
 function onToken(text) {
@@ -157,12 +180,16 @@ function setStatus(status) {
   els.statusDot.className = "dot " + status;
   const running = status === STATUS.RUNNING;
   const paused = status === STATUS.PAUSED;
-  els.startBtn.disabled = running || paused;
-  els.pauseBtn.disabled = !running;
-  els.stopBtn.disabled = !(running || paused);
+  const confirming = status === STATUS.CONFIRM;
+  const active = running || paused || confirming;
+  els.startBtn.disabled = active;
+  els.pauseBtn.disabled = !(running || confirming);
+  els.stopBtn.disabled = !active;
   els.pauseBtn.classList.toggle("hidden", paused);
   els.resumeBtn.classList.toggle("hidden", !paused);
-  if (!running) hideThinking();
+  if (!running && !confirming) hideThinking();
+  // Leaving the confirm state (resumed elsewhere, paused, stopped) drops the banner.
+  if (!confirming) { pendingConfirmId = null; els.confirm.classList.add("hidden"); }
 }
 
 // ── voice (Web Speech) ───────────────────────────────────────────────────────
@@ -186,9 +213,16 @@ els.pauseBtn.addEventListener("click", () => send(CMD.PAUSE));
 els.resumeBtn.addEventListener("click", () => send(CMD.RESUME));
 els.stopBtn.addEventListener("click", () => { send(CMD.STOP); window.speechSynthesis?.cancel(); });
 
+els.approveBtn.addEventListener("click", () => resolveConfirm(true));
+els.rejectBtn.addEventListener("click", () => resolveConfirm(false));
+
 els.settingsToggle.addEventListener("click", () => els.settings.classList.toggle("hidden"));
 els.saveConfig.addEventListener("click", () => {
-  send(CMD.SET_CONFIG, { backendUrl: els.backendUrl.value.trim(), projectId: els.projectId.value.trim() });
+  send(CMD.SET_CONFIG, {
+    backendUrl: els.backendUrl.value.trim(),
+    projectId: els.projectId.value.trim(),
+    enforceGuardrails: els.guardToggle.checked,
+  });
   els.settings.classList.add("hidden");
 });
 
