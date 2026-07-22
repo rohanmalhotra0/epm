@@ -26,7 +26,7 @@ export function SettingsPage() {
 
   const emptyProvider = {
     name: "", providerType: "anthropic", baseUrl: "", apiKey: "", defaultModel: "",
-    chatModel: "", fastModel: "", structuredModel: "", codeModel: "", embeddingModel: "",
+    chatModel: "", fastModel: "", structuredModel: "", codeModel: "", embeddingModel: "", visionModel: "",
   };
   const [np, setNp] = useState(emptyProvider);
   const [ne, setNe] = useState({ name: "", baseUrl: "", username: "", classification: "development", demo: false });
@@ -137,6 +137,16 @@ export function SettingsPage() {
           <input placeholder="Structured model" aria-label="Structured model" value={np.structuredModel} onChange={(e) => setNp({ ...np, structuredModel: e.target.value })} style={inp} />
           <input placeholder="Code model" aria-label="Code model" value={np.codeModel} onChange={(e) => setNp({ ...np, codeModel: e.target.value })} style={inp} />
           <input
+            placeholder="Vision model (screenshots)"
+            aria-label="Vision model (screenshots)"
+            value={np.visionModel}
+            onChange={(e) => setNp({ ...np, visionModel: e.target.value })}
+            style={inp}
+          />
+          <div style={{ fontSize: 11, color: "var(--cds-text-secondary, #8d8d8d)" }}>
+            Used when a message carries screenshots (e.g. a Qwen2.5-VL model alongside a text/code model).
+          </div>
+          <input
             placeholder="Embedding model (RAG)"
             aria-label="Embedding model (RAG)"
             value={np.embeddingModel}
@@ -153,13 +163,14 @@ export function SettingsPage() {
             kind="primary"
             disabled={!np.name}
             onClick={() => {
-              const { chatModel, fastModel, structuredModel, codeModel, embeddingModel, ...body } = np;
+              const { chatModel, fastModel, structuredModel, codeModel, embeddingModel, visionModel, ...body } = np;
               const roleModels: Record<string, string> = {
                 ...(chatModel.trim() ? { chat: chatModel.trim() } : {}),
                 ...(fastModel.trim() ? { fast: fastModel.trim() } : {}),
                 ...(structuredModel.trim() ? { structured: structuredModel.trim() } : {}),
                 ...(codeModel.trim() ? { code: codeModel.trim() } : {}),
                 ...(embeddingModel.trim() ? { embedding: embeddingModel.trim() } : {}),
+                ...(visionModel.trim() ? { vision: visionModel.trim() } : {}),
               };
               createProvider.mutate({
                 ...body,

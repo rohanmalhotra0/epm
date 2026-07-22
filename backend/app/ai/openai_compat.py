@@ -32,7 +32,14 @@ _STREAM_TIMEOUT = httpx.Timeout(connect=10.0, read=60.0, write=10.0, pool=10.0)
 
 class OpenAICompatibleProvider(AIProvider):
     capabilities = {"streaming": True, "tools": True, "structured": True,
-                    "attachments": False, "contextWindow": 128_000, "embeddings": True}
+                    "attachments": False, "contextWindow": 128_000, "embeddings": True,
+                    # The wire format (multi-part content with image_url parts) is
+                    # generic to the OpenAI-compatible spec; whether a given model
+                    # actually attends to the images is up to the deployment (e.g. a
+                    # Qwen2.5-VL endpoint). A text-only model harmlessly ignores or
+                    # errors on image parts — the caller picks a vision-capable
+                    # model via the "vision" role before sending images.
+                    "vision": True}
 
     def __init__(self, config: ProviderConfig) -> None:
         super().__init__(config)
@@ -66,6 +73,16 @@ class OpenAICompatibleProvider(AIProvider):
         # are re-embedded when this changes.
         return (self.config.role_models.get("embedding")
                 or os.environ.get("OPENAI_EMBEDDINGS_MODEL", "text-embedding-3-small"))
+
+    @property
+    def vision_model(self) -> str:
+        # profile role model -> env -> the chat default. A separate role lets a
+        # deployment pair a code model (chat/fast/structured/code) with a distinct
+        # vision model (e.g. Qwen2.5-Coder-32B for text, Qwen2.5-VL-7B for
+        # screenshots) on the same OpenAI-compatible endpoint.
+        return (self.config.role_models.get("vision")
+                or os.environ.get("OPENAI_VISION_MODEL")
+                or self.config.default_model or "gpt-4o-mini")
 
     async def embed(self, texts: list[str], *, model: str | None = None) -> list[list[float]]:
         """Embed texts via the OpenAI-compatible /embeddings endpoint (RAG grounding).
@@ -101,9 +118,13 @@ class OpenAICompatibleProvider(AIProvider):
         msgs = []
         if system:
             msgs.append({"role": "system", "content": system})
-        msgs.extend({"role": m.role, "content": m.content} for m in messages)
+        msgs.extend({"role": m.role, "content": _content_parts(m)} for m in messages)
+        # A message carrying screenshots routes to the vision role model unless
+        # the caller already pinned an explicit model (e.g. the agent loop
+        # picking Qwen2.5-VL for a screen-grounding step).
+        has_images = any(m.images for m in messages)
         body = {
-            "model": model or self.config.default_model or "gpt-4o-mini",
+            "model": model or (self.vision_model if has_images else self.config.default_model) or "gpt-4o-mini",
             "messages": msgs,
             "temperature": temperature,
             "max_tokens": max_tokens,
@@ -131,6 +152,18 @@ class OpenAICompatibleProvider(AIProvider):
         except httpx.HTTPError as exc:
             raise ProviderError(f"Streaming failed: {exc}", retryable=True) from exc
         yield StreamDone()
+
+
+def _content_parts(message: AIMessage) -> str | list[dict]:
+    """Plain string for a text-only message (the unchanged, universally-
+    supported wire shape); an OpenAI-style multi-part array (image_url parts
+    + a trailing text part) once the message carries screenshots."""
+    if not message.images:
+        return message.content
+    parts: list[dict] = [{"type": "image_url", "image_url": {"url": url}} for url in message.images]
+    if message.content:
+        parts.append({"type": "text", "text": message.content})
+    return parts
 
 
 def _parse_line(line: str) -> list[StreamChunk]:

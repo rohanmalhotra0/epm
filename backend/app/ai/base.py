@@ -16,6 +16,10 @@ from dataclasses import dataclass, field
 class AIMessage:
     role: str  # user | assistant | system
     content: str
+    # Screenshots/UI captures for a vision-capable model (the computer-use
+    # agent), as data URLs (``data:image/png;base64,...``). Ignored by
+    # providers/models that don't advertise the "vision" capability.
+    images: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -70,6 +74,7 @@ class AIProvider(ABC):
         "structured": False,
         "attachments": False,
         "embeddings": False,
+        "vision": False,
         "contextWindow": None,
     }
 
