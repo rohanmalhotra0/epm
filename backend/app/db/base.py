@@ -70,6 +70,10 @@ def engine_kwargs(url: str) -> dict:
         "max_overflow": 5,
         "pool_recycle": 1800,
         "future": True,
+        # Without a bound, a slow/unreachable database hangs the connect for
+        # minutes; on Fly that stalls the whole deploy because nothing listens
+        # until startup finishes. Fail fast and loudly instead.
+        "connect_args": {"connect_timeout": 10},
     }
 
 

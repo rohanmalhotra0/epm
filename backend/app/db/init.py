@@ -169,8 +169,9 @@ def _seed_from_env(session: Session, project: Project) -> None:
             existing.role_models = role_models
 
 
-def initialize(seed: bool = True) -> None:
-    run_migrations()
+def initialize(seed: bool = True, migrate: bool = True) -> None:
+    if migrate:
+        run_migrations()
     if seed:
         with session_scope() as session:
             seed_defaults(session)
