@@ -1,0 +1,564 @@
+/* Public docs page (pages/DocsPage.tsx). Shares the landing page's Carbon
+   shell — flat dark surfaces, hairline borders, IBM Plex, sharp corners,
+   accent #4589ff — so the two read as one product. Layout is a sticky TOC
+   sidebar plus a max-width prose column. Motion is functional only (a gentle
+   scroll-reveal + the self-drawing trust-boundary diagram); the reduced-motion
+   block at the end forces final states. Self-contained: no external assets. */
+
+.docs {
+  --d-accent: var(--epmw-accent, #4589ff);
+  --d-accent-hover: var(--epmw-accent-hover, #6ea6ff);
+  --d-accent-soft: rgba(69, 137, 255, 0.12);
+  --d-ok: #24a148;
+  --d-warn: #fa4d56;
+  --d-bg: #161616;
+  --d-layer: #1c1c1c;
+  --d-layer-2: #202020;
+  --d-fg: #f4f4f4;
+  --d-muted: #a8a8a8;
+  --d-faint: #6f6f6f;
+  --d-border: #2a2a2a;
+  --d-border-2: #393939;
+  --d-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --d-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --d-maxw: 1180px;
+
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--d-bg);
+  color: var(--d-fg);
+  font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  line-height: 1.65;
+  overflow-x: hidden;
+}
+
+/* ---------- scroll reveal (gentle 8px settle; armed only with motion) ------ */
+.docs.reveal-on [data-reveal] {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 420ms var(--d-ease),
+    transform 420ms var(--d-ease);
+}
+.docs.reveal-on [data-reveal].in-view {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------- top nav ---------- */
+.docs-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(22, 22, 22, 0.85);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--d-border);
+}
+.docs-nav-inner {
+  max-width: var(--d-maxw);
+  margin: 0 auto;
+  padding: 12px clamp(18px, 5vw, 44px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.docs-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--d-fg);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 15px;
+}
+.docs-brand img {
+  border-radius: 3px;
+}
+.docs-brand-sep {
+  color: var(--d-faint);
+  font-weight: 400;
+}
+.docs-brand-docs {
+  color: var(--d-muted);
+  font-weight: 500;
+}
+.docs-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.docs-nav-link {
+  font-size: 13px;
+  color: var(--d-muted);
+  text-decoration: none;
+  transition: color 0.14s ease;
+}
+.docs-nav-link:hover {
+  color: var(--d-fg);
+}
+
+/* ---------- google sign-in button ---------- */
+.docs-signin {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--d-accent);
+  border: 1px solid var(--d-accent);
+  padding: 8px 15px;
+  text-decoration: none;
+  transition:
+    background 0.14s ease,
+    border-color 0.14s ease,
+    transform 0.14s var(--d-ease);
+}
+.docs-signin:hover {
+  background: var(--d-accent-hover);
+  border-color: var(--d-accent-hover);
+  transform: translateY(-1px);
+}
+.docs-signin svg {
+  background: #fff;
+  border-radius: 2px;
+  padding: 2px;
+  box-sizing: content-box;
+}
+.docs-signin.block {
+  justify-content: center;
+  margin-top: 22px;
+}
+
+/* ---------- shell: sticky TOC + prose ---------- */
+.docs-shell {
+  flex: 1;
+  max-width: var(--d-maxw);
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 5vw, 44px);
+  display: grid;
+  grid-template-columns: 224px minmax(0, 1fr);
+  gap: clamp(28px, 5vw, 64px);
+}
+.docs-toc {
+  position: sticky;
+  top: 72px;
+  align-self: start;
+  height: max-content;
+  padding: 40px 0;
+}
+.docs-toc-title {
+  font-family: var(--d-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--d-faint);
+  margin: 0 0 14px;
+}
+.docs-toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-left: 1px solid var(--d-border-2);
+}
+.docs-toc a {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 0 7px 14px;
+  margin-left: -1px;
+  border-left: 1px solid transparent;
+  font-size: 13px;
+  color: var(--d-muted);
+  text-decoration: none;
+  transition:
+    color 0.14s ease,
+    border-color 0.14s ease;
+}
+.docs-toc-tick {
+  width: 5px;
+  height: 5px;
+  background: var(--d-faint);
+  opacity: 0;
+  transition: opacity 0.14s ease;
+}
+.docs-toc a:hover {
+  color: var(--d-fg);
+}
+.docs-toc a.active {
+  color: var(--d-accent);
+  border-left-color: var(--d-accent);
+}
+.docs-toc a.active .docs-toc-tick {
+  background: var(--d-accent);
+  opacity: 1;
+}
+
+/* ---------- prose column ---------- */
+.docs-main {
+  padding: 40px 0 64px;
+  min-width: 0;
+}
+.docs-lead {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--d-border);
+  margin-bottom: 8px;
+}
+.docs-eyebrow {
+  font-family: var(--d-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--d-accent);
+  margin: 0 0 14px;
+}
+.docs-main h1 {
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0 0 16px;
+  max-width: 20ch;
+}
+.docs-lede {
+  font-size: 16px;
+  color: var(--d-muted);
+  max-width: 64ch;
+  margin: 0 0 8px;
+}
+
+.docs-section {
+  padding: 40px 0;
+  border-bottom: 1px solid var(--d-border);
+  scroll-margin-top: 72px;
+}
+.docs-section:last-child {
+  border-bottom: none;
+}
+.docs-main h2 {
+  font-size: clamp(20px, 2.6vw, 27px);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 0 0 16px;
+}
+.docs-main h3 {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.docs-main p {
+  font-size: 14.5px;
+  color: var(--d-muted);
+  max-width: 68ch;
+  margin: 0 0 14px;
+}
+.docs-main p em {
+  color: var(--d-fg);
+  font-style: normal;
+  font-weight: 500;
+}
+.docs-main code {
+  font-family: var(--d-mono);
+  font-size: 12.5px;
+  background: var(--d-layer-2);
+  border: 1px solid var(--d-border);
+  padding: 1px 5px;
+  color: #e0e0e0;
+}
+
+.docs-quote {
+  margin: 0 0 18px;
+  padding: 14px 18px;
+  border-left: 2px solid var(--d-accent);
+  background: var(--d-accent-soft);
+  font-size: 15px;
+  color: var(--d-fg);
+  max-width: 68ch;
+}
+
+/* overview cards */
+.docs-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--d-border);
+  border: 1px solid var(--d-border);
+  margin-top: 20px;
+}
+.docs-card {
+  background: var(--d-bg);
+  padding: 20px;
+}
+.docs-card b {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+.docs-card span {
+  font-size: 13px;
+  color: var(--d-muted);
+  line-height: 1.5;
+}
+
+/* quickstart steps */
+.docs-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+.docs-steps > li {
+  position: relative;
+  counter-increment: step;
+  padding: 0 0 22px 44px;
+  font-size: 14.5px;
+  color: var(--d-muted);
+  line-height: 1.6;
+}
+.docs-steps > li::before {
+  content: counter(step, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: var(--d-mono);
+  font-size: 12px;
+  color: var(--d-accent);
+  border: 1px solid var(--d-border-2);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.docs-steps > li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  top: 30px;
+  bottom: 8px;
+  width: 1px;
+  background: var(--d-border-2);
+}
+.docs-steps b {
+  color: var(--d-fg);
+}
+
+/* approval loop */
+.docs-loop {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  border: 1px solid var(--d-border);
+}
+.docs-loop li {
+  padding: 16px 14px;
+  border-right: 1px solid var(--d-border);
+  background: var(--d-bg);
+}
+.docs-loop li:last-child {
+  border-right: none;
+}
+.docs-loop li span {
+  font-family: var(--d-mono);
+  font-size: 11px;
+  color: var(--d-faint);
+  display: block;
+  margin-bottom: 8px;
+}
+.docs-loop li b {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+.docs-loop li em {
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--d-muted);
+  line-height: 1.4;
+}
+.docs-loop li.gate {
+  background: linear-gradient(180deg, rgba(69, 137, 255, 0.08), transparent);
+}
+.docs-loop li.gate span,
+.docs-loop li.gate b {
+  color: var(--d-accent);
+}
+
+/* code / command blocks */
+.docs-code {
+  margin: 4px 0 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--d-border-2);
+  border-left: 2px solid var(--d-accent);
+  background: var(--d-layer);
+  overflow-x: auto;
+}
+.docs-code code {
+  font-family: var(--d-mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #e0e0e0;
+  background: none;
+  border: none;
+  padding: 0;
+  white-space: pre;
+}
+.docs-code .k {
+  color: var(--d-accent);
+}
+.docs-code .dim {
+  color: var(--d-faint);
+}
+.docs-code .ok {
+  color: var(--d-ok);
+}
+
+/* trust-boundary figure */
+.docs-fig {
+  margin: 8px 0 20px;
+  border: 1px solid var(--d-border-2);
+  background: #141414;
+  overflow-x: auto;
+}
+.docs-fig .md-svg {
+  display: block;
+  min-width: 720px;
+  width: 100%;
+  height: auto;
+}
+.docs-fig figcaption {
+  font-size: 12px;
+  color: var(--d-faint);
+  padding: 10px 14px;
+  border-top: 1px solid var(--d-border);
+}
+.docs.reveal-on .docs-fig .md-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+.docs.reveal-on .docs-fig.in-view .md-draw {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 680ms var(--d-ease);
+  transition-delay: calc(var(--seg, 0) * 160ms + 150ms);
+}
+
+/* security list */
+.docs-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.docs-list li {
+  padding: 14px 0 14px 18px;
+  border-left: 2px solid var(--d-border-2);
+  font-size: 14px;
+  color: var(--d-muted);
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+.docs-list li b {
+  color: var(--d-fg);
+}
+
+/* reference rows */
+.docs-ref {
+  border: 1px solid var(--d-border);
+  margin-bottom: 24px;
+}
+.docs-ref-row {
+  display: grid;
+  grid-template-columns: 210px 1fr;
+  gap: 16px;
+  align-items: baseline;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--d-border);
+}
+.docs-ref-row:last-child {
+  border-bottom: none;
+}
+.docs-ref-row > code {
+  font-size: 12.5px;
+  justify-self: start;
+}
+.docs-ref-row > span {
+  font-size: 13.5px;
+  color: var(--d-muted);
+}
+
+/* next-steps card */
+.docs-next {
+  margin-top: 8px;
+  border: 1px solid var(--d-border-2);
+  background: linear-gradient(180deg, var(--d-layer), var(--d-bg));
+  padding: 26px;
+}
+.docs-next h3 {
+  margin-bottom: 6px;
+}
+.docs-next p {
+  margin-bottom: 16px;
+}
+
+/* footer */
+.docs-footer {
+  border-top: 1px solid var(--d-border);
+}
+.docs-disclaimer {
+  max-width: var(--d-maxw);
+  margin: 0 auto;
+  padding: 26px clamp(18px, 5vw, 44px) 40px;
+  font-size: 11.5px;
+  color: var(--d-faint);
+  line-height: 1.55;
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 860px) {
+  .docs-shell {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .docs-toc {
+    position: static;
+    padding: 24px 0 0;
+    display: none; /* the prose is linear on mobile; TOC would just add noise */
+  }
+  .docs-main {
+    padding-top: 24px;
+  }
+  .docs-cards {
+    grid-template-columns: 1fr;
+  }
+  .docs-loop {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .docs-ref-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .docs-nav-link {
+    display: none;
+  }
+}
+@media (max-width: 520px) {
+  .docs-loop {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- reduced motion: force final states ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .docs *,
+  .docs *::before,
+  .docs *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .docs .md-draw {
+    stroke-dashoffset: 0 !important;
+  }
+}
