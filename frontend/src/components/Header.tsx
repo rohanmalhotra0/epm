@@ -1,5 +1,5 @@
-import { Asleep, Light, SidePanelClose, SidePanelOpen, Application, WatsonHealthAiResults } from "@carbon/icons-react";
-import { useEnvironments, useProjects, useProviders } from "../api/hooks";
+import { Add, Asleep, Edit, Light, SidePanelClose, SidePanelOpen, Application, WatsonHealthAiResults } from "@carbon/icons-react";
+import { useCreateProject, useEnvironments, useProjects, useProviders, useRenameProject } from "../api/hooks";
 import { useUi } from "../store/ui";
 import { ArtifactToggle } from "../artifacts/blocks";
 import { TtsToggle } from "../tts/components";
@@ -14,10 +14,27 @@ export function Header() {
   const { data: projects = [] } = useProjects();
   const { data: environments = [] } = useEnvironments(projectId ?? undefined);
   const { data: providers = [] } = useProviders();
+  const createProject = useCreateProject();
+  const renameProject = useRenameProject();
 
   const project = projects.find((p) => p.id === projectId);
   const activeEnv = environments.find((e) => e.id === project?.activeEnvironmentId) || environments[0];
   const activeProvider = providers.find((p) => p.hasKey && p.providerType !== "mock") || providers[0];
+
+  const onNewProject = () => {
+    // Create a blank project immediately and switch to it; the user renames via
+    // the pencil (matches the create-then-name pattern). Fixes the audit gap
+    // where useCreateProject existed but was wired to nothing.
+    createProject.mutate({ name: "New project" }, { onSuccess: (p) => setProject(p.id) });
+  };
+
+  const onRenameProject = () => {
+    if (!project) return;
+    const next = window.prompt("Rename project", project.name);
+    if (next && next.trim() && next.trim() !== project.name) {
+      renameProject.mutate({ id: project.id, name: next.trim() });
+    }
+  };
 
   return (
     <header className="epmw-header">
@@ -41,6 +58,26 @@ export function Header() {
             </option>
           ))}
         </select>
+        <button
+          className="conv-item"
+          style={{ width: "auto", padding: 4 }}
+          onClick={onRenameProject}
+          disabled={!project || renameProject.isPending}
+          title="Rename project"
+          aria-label="Rename project"
+        >
+          <Edit size={14} />
+        </button>
+        <button
+          className="conv-item"
+          style={{ width: "auto", padding: 4 }}
+          onClick={onNewProject}
+          disabled={createProject.isPending}
+          title="New project"
+          aria-label="New project"
+        >
+          <Add size={16} />
+        </button>
       </div>
       <span className="spacer" />
       <div className="meta">

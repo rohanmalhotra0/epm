@@ -23,8 +23,13 @@ primary_region = "iad"
   # Backend's private 6PN address. Must match backend.fly.toml's `app` name.
   # If you rename the backend app, change the host here too.
   BACKEND_URL = "http://epmw-backend.internal:8000"
-  # nginx entrypoint substitutes ONLY ${BACKEND_URL} (protects nginx's own vars).
-  NGINX_ENVSUBST_FILTER = "BACKEND_URL"
+  # Fly's internal DNS resolver for .internal 6PN names. nginx uses this to
+  # re-resolve BACKEND_URL per request (valid=10s), so replacing the backend
+  # machine (new 6PN IP) no longer strands this proxy on a dead address.
+  DNS_RESOLVER = "[fdaa::3]:53"
+  # nginx entrypoint substitutes ${BACKEND_URL} + ${DNS_RESOLVER} (the filter is
+  # an env-var-name regex; it protects nginx's own $host/$uri/... variables).
+  NGINX_ENVSUBST_FILTER = "BACKEND_URL|DNS_RESOLVER"
 
 [http_service]
   internal_port = 3000

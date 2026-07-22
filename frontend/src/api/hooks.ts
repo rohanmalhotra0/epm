@@ -41,6 +41,16 @@ export function useImportProject() {
   });
 }
 
+export function useRenameProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) =>
+      api<ProjectOut>(`/api/projects/${id}`, { method: "PATCH", body: JSON.stringify({ name }) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
+    onError: (e: Error) => toast.error("Rename failed", e.message),
+  });
+}
+
 // --- conversations ---
 export const useConversations = (projectId: string | undefined, search = "") =>
   useQuery({
