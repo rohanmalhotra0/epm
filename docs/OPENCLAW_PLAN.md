@@ -122,6 +122,8 @@ Target Oracle EPM Planning UI first.
 **Phase 5 — fine-tune (only if warranted).** Confirm serverless-LoRA eligibility;
 export the corpus (exporter already exists); LoRA the coder on your snapshot
 rule bodies; A/B vs stock. Optionally add specialized experts + a router.
+Runbook + launcher: `docs/FINETUNING.md` (`backend: python -m scripts.launch_finetune`;
+dry-run by default, `--launch` to actually submit the billable job).
 
 **Phase 6 — live Excel (optional, Windows).** xlwings/COM on a Windows box for
 interactive build/demo, if the offline-documentation flow proves it's needed.
