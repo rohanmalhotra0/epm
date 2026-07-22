@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button, InlineNotification, TextArea } from "@carbon/react";
-import { Bot, CheckmarkFilled, Launch } from "@carbon/icons-react";
+import { Bot, CheckmarkFilled, Download, Launch } from "@carbon/icons-react";
 import { useUi } from "../store/ui";
 import { toast } from "../store/toast";
 import { detectExtension, launchAgent, type ExtensionInfo } from "../agent/extensionBridge";
@@ -120,11 +120,28 @@ function InstallInstructions() {
           subtitle="Load it unpacked from the repo for now (developer mode)."
         />
       )}
+      <div className="action-row">
+        <Button
+          size="md"
+          kind="tertiary"
+          renderIcon={Download}
+          href={__EXTENSION_ZIP_URL__}
+          // Hint the browser to save (with a versioned name) rather than navigate.
+          {...{ download: __EXTENSION_ZIP_NAME__ }}
+        >
+          Download extension (.zip)
+        </Button>
+      </div>
       <div style={{ fontSize: 13, lineHeight: 1.7 }}>
         <b>Load unpacked (developer)</b>
         <ol style={{ margin: "6px 0 0 18px", padding: 0 }}>
+          <li>
+            <b>Download extension (.zip)</b> above and unzip it somewhere permanent
+            (Chrome reads the unpacked folder each time it starts, so don't delete it).
+            Already have the repo? Point at its <code>extension/</code> folder instead.
+          </li>
           <li>Open <code>chrome://extensions</code> and turn on <b>Developer mode</b>.</li>
-          <li>Click <b>Load unpacked</b> and select the repo's <code>extension/</code> folder.</li>
+          <li>Click <b>Load unpacked</b> and select the unzipped folder.</li>
           <li>Come back here and press <b>Re-check</b>.</li>
         </ol>
       </div>
