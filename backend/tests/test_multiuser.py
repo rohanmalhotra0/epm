@@ -147,3 +147,35 @@ def test_service_defaults_are_local(session):
     ids = {p.id for p in svc.list_projects(session)}
     assert out.id in ids
     assert svc.get_default_project(session) is not None
+
+
+def test_multi_user_auto_provisions_project_for_new_user(monkeypatch):
+    """A Google-authenticated user with no projects gets one on first list —
+    without it the UI has no project and 'New chat' silently no-ops."""
+    from app.main import app
+
+    with _multi_user(monkeypatch, True), TestClient(app) as client:
+        # Earlier tests leave NULL-owner legacy rows (visible to everyone),
+        # which would satisfy the "has projects" check and mask provisioning.
+        SessionLocal = get_sessionmaker()
+        s = SessionLocal()
+        try:
+            s.query(Project).filter(Project.owner_id.is_(None)).delete()
+            s.query(Project).filter(Project.owner_id.in_([ALICE, BOB])).delete()
+            s.commit()
+        finally:
+            s.close()
+
+        first = client.get("/api/projects", headers={HEADER: ALICE})
+        assert first.status_code == 200
+        projects = first.json()
+        assert len(projects) >= 1
+        pid = projects[0]["id"]
+
+        # Idempotent: listing again returns the same project, not a duplicate.
+        again = client.get("/api/projects", headers={HEADER: ALICE})
+        assert [p["id"] for p in again.json()] == [p["id"] for p in projects]
+
+        # Scoped: BOB does not see ALICE's auto-provisioned project.
+        bob = client.get("/api/projects", headers={HEADER: BOB})
+        assert pid not in [p["id"] for p in bob.json()]

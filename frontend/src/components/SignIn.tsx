@@ -20,12 +20,15 @@ const OAUTH_METHOD = "oauthClientCredentials";
  */
 export function SignInGate({ children }: { children: React.ReactNode }) {
   const projectId = useUi((s) => s.currentProjectId) ?? undefined;
+  const gateSkipped = useUi((s) => s.oracleGateSkipped);
   const { pathname } = useLocation();
   const { data: environments = [], isLoading } = useEnvironments(projectId);
 
   const connected = environments.some((e) => e.connected);
   // Let the user reach Settings even when not signed in (to enable demo mode).
-  const allowThrough = connected || pathname === "/settings";
+  // Oracle is optional — once skipped, go straight to the app (AI chat works
+  // without a tenant; connect later from this screen via Settings → Sign in).
+  const allowThrough = connected || gateSkipped || pathname === "/settings";
 
   if (!projectId || isLoading) {
     return <>{children}</>;
@@ -47,6 +50,7 @@ function SignInScreen({
   environments: EnvironmentOut[];
 }) {
   const nav = useNavigate();
+  const skipGate = useUi((s) => s.skipOracleGate);
   const createEnv = useCreateEnvironment(projectId);
   const connect = useConnectEnvironment(projectId);
 
@@ -333,9 +337,17 @@ function SignInScreen({
           {busy ? "Connecting…" : "Connect"}
         </Button>
 
+        <Button
+          kind="ghost"
+          onClick={skipGate}
+          style={{ width: "100%", maxWidth: "none", marginTop: 8 }}
+        >
+          Continue without Oracle →
+        </Button>
+
         <div className="signin-footer">
           <span className="signin-muted">
-            Need to configure an AI model first?{" "}
+            Oracle is optional — chat and AI features work without a tenant.{" "}
             <button className="signin-link" onClick={() => nav("/settings")}>
               Open Settings
             </button>
