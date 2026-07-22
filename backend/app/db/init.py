@@ -130,27 +130,43 @@ def _seed_from_env(session: Session, project: Project) -> None:
     # TOGETHER_API_KEY is injected, auto-seed a ready-to-use provider so the
     # hosted app runs on Together out of the box. Model ids are env-overridable
     # (Together's catalog changes — verify with "Detect models" in Settings).
+    # Defaults must be SERVERLESS models: Together rejects non-serverless ids
+    # with "create and start a new dedicated endpoint" (~$1000s/mo).
     # The key is resolved from the env at call time, never copied into the DB.
     together_key = bool(os.environ.get("TOGETHER_API_KEY"))
-    if together_key and not session.query(ProviderProfile).filter_by(provider_type="together").first():
-        code_model = os.environ.get("TOGETHER_CODE_MODEL") or "Qwen/Qwen2.5-Coder-32B-Instruct"
-        chat_model = os.environ.get("TOGETHER_CHAT_MODEL") or code_model
+    if together_key:
+        # Qwen2.5-Coder-32B left Together's serverless tier; gpt-oss-120b is
+        # serverless, cheap, and strong at both chat and code.
+        code_model = os.environ.get("TOGETHER_CODE_MODEL") or "openai/gpt-oss-120b"
+        chat_model = os.environ.get("TOGETHER_CHAT_MODEL") or "openai/gpt-oss-120b"
         vision_model = os.environ.get("TOGETHER_VISION_MODEL") or "Qwen/Qwen2.5-VL-72B-Instruct"
         embed_model = os.environ.get("TOGETHER_EMBEDDINGS_MODEL") or "BAAI/bge-base-en-v1.5"
         base = os.environ.get("TOGETHER_URL") or "https://api.together.xyz/v1"
-        session.add(
-            ProviderProfile(
-                name="Together AI (from environment)",
-                provider_type="together",
-                base_url=base,
-                default_model=chat_model,
-                models=[chat_model, code_model],
-                role_models={"chat": chat_model, "fast": chat_model, "structured": code_model,
-                             "code": code_model, "vision": vision_model, "embedding": embed_model},
-                enabled=True,
-                has_key=True,  # resolved from env (TOGETHER_API_KEY) at call time
+        role_models = {"chat": chat_model, "fast": chat_model, "structured": code_model,
+                       "code": code_model, "vision": vision_model, "embedding": embed_model}
+        existing = session.query(ProviderProfile).filter_by(provider_type="together").first()
+        if existing is None:
+            session.add(
+                ProviderProfile(
+                    name="Together AI (from environment)",
+                    provider_type="together",
+                    base_url=base,
+                    default_model=chat_model,
+                    models=sorted({chat_model, code_model}),
+                    role_models=role_models,
+                    enabled=True,
+                    has_key=True,  # resolved from env (TOGETHER_API_KEY) at call time
+                )
             )
-        )
+        elif existing.name == "Together AI (from environment)" and (
+            existing.default_model == "Qwen/Qwen2.5-Coder-32B-Instruct"
+            or (existing.role_models or {}).get("code") == "Qwen/Qwen2.5-Coder-32B-Instruct"
+        ):
+            # Self-heal an env-seeded profile that still points at the retired
+            # non-serverless default. Never touches user-created providers.
+            existing.default_model = chat_model
+            existing.models = sorted({chat_model, code_model})
+            existing.role_models = role_models
 
 
 def initialize(seed: bool = True) -> None:
