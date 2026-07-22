@@ -3,10 +3,10 @@ import "../styles/landing.css";
 /**
  * Public marketing / landing page — the ONLY page served without the Google
  * auth gate. It lives at "/" (see main.tsx, which renders this instead of the
- * app when the path is not under /app). The single call-to-action links to
- * "/app", which oauth2-proxy (the epmw-auth front door) intercepts: an
- * unauthenticated visitor is bounced to Google and returned to /app once
- * signed in. In local dev (no gate) the link simply loads the app.
+ * app when the path is not under /app). The call-to-action links to "/app",
+ * which oauth2-proxy (the epmw-auth front door) intercepts: an unauthenticated
+ * visitor is bounced to Google and returned to /app once signed in. In local
+ * dev (no gate) the link simply loads the app.
  */
 
 // Where the "Sign in" CTA sends the visitor. oauth2-proxy protects everything
@@ -15,16 +15,34 @@ const APP_ENTRY = "/app";
 
 const FEATURES = [
   {
-    title: "AI copilot for EPM",
-    body: "Ask questions, draft artifacts and reason over your Planning application in plain language — grounded in your own metadata.",
+    no: "01",
+    title: "An AI copilot for EPM",
+    body: "Ask questions, draft artifacts, and reason over your Planning application in plain language — grounded in your own metadata, not generic training data.",
   },
   {
-    title: "Live Oracle EPM connection",
-    body: "Connect a Planning tenant with a password or OAuth 2.0 client credentials. Secrets stay in process memory — never written to chat or logs.",
+    no: "02",
+    title: "A live Oracle EPM connection",
+    body: "Connect a Planning tenant with a password or OAuth 2.0 client credentials. Secrets are held in process memory — never written to chat or logs.",
   },
   {
-    title: "Spreadsheets, forms & reports",
-    body: "Generate and edit data forms, rule specs and snapshot summaries as first-class artifacts alongside the conversation.",
+    no: "03",
+    title: "Forms, rules, and reports",
+    body: "Generate and edit data forms, rule specifications, and snapshot summaries as first-class artifacts alongside the conversation.",
+  },
+];
+
+const GUARANTEES = [
+  {
+    title: "Nothing deploys on its own",
+    body: "Every modifying operation stops at an approval card. The model proposes; you approve.",
+  },
+  {
+    title: "Secrets never reach the model",
+    body: "Credentials live in an encrypted local store and are scrubbed from logs, tool results, and errors.",
+  },
+  {
+    title: "Your data stays local",
+    body: "Projects, contexts, and history are stored on your machine, not on a hosted service.",
   },
 ];
 
@@ -51,6 +69,15 @@ function GoogleGlyph() {
   );
 }
 
+function SignInButton({ variant }: { variant: "primary" | "nav" }) {
+  return (
+    <a className={variant === "primary" ? "landing-btn-primary" : "landing-nav-cta"} href={APP_ENTRY}>
+      <GoogleGlyph />
+      <span>Sign in with Google</span>
+    </a>
+  );
+}
+
 export function LandingPage() {
   return (
     <div className="landing">
@@ -59,50 +86,65 @@ export function LandingPage() {
           <img src="/favicon.svg" alt="" width={28} height={28} />
           <span>EPM&nbsp;Wizard</span>
         </a>
-        <a className="landing-nav-cta" href={APP_ENTRY}>
-          Sign in
-        </a>
+        <SignInButton variant="nav" />
       </header>
 
-      <main className="landing-hero">
-        <p className="landing-eyebrow">Local-first · Oracle EPM</p>
-        <h1 className="landing-title">
-          The AI workspace for
-          <br />
-          Oracle EPM implementation
-        </h1>
-        <p className="landing-sub">
-          Plan, build and reason over your Planning application with an AI copilot that
-          connects to your live tenant — and keeps your data on your terms.
-        </p>
-        <div className="landing-actions">
-          <a className="landing-btn-primary" href={APP_ENTRY}>
-            <GoogleGlyph />
-            <span>Sign in with Google</span>
-          </a>
-          <a className="landing-btn-ghost" href="#features">
-            See what it does
-          </a>
-        </div>
-        <p className="landing-fineprint">
-          Access is restricted to approved accounts. You'll be returned here if you're not on
-          the list.
-        </p>
+      <main>
+        <section className="landing-hero">
+          <div className="landing-hero-inner">
+            <p className="landing-eyebrow">Local-first · Oracle EPM</p>
+            <h1 className="landing-title">The AI workspace for Oracle EPM implementation</h1>
+            <p className="landing-sub">
+              Plan, build, and reason over your Planning application in plain language. The
+              assistant connects to your live tenant, proposes the change, and deterministic code
+              validates and ships it — while your data stays on your machine.
+            </p>
+            <div className="landing-actions">
+              <SignInButton variant="primary" />
+              <a className="landing-btn-ghost" href="#features">
+                See what it does
+              </a>
+            </div>
+            <p className="landing-fineprint">
+              Access is restricted to approved accounts. If your account isn&rsquo;t on the list,
+              you&rsquo;re returned to this page.
+            </p>
+          </div>
+        </section>
+
+        <section id="features" className="landing-section">
+          <p className="landing-kicker">What it does</p>
+          <div className="landing-features">
+            {FEATURES.map((f) => (
+              <div className="landing-feature" key={f.no}>
+                <span className="landing-feature-no">{f.no}</span>
+                <h3>{f.title}</h3>
+                <p>{f.body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="landing-section">
+          <p className="landing-kicker">How it stays safe</p>
+          <div className="landing-guarantees">
+            {GUARANTEES.map((g) => (
+              <div className="landing-guarantee" key={g.title}>
+                <b>{g.title}</b>
+                <span>{g.body}</span>
+              </div>
+            ))}
+          </div>
+        </section>
       </main>
 
-      <section id="features" className="landing-features">
-        {FEATURES.map((f) => (
-          <div className="landing-feature" key={f.title}>
-            <h3>{f.title}</h3>
-            <p>{f.body}</p>
-          </div>
-        ))}
-      </section>
-
       <footer className="landing-footer">
-        <span>EPM Wizard</span>
-        <span className="landing-footer-sep">·</span>
-        <a href={APP_ENTRY}>Sign in</a>
+        <SignInButton variant="primary" />
+        <p className="landing-disclaimer">
+          EPM Wizard is an independent implementation tool. IBM, Oracle, and their respective
+          product names are trademarks of their respective owners. EPM Wizard is not made, endorsed,
+          or sponsored by IBM or Oracle.
+        </p>
       </footer>
     </div>
   );

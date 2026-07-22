@@ -27,6 +27,13 @@ const queryClient = new QueryClient({
 const APP_BASENAME = "/app";
 const isApp = window.location.pathname.startsWith(APP_BASENAME);
 
+// global.css locks the document to the viewport for the app shell
+// (body{overflow:hidden}, html/body/#root{height:100%}) because the chat UI
+// manages its own internal scroll regions. The landing page is a normal,
+// taller-than-viewport document, so tag <html> to release that lock (see
+// landing.css) — otherwise everything below the fold is clipped and unscrollable.
+if (!isApp) document.documentElement.classList.add("landing-doc");
+
 const root = ReactDOM.createRoot(document.getElementById("root")!);
 
 root.render(
