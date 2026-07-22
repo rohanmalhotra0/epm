@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .api import (
+    routes_agent,
     routes_artifacts,
     routes_attachments,
     routes_context,
@@ -60,7 +61,7 @@ def create_app() -> FastAPI:
     )
     for module in (routes_meta, routes_projects, routes_conversations, routes_environments,
                    routes_providers, routes_context, routes_artifacts, routes_attachments,
-                   routes_diagnostics, routes_reports, routes_settings):
+                   routes_diagnostics, routes_reports, routes_settings, routes_agent):
         app.include_router(module.router)
     return app
 

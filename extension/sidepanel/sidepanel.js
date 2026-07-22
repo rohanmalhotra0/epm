@@ -1,0 +1,198 @@
+// EPM Wizard side panel — the "watch it work" surface.
+//
+// Connects to the service worker over a long-lived Port, streams the agent's
+// step-by-step narration, shows the current plan/action, and drives
+// Start / Pause / Resume / Stop. Optional voice narration via the browser's
+// SpeechSynthesis API (mirrors the main app's Web Speech TTS — no backend TTS).
+
+import { CMD, EVT, PANEL_PORT, STATUS } from "../common/protocol.js";
+
+const $ = (id) => document.getElementById(id);
+const els = {
+  statusDot: $("statusDot"), statusText: $("statusText"),
+  settings: $("settings"), settingsToggle: $("settingsToggle"),
+  backendUrl: $("backendUrl"), projectId: $("projectId"),
+  voiceToggle: $("voiceToggle"), saveConfig: $("saveConfig"),
+  goal: $("goal"), startBtn: $("startBtn"), pauseBtn: $("pauseBtn"),
+  resumeBtn: $("resumeBtn"), stopBtn: $("stopBtn"),
+  feed: $("feed"), emptyHint: $("emptyHint"),
+  thinking: $("thinking"), thinkingText: $("thinkingText"),
+  stepCount: $("stepCount"),
+};
+
+let port = connect();
+let renderedSteps = 0;
+let thinkingBuffer = "";
+const VOICE_KEY = "epmw.voice";
+
+function connect() {
+  const p = chrome.runtime.connect({ name: PANEL_PORT });
+  p.onMessage.addListener(onMessage);
+  // MV3 can recycle the service worker; reconnect so the panel keeps working.
+  p.onDisconnect.addListener(() => { setTimeout(() => { port = connect(); }, 400); });
+  p.postMessage({ cmd: CMD.GET_STATE });
+  return p;
+}
+
+function send(cmd, data) { try { port.postMessage({ cmd, data }); } catch { port = connect(); port.postMessage({ cmd, data }); } }
+
+// ── incoming events ──────────────────────────────────────────────────────────
+function onMessage({ type, data }) {
+  switch (type) {
+    case EVT.STATE: applyState(data); break;
+    case EVT.TOKEN: onToken(data.text); break;
+    case EVT.STEP: onStep(data.step); break;
+    case EVT.ACTED: onActed(data); break;
+    case EVT.STATUS: setStatus(data.status); break;
+    case EVT.ERROR: appendLine(data.message, "error"); hideThinking(); break;
+    case EVT.LOG: appendLine(data.line, "log"); break;
+    default: break;
+  }
+}
+
+function applyState(state) {
+  setStatus(state.status);
+  if (state.config) {
+    els.backendUrl.value = state.config.backendUrl || "";
+    els.projectId.value = state.config.projectId || "";
+  }
+  // Re-render the persisted steps (e.g. after a worker restart / panel reopen).
+  if (Array.isArray(state.steps)) {
+    if (state.steps.length < renderedSteps) resetFeed();
+    for (let i = renderedSteps; i < state.steps.length; i++) renderStep(state.steps[i]);
+  }
+  if (state.goal && !els.goal.value) els.goal.value = state.goal;
+}
+
+function onToken(text) {
+  thinkingBuffer += text;
+  els.thinkingText.textContent = thinkingBuffer.slice(-140);
+  els.thinking.classList.remove("hidden");
+}
+
+function onStep(step) {
+  hideThinking();
+  renderStep(step);
+  if (els.voiceToggle.checked && step.narration) speak(step.narration);
+}
+
+function onActed(result) {
+  const card = els.feed.lastElementChild;
+  if (!card || !card.classList.contains("step")) return;
+  const line = document.createElement("div");
+  line.className = "acted " + (result.ok ? "ok" : "fail");
+  line.textContent = (result.ok ? "✓ " : "✗ ") + (result.detail || "");
+  card.appendChild(line);
+}
+
+// ── rendering ────────────────────────────────────────────────────────────────
+function renderStep(step) {
+  els.emptyHint?.classList.add("hidden");
+  const action = step.action || {};
+  const card = document.createElement("div");
+  card.className = "step";
+
+  const head = document.createElement("div");
+  head.className = "head";
+  const idx = document.createElement("span");
+  idx.className = "idx";
+  idx.textContent = `#${(step.index ?? renderedSteps) + 1}`;
+  const badge = document.createElement("span");
+  badge.className = "badge " + (action.type || "");
+  badge.textContent = action.type || "action";
+  head.append(idx, badge);
+
+  const narration = document.createElement("div");
+  narration.className = "narration";
+  narration.textContent = step.narration || "";
+
+  card.append(head, narration);
+
+  const detail = describeAction(action);
+  if (detail) {
+    const d = document.createElement("div");
+    d.className = "detail";
+    d.textContent = detail;
+    card.appendChild(d);
+  }
+
+  els.feed.appendChild(card);
+  els.feed.scrollTop = els.feed.scrollHeight;
+  renderedSteps++;
+  els.stepCount.textContent = String(renderedSteps);
+}
+
+function describeAction(a) {
+  switch (a.type) {
+    case "click": return a.ref != null ? `click ref=${a.ref}` : `click (${a.x}, ${a.y})`;
+    case "type": return `type ${JSON.stringify(a.text ?? "")} → ref=${a.ref}`;
+    case "scroll": return `scroll Δy=${a.deltaY || 0}`;
+    case "navigate": return `navigate → ${a.url}`;
+    case "screenshot": return "capture screenshot (vision fallback)";
+    case "wait": return `wait ${a.durationMs || 0}ms`;
+    case "done": return "done";
+    default: return "";
+  }
+}
+
+function appendLine(text, kind) {
+  const line = document.createElement("div");
+  line.className = "line " + (kind || "log");
+  line.textContent = text;
+  els.feed.appendChild(line);
+  els.feed.scrollTop = els.feed.scrollHeight;
+}
+
+function resetFeed() {
+  els.feed.innerHTML = "";
+  renderedSteps = 0;
+  els.stepCount.textContent = "0";
+}
+
+function hideThinking() { thinkingBuffer = ""; els.thinking.classList.add("hidden"); }
+
+// ── status → button state ────────────────────────────────────────────────────
+function setStatus(status) {
+  els.statusText.textContent = status;
+  els.statusDot.className = "dot " + status;
+  const running = status === STATUS.RUNNING;
+  const paused = status === STATUS.PAUSED;
+  els.startBtn.disabled = running || paused;
+  els.pauseBtn.disabled = !running;
+  els.stopBtn.disabled = !(running || paused);
+  els.pauseBtn.classList.toggle("hidden", paused);
+  els.resumeBtn.classList.toggle("hidden", !paused);
+  if (!running) hideThinking();
+}
+
+// ── voice (Web Speech) ───────────────────────────────────────────────────────
+function speak(text) {
+  try {
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1.05; u.pitch = 1.0;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  } catch { /* TTS unavailable — narration still shows visually */ }
+}
+
+// ── controls ─────────────────────────────────────────────────────────────────
+els.startBtn.addEventListener("click", () => {
+  const goal = els.goal.value.trim();
+  if (!goal) { els.goal.focus(); return; }
+  resetFeed();
+  send(CMD.START, { goal });
+});
+els.pauseBtn.addEventListener("click", () => send(CMD.PAUSE));
+els.resumeBtn.addEventListener("click", () => send(CMD.RESUME));
+els.stopBtn.addEventListener("click", () => { send(CMD.STOP); window.speechSynthesis?.cancel(); });
+
+els.settingsToggle.addEventListener("click", () => els.settings.classList.toggle("hidden"));
+els.saveConfig.addEventListener("click", () => {
+  send(CMD.SET_CONFIG, { backendUrl: els.backendUrl.value.trim(), projectId: els.projectId.value.trim() });
+  els.settings.classList.add("hidden");
+});
+
+els.voiceToggle.addEventListener("change", () => {
+  chrome.storage.local.set({ [VOICE_KEY]: els.voiceToggle.checked });
+});
+chrome.storage.local.get(VOICE_KEY).then((v) => { els.voiceToggle.checked = !!v[VOICE_KEY]; });

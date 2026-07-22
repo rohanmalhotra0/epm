@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EPM Wizard Agent</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="dot" id="statusDot" aria-hidden="true"></span>
+        <strong>EPM Wizard</strong>
+        <span class="status" id="statusText">idle</span>
+      </div>
+      <button id="settingsToggle" class="icon-btn" title="Settings" aria-label="Settings">⚙</button>
+    </header>
+
+    <section id="settings" class="settings hidden">
+      <label>
+        Backend URL
+        <input id="backendUrl" type="text" placeholder="http://localhost:8000" />
+      </label>
+      <label>
+        Project id (optional)
+        <input id="projectId" type="text" placeholder="selects that project's provider" />
+      </label>
+      <label class="row">
+        <input id="voiceToggle" type="checkbox" />
+        Speak narration (Web Speech TTS)
+      </label>
+      <button id="saveConfig" class="secondary">Save settings</button>
+    </section>
+
+    <section class="goalbar">
+      <textarea id="goal" rows="2" placeholder="Goal — e.g. Open the Actuals data form and set Scenario to Forecast"></textarea>
+      <div class="controls">
+        <button id="startBtn" class="primary">Start</button>
+        <button id="pauseBtn" class="secondary" disabled>Pause</button>
+        <button id="resumeBtn" class="secondary hidden">Resume</button>
+        <button id="stopBtn" class="danger" disabled>Stop</button>
+      </div>
+    </section>
+
+    <main id="feed" class="feed" aria-live="polite">
+      <div class="empty" id="emptyHint">
+        The agent's step-by-step narration appears here. Load the target page,
+        type a goal, and press <strong>Start</strong> to watch it work.
+      </div>
+    </main>
+
+    <div id="thinking" class="thinking hidden"><span class="spinner"></span><span id="thinkingText"></span></div>
+
+    <footer class="foot">
+      Accessibility-tree grounding · screenshot fallback · <span id="stepCount">0</span> steps
+    </footer>
+
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>
