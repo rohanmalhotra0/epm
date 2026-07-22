@@ -16,6 +16,11 @@
       <button id="settingsToggle" class="icon-btn" title="Settings" aria-label="Settings">⚙</button>
     </header>
 
+    <nav class="tabs" role="tablist">
+      <button id="tabAgent" class="tab active" role="tab" aria-selected="true">Agent</button>
+      <button id="tabInspect" class="tab" role="tab" aria-selected="false">Inspect workbook</button>
+    </nav>
+
     <section id="settings" class="settings hidden">
       <label>
         Backend URL
@@ -46,28 +51,41 @@
       </div>
     </section>
 
-    <section class="goalbar">
-      <textarea id="goal" rows="2" placeholder="Goal — e.g. Open the Actuals data form and set Scenario to Forecast"></textarea>
-      <div class="controls">
-        <button id="startBtn" class="primary">Start</button>
-        <button id="pauseBtn" class="secondary" disabled>Pause</button>
-        <button id="resumeBtn" class="secondary hidden">Resume</button>
-        <button id="stopBtn" class="danger" disabled>Stop</button>
-      </div>
-    </section>
+    <div id="agentView">
+      <section class="goalbar">
+        <textarea id="goal" rows="2" placeholder="Goal — e.g. Open the Actuals data form and set Scenario to Forecast"></textarea>
+        <div class="controls">
+          <button id="startBtn" class="primary">Start</button>
+          <button id="pauseBtn" class="secondary" disabled>Pause</button>
+          <button id="resumeBtn" class="secondary hidden">Resume</button>
+          <button id="stopBtn" class="danger" disabled>Stop</button>
+        </div>
+      </section>
 
-    <main id="feed" class="feed" aria-live="polite">
-      <div class="empty" id="emptyHint">
-        The agent's step-by-step narration appears here. Load the target page,
-        type a goal, and press <strong>Start</strong> to watch it work.
-      </div>
-    </main>
+      <main id="feed" class="feed" aria-live="polite">
+        <div class="empty" id="emptyHint">
+          The agent's step-by-step narration appears here. Load the target page,
+          type a goal, and press <strong>Start</strong> to watch it work.
+        </div>
+      </main>
 
-    <div id="thinking" class="thinking hidden"><span class="spinner"></span><span id="thinkingText"></span></div>
+      <div id="thinking" class="thinking hidden"><span class="spinner"></span><span id="thinkingText"></span></div>
 
-    <footer class="foot">
-      Accessibility-tree grounding · screenshot fallback · <span id="stepCount">0</span> steps
-    </footer>
+      <footer class="foot">
+        Accessibility-tree grounding · screenshot fallback · <span id="stepCount">0</span> steps
+      </footer>
+    </div>
+
+    <div id="inspectView" class="inspect hidden">
+      <label id="dropZone" class="dropzone" for="wbFile">
+        <input id="wbFile" type="file" accept=".xlsm,.xlsx,.xlsb,.csv" hidden />
+        <div class="dz-title">Open a workbook to inspect</div>
+        <div class="dz-sub">Drop an <code>.xlsm</code> / <code>.xlsx</code> / <code>.xlsb</code> / <code>.csv</code> here, or click to choose.
+          It's parsed — macros are read, never run.</div>
+      </label>
+      <div id="inspectStatus" class="inspect-status hidden"></div>
+      <div id="inspectResults" class="inspect-results"></div>
+    </div>
 
     <script type="module" src="sidepanel.js"></script>
   </body>

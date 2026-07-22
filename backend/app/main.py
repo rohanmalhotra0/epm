@@ -23,6 +23,7 @@ from .api import (
     routes_providers,
     routes_reports,
     routes_settings,
+    routes_spreadsheet,
 )
 from .config import get_settings
 from .db.init import initialize
@@ -61,7 +62,8 @@ def create_app() -> FastAPI:
     )
     for module in (routes_meta, routes_projects, routes_conversations, routes_environments,
                    routes_providers, routes_context, routes_artifacts, routes_attachments,
-                   routes_diagnostics, routes_reports, routes_settings, routes_agent):
+                   routes_diagnostics, routes_reports, routes_settings, routes_agent,
+                   routes_spreadsheet):
         app.include_router(module.router)
     return app
 

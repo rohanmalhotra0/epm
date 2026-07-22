@@ -39,6 +39,12 @@ How it works
 • Each step is explained in plain language in the side panel, with optional
   spoken narration. You can pause, resume or stop at any time.
 
+Workbook inspector
+• Open an Excel file (.xlsm/.xlsx/.xlsb) in the panel and see everything: every
+  VBA macro's source, the auto-run hooks that fire on their own, sheets, named
+  ranges, tables, pivots, charts and external data connections. Parse-only —
+  macros are read, never run.
+
 Built-in safety
 • A production-safety gate is ENFORCED, not advisory: destructive actions
   (deploy, delete, clear, run rule…) and any write on a production tenant are

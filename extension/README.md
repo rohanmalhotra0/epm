@@ -12,7 +12,15 @@ heuristics are stubbed behind clean seams and marked below.
 
 No build step. Plain ES modules + two classic content scripts. Load it as-is.
 
-**New in 0.2.0**
+**New in 0.3.0**
+
+- **Workbook inspector.** The panel's **Inspect workbook** tab opens an Excel
+  file and shows *everything* — every VBA macro's source, the auto-run hooks
+  (`Workbook_Open`, `Auto_Open`, `Worksheet_Change` …), sheets, named ranges,
+  tables, pivots, charts and external data connections. Parse-only: macros are
+  read, never run. See _Inspect a workbook_ below.
+
+**In 0.2.0**
 
 - **Seamless site integration.** Launched from the EPM Wizard web app, the
   extension auto-configures (backend URL + project id + goal) and opens its
@@ -111,6 +119,30 @@ The gate is on by default and can be toggled in the panel's **⚙ Settings**
 
 > This is a genuine guardrail but not a formal proof of safety: detection is by
 > accessible-name and URL heuristics. Keep it on, and still supervise real runs.
+
+## Inspect a workbook
+
+The panel's **Inspect workbook** tab answers "what's in this Excel file and what
+makes it move?" — without opening Excel, and without running anything.
+
+- Switch to **Inspect workbook**, then drop (or pick) an `.xlsm` / `.xlsx` /
+  `.xlsb` / `.csv`. The file is POSTed to the backend's stateless
+  `POST /api/spreadsheet/inspect` (`backend/app/api/routes_spreadsheet.py`);
+  nothing is written to the database.
+- You get: a one-line summary; **every VBA macro's full source** (collapsible
+  per module); the **auto-run triggers** that fire on their own
+  (`Workbook_Open`, `Auto_Open`, `Worksheet_Change`, …); a per-sheet table
+  (visibility, dimensions, formula/table/chart counts); named ranges; tables;
+  pivot tables; charts; and external data connections (redacted).
+- **Why a file, not a live desktop Excel session?** VBA source only exists
+  inside the workbook file — no browser API (nor Microsoft's own Office.js
+  add-in API) can read a running workbook's macro code. So reading macros
+  *requires* the file; that's inherent, not a limitation of this tool.
+
+Engine: `backend/app/spreadsheet/inspect.py` (VBA via `oletools`, structure via
+`openpyxl` + direct OOXML-zip parsing for pivots/connections). It reuses the
+same parse-only, redaction-first guarantees as the rest of the package —
+macros are never compiled, interpreted or executed.
 
 ## Publishing (Chrome Web Store)
 

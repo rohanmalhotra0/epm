@@ -6,6 +6,7 @@
 // SpeechSynthesis API (mirrors the main app's Web Speech TTS — no backend TTS).
 
 import { CMD, EVT, PANEL_PORT, STATUS } from "../common/protocol.js";
+import { initInspector } from "./inspector.js";
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -20,13 +21,20 @@ const els = {
   stepCount: $("stepCount"),
   confirm: $("confirm"), confirmReason: $("confirmReason"), confirmDetail: $("confirmDetail"),
   approveBtn: $("approveBtn"), rejectBtn: $("rejectBtn"),
+  tabAgent: $("tabAgent"), tabInspect: $("tabInspect"),
+  agentView: $("agentView"), inspectView: $("inspectView"),
 };
 
 let port = connect();
 let renderedSteps = 0;
 let thinkingBuffer = "";
 let pendingConfirmId = null; // id of the destructive action currently held
+let currentConfig = {};      // last config from the service worker
 const VOICE_KEY = "epmw.voice";
+
+// The workbook inspector reads the backend URL from live config (falling back to
+// whatever is typed in the settings field).
+initInspector({ getBackendUrl: () => currentConfig.backendUrl || els.backendUrl.value.trim() });
 
 function connect() {
   const p = chrome.runtime.connect({ name: PANEL_PORT });
@@ -57,6 +65,7 @@ function onMessage({ type, data }) {
 function applyState(state) {
   setStatus(state.status);
   if (state.config) {
+    currentConfig = state.config;
     els.backendUrl.value = state.config.backendUrl || "";
     els.projectId.value = state.config.projectId || "";
     els.guardToggle.checked = state.config.enforceGuardrails !== false;
@@ -215,6 +224,19 @@ els.stopBtn.addEventListener("click", () => { send(CMD.STOP); window.speechSynth
 
 els.approveBtn.addEventListener("click", () => resolveConfirm(true));
 els.rejectBtn.addEventListener("click", () => resolveConfirm(false));
+
+// ── view tabs (Agent / Inspect workbook) ─────────────────────────────────────
+function showTab(which) {
+  const inspect = which === "inspect";
+  els.inspectView.classList.toggle("hidden", !inspect);
+  els.agentView.classList.toggle("hidden", inspect);
+  els.tabInspect.classList.toggle("active", inspect);
+  els.tabAgent.classList.toggle("active", !inspect);
+  els.tabInspect.setAttribute("aria-selected", String(inspect));
+  els.tabAgent.setAttribute("aria-selected", String(!inspect));
+}
+els.tabAgent.addEventListener("click", () => showTab("agent"));
+els.tabInspect.addEventListener("click", () => showTab("inspect"));
 
 els.settingsToggle.addEventListener("click", () => els.settings.classList.toggle("hidden"));
 els.saveConfig.addEventListener("click", () => {

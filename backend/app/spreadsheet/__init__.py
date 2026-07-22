@@ -7,7 +7,11 @@ formulas are recorded as strings.
 
 from __future__ import annotations
 
-from .models import SheetAnalysis, SheetKind, WorkbookAnalysis
+from .inspect import inspect_file
+from .models import SheetAnalysis, SheetKind, WorkbookAnalysis, WorkbookInspection
 from .parser import analyze_file
 
-__all__ = ["SheetAnalysis", "SheetKind", "WorkbookAnalysis", "analyze_file"]
+__all__ = [
+    "SheetAnalysis", "SheetKind", "WorkbookAnalysis", "WorkbookInspection",
+    "analyze_file", "inspect_file",
+]
