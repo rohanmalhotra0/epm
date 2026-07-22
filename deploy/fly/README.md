@@ -152,30 +152,33 @@ only public app; the frontend becomes private.
    - (GitHub works too — set `OAUTH2_PROXY_PROVIDER=github` in `auth.fly.toml`
      and use `https://epmw-auth.fly.dev/oauth2/callback` as the callback.)
 
-2. **Create the app + secrets.**
+2. **Create the app + secrets.** No volume needed — the default config keeps
+   the proxy stateless. The cookie secret MUST be URL-safe base64:
+   oauth2-proxy only auto-decodes the URL-safe alphabet, so plain
+   `openssl rand -base64 32` output (44 chars with `+/`) is read as 44 raw
+   bytes and the proxy crash-loops with
+   `cookie_secret must be 16, 24, or 32 bytes`.
 
    ```bash
    fly apps create epmw-auth --org personal
-   fly volumes create epmw_auth_cfg --app epmw-auth --region iad --size 1 --yes
    fly secrets set --app epmw-auth --stage \
      OAUTH2_PROXY_CLIENT_ID='<client-id>' \
      OAUTH2_PROXY_CLIENT_SECRET='<client-secret>' \
-     OAUTH2_PROXY_COOKIE_SECRET="$(openssl rand -base64 32)"
+     OAUTH2_PROXY_COOKIE_SECRET="$(openssl rand -base64 32 | tr -- '+/' '-_')"
    fly deploy --config deploy/fly/auth.fly.toml --app epmw-auth --ha=false --yes
    ```
 
 3. **Set the allowlist** — who may sign in. Either:
+   - **Google test-users (default, simplest)**: keep the OAuth consent screen
+     in *Testing* mode and add each allowed email under *Test users* — only
+     they can clear the Google sign-in.
    - **whole domain**: set `OAUTH2_PROXY_EMAIL_DOMAINS = "yourcompany.com"` in
-     `auth.fly.toml` and redeploy; or
-   - **explicit addresses**: keep `EMAIL_DOMAINS = "*"` and write the file the
-     toml already points at:
-
-     ```bash
-     printf 'alice@example.com\nbob@example.com\n' > emails.txt
-     fly ssh console --app epmw-auth -C 'mkdir -p /etc/oauth2-proxy'
-     fly ssh sftp shell --app epmw-auth   # then: put emails.txt /etc/oauth2-proxy/emails.txt
-     fly apps restart epmw-auth
-     ```
+     `auth.fly.toml` and redeploy.
+   - **proxy-enforced file** (optional hardening): uncomment
+     `OAUTH2_PROXY_AUTHENTICATED_EMAILS_FILE` and the `[mounts]` block in
+     `auth.fly.toml`, create the volume, redeploy, then write
+     `/etc/oauth2-proxy/emails.txt` (one email per line) via
+     `fly ssh console --app epmw-auth`.
 
 4. **Make the frontend private** so the gate can't be bypassed:
 
@@ -193,8 +196,8 @@ projects because `EPMW_MULTI_USER=true` is set in `backend.fly.toml`.
 
 ## 7. Invite a user
 
-Add their email to the allowlist (domain covers them automatically, or add a
-line to `emails.txt` and restart `epmw-auth`), then send them
+Add their email to the allowlist (Google *Test users* by default; a domain
+covers them automatically if you set one), then send them
 `https://epmw-auth.fly.dev`. They sign in with Google/GitHub in the browser —
 nothing to install.
 
