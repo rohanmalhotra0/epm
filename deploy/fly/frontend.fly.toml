@@ -1,0 +1,39 @@
+# frontend.fly.toml — EPM Wizard frontend (Vite build served by nginx) on Fly.io
+#
+# Reuses the EXISTING image at frontend/Dockerfile (nginx on port 3000). That
+# nginx config proxies /api/ to ${BACKEND_URL} via envsubst at container start,
+# so BACKEND_URL below points at the backend's private 6PN address.
+#
+# Build context must be the REPO ROOT (the Dockerfile COPYs `frontend/...`).
+# deploy-fly.sh runs `fly deploy <repo-root> --config … --dockerfile frontend/Dockerfile`.
+#
+# Posture: PUBLIC and scale-to-zero friendly. When the oauth2-proxy auth gate is
+# deployed (README §6) this app is made PRIVATE and the auth app becomes the only
+# public entry point — release this app's public IPs at that point.
+
+app = "epmw-frontend"
+primary_region = "iad"
+
+[build]
+  dockerfile = "frontend/Dockerfile"
+
+[env]
+  # Backend's private 6PN address. Must match backend.fly.toml's `app` name.
+  # If you rename the backend app, change the host here too.
+  BACKEND_URL = "http://epmw-backend.internal:8000"
+  # nginx entrypoint substitutes ONLY ${BACKEND_URL} (protects nginx's own vars).
+  NGINX_ENVSUBST_FILTER = "BACKEND_URL"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  # Scale to zero when idle; a request wakes it. Suspend resumes faster than a
+  # cold start. The backend stays warm regardless (min_machines_running=1 there).
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

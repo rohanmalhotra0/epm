@@ -1,0 +1,61 @@
+# auth.fly.toml — oauth2-proxy front door for EPM Wizard (optional, recommended).
+#
+# This app is the ONLY public entry point once the auth gate is enabled. It
+# authenticates users against Google (or GitHub) OAuth, enforces an email
+# allowlist, and reverse-proxies authenticated traffic to the frontend over 6PN.
+# It injects X-Forwarded-Email, which nginx forwards to the backend for per-user
+# data scoping (EPMW_MULTI_USER=true). Mirrors the old IBM App ID login gate.
+#
+# Deploy with the stock upstream image (no Dockerfile / build needed):
+#   fly deploy --config deploy/fly/auth.fly.toml --app epmw-auth --ha=false --yes
+# Then release the frontend's public IPs so it is reachable only through here.
+# See README §6 for the full runbook (OAuth client, secrets, allowlist file).
+
+app = "epmw-auth"
+primary_region = "iad"
+
+[build]
+  # Pinned upstream image — no local build.
+  image = "quay.io/oauth2-proxy/oauth2-proxy:v7.6.0"
+
+[env]
+  OAUTH2_PROXY_HTTP_ADDRESS = "0.0.0.0:4180"
+  # Reverse-proxy to the frontend over private 6PN. Match the frontend app name.
+  OAUTH2_PROXY_UPSTREAMS = "http://epmw-frontend.internal:3000"
+  OAUTH2_PROXY_PROVIDER = "google"
+  OAUTH2_PROXY_REVERSE_PROXY = "true"
+  # Pass identity upstream; nginx reads X-Forwarded-Email and forwards it on.
+  OAUTH2_PROXY_PASS_USER_HEADERS = "true"
+  OAUTH2_PROXY_SET_XAUTHREQUEST = "true"
+  # Restrict WHO can log in. Two options (pick one, set in README §6):
+  #   (a) whole domain:   OAUTH2_PROXY_EMAIL_DOMAINS = "yourcompany.com"
+  #   (b) explicit list:  keep EMAIL_DOMAINS = "*" and mount an allowlist file at
+  #       /etc/oauth2-proxy/emails.txt via the volume below, referenced by
+  #       OAUTH2_PROXY_AUTHENTICATED_EMAILS_FILE (set as an env/secret at deploy).
+  OAUTH2_PROXY_EMAIL_DOMAINS = "*"
+  OAUTH2_PROXY_AUTHENTICATED_EMAILS_FILE = "/etc/oauth2-proxy/emails.txt"
+  # Cookie hardening.
+  OAUTH2_PROXY_COOKIE_SECURE = "true"
+  OAUTH2_PROXY_COOKIE_EXPIRE = "168h"
+  # SECRETS (set via `fly secrets set -a epmw-auth`, see README §6):
+  #   OAUTH2_PROXY_CLIENT_ID      — OAuth client id
+  #   OAUTH2_PROXY_CLIENT_SECRET  — OAuth client secret
+  #   OAUTH2_PROXY_COOKIE_SECRET  — 32-byte base64 (openssl rand -base64 32)
+
+[http_service]
+  internal_port = 4180
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+# Small volume holding the email allowlist file (option (b) above). Write the
+# file after first deploy — see README §6. Not needed if you use EMAIL_DOMAINS.
+[mounts]
+  source = "epmw_auth_cfg"
+  destination = "/etc/oauth2-proxy"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
