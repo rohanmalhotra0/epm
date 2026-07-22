@@ -6,6 +6,10 @@ COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm ci || npm install
 
 COPY frontend/ ./
+# The build packages the browser-agent extension into a downloadable .zip
+# (offered on the app's Browser Agent page). Vite resolves the source at
+# <cwd>/../extension, i.e. /extension here — copy it in so the build finds it.
+COPY extension/ /extension/
 RUN npm run build
 
 FROM nginx:alpine

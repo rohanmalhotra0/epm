@@ -8,13 +8,32 @@
 // frontend's install footprint and local-first promise intact — no archiver,
 // no CDN, no build-time network.
 
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
-// frontend/scripts → repo root → extension/
-const EXTENSION_DIR = resolve(HERE, "..", "..", "extension");
+
+// Locate the repo's extension/ dir. We can't rely on a single import.meta.url
+// hop: Vite bundles vite.config.ts (and this helper, inlined) to a temp file at
+// the project root before running it, which moves import.meta.url — that's why
+// the Docker build resolved `/extension` while local dev resolved
+// repo/extension. Probe a few candidates and pick the first that actually holds
+// a manifest, so both layouts (and an explicit override) work.
+//   - EPMW_EXTENSION_DIR .... explicit escape hatch
+//   - <cwd>/../extension ..... `npm run build` runs in frontend/ (or /app in Docker)
+//   - <here>/../../extension . frontend/scripts/ → repo root, when not bundled
+const EXTENSION_DIR = (() => {
+  const candidates = [
+    process.env.EPMW_EXTENSION_DIR,
+    resolve(process.cwd(), "..", "extension"),
+    resolve(HERE, "..", "..", "extension"),
+  ].filter(Boolean);
+  return (
+    candidates.find((dir) => existsSync(join(dir, "manifest.json"))) ??
+    candidates[candidates.length - 1]
+  );
+})();
 
 // Everything the manifest references (kept in sync with package.sh's include[]).
 const INCLUDE = ["manifest.json", "background", "common", "content", "sidepanel", "icons"];
