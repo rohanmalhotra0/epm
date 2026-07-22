@@ -43,6 +43,11 @@ export async function streamStep(config, body, handlers, signal) {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
+      // Send the session cookie so requests survive an oauth2-proxy login gate:
+      // point backendUrl at the public entry (the auth app when the gate is up,
+      // else the frontend) and, while signed in in this browser, the cookie
+      // authenticates the call. Harmless when there's no gate.
+      credentials: "include",
       signal,
     });
   } catch (err) {
