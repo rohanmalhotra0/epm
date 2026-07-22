@@ -27,13 +27,15 @@ primary_region = "iad"
   # Pass identity upstream; nginx reads X-Forwarded-Email and forwards it on.
   OAUTH2_PROXY_PASS_USER_HEADERS = "true"
   OAUTH2_PROXY_SET_XAUTHREQUEST = "true"
-  # Restrict WHO can log in. Two options (pick one, set in README §6):
-  #   (a) whole domain:   OAUTH2_PROXY_EMAIL_DOMAINS = "yourcompany.com"
-  #   (b) explicit list:  keep EMAIL_DOMAINS = "*" and mount an allowlist file at
-  #       /etc/oauth2-proxy/emails.txt via the volume below, referenced by
-  #       OAUTH2_PROXY_AUTHENTICATED_EMAILS_FILE (set as an env/secret at deploy).
+  # Who can log in. DEFAULT (simplest for a few users): allow any Google account
+  # that clears the OAuth screen, and restrict WHO clears it via the Google
+  # OAuth consent screen's "Test users" list (keep the app in Testing mode and
+  # add your users' emails there) — no file, no volume. See README §6.
   OAUTH2_PROXY_EMAIL_DOMAINS = "*"
-  OAUTH2_PROXY_AUTHENTICATED_EMAILS_FILE = "/etc/oauth2-proxy/emails.txt"
+  # HARDER allowlist (optional): enforce the list at the proxy too. Uncomment
+  # this AND the [mounts] block below, then write /etc/oauth2-proxy/emails.txt
+  # (one email per line) via `fly ssh console -a epmw-auth`. README §6.
+  # OAUTH2_PROXY_AUTHENTICATED_EMAILS_FILE = "/etc/oauth2-proxy/emails.txt"
   # Cookie hardening.
   OAUTH2_PROXY_COOKIE_SECURE = "true"
   OAUTH2_PROXY_COOKIE_EXPIRE = "168h"
@@ -50,11 +52,12 @@ primary_region = "iad"
   min_machines_running = 0
   processes = ["app"]
 
-# Small volume holding the email allowlist file (option (b) above). Write the
-# file after first deploy — see README §6. Not needed if you use EMAIL_DOMAINS.
-[mounts]
-  source = "epmw_auth_cfg"
-  destination = "/etc/oauth2-proxy"
+# Volume for the OPTIONAL email allowlist file (only needed if you uncomment
+# OAUTH2_PROXY_AUTHENTICATED_EMAILS_FILE above). Left commented so the default
+# deploy needs no volume — restriction is via the Google Test-users list.
+# [mounts]
+#   source = "epmw_auth_cfg"
+#   destination = "/etc/oauth2-proxy"
 
 [[vm]]
   size = "shared-cpu-1x"
