@@ -1,0 +1,273 @@
+/* The in-app guide (/guide). Editorial/industrial look: big tight type, mono
+   micro-labels, ghosted stage numbers, hairline rules, blueprint-grid hero.
+   Colors come from Carbon tokens with dark fallbacks so both themes work;
+   diagram and terminal containers use a fixed dark palette, like the cube map. */
+
+/* The page manages its own per-section padding so the hero can be full-bleed. */
+.page.guide-page {
+  padding: 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ---------- shared bits ---------- */
+
+.guide-page code {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  background: var(--cds-layer, #262626);
+  padding: 1px 5px;
+  border-radius: 2px;
+  font-size: 12.5px;
+}
+
+.guide-page kbd {
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 2px;
+  background: var(--cds-layer-accent, #333);
+  border: 1px solid var(--cds-border-subtle, #494949);
+}
+
+/* Mono uppercase micro-label: section kickers and stage column labels. */
+.guide-kicker,
+.guide-micro {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.guide-kicker { color: var(--epmw-accent, #4589ff); margin-bottom: 10px; }
+.guide-micro {
+  color: var(--cds-text-secondary, #8d8d8d);
+  border-bottom: 1px solid var(--cds-border-subtle, #393939);
+  padding-bottom: 6px;
+  margin-bottom: 12px;
+}
+
+.guide-page p { margin: 8px 0; }
+.guide-lede { color: var(--cds-text-secondary, #a8a8a8); max-width: 640px; }
+
+/* ---------- hero ---------- */
+
+.guide-hero {
+  border-bottom: 1px solid var(--cds-border-subtle, #393939);
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--cds-text-primary, #f4f4f4) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--cds-text-primary, #f4f4f4) 5%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: center top;
+}
+.guide-hero-inner {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 72px 40px 64px;
+}
+.guide-hero h1 {
+  font-size: clamp(32px, 5vw, 56px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  margin: 0 0 18px;
+}
+.guide-hero-sub {
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--cds-text-secondary, #c6c6c6);
+  max-width: 620px;
+  margin: 0 0 28px;
+}
+
+.guide-cta-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.guide-cta {
+  display: inline-block;
+  padding: 11px 26px;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 0;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.guide-cta.primary {
+  background: var(--epmw-accent, #4589ff);
+  color: #fff;
+  border: 1px solid var(--epmw-accent, #4589ff);
+}
+.guide-cta.primary:hover { background: var(--epmw-accent-hover, #6ea6ff); border-color: var(--epmw-accent-hover, #6ea6ff); }
+.guide-cta.tertiary {
+  background: transparent;
+  color: var(--epmw-accent, #4589ff);
+  border: 1px solid var(--epmw-accent, #4589ff);
+}
+.guide-cta.tertiary:hover { background: color-mix(in srgb, var(--epmw-accent, #4589ff) 12%, transparent); }
+
+/* Faux terminal strip — fixed dark, like the diagrams. */
+.guide-term {
+  margin-top: 40px;
+  max-width: 640px;
+  border: 1px solid var(--cds-border-subtle, #393939);
+  border-left: 3px solid var(--epmw-accent, #4589ff);
+  background: #161616;
+  padding: 14px 18px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #f4f4f4;
+}
+.guide-term .term-line { display: flex; gap: 12px; padding: 2px 0; }
+.guide-term .term-who {
+  flex-shrink: 0;
+  width: 40px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8d8d8d;
+  padding-top: 2px;
+}
+.guide-term .term-who.you { color: #42be65; }
+
+/* ---------- sections ---------- */
+
+.guide-section {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 56px 40px;
+  border-bottom: 1px solid var(--cds-border-subtle, #393939);
+}
+.guide-section:last-child { border-bottom: none; }
+.guide-section h2 {
+  font-size: clamp(22px, 3vw, 30px);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 10px;
+}
+.guide-section > p { max-width: 720px; }
+
+/* ---------- working-loop stages ---------- */
+
+.guide-stage {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 0 16px;
+  margin-top: 48px;
+  padding-top: 36px;
+  border-top: 1px solid var(--cds-border-subtle, #393939);
+}
+.stage-no {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 56px;
+  font-weight: 300;
+  line-height: 1;
+  color: color-mix(in srgb, var(--cds-text-primary, #f4f4f4) 16%, transparent);
+  user-select: none;
+}
+.stage-body h3 {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 6px 0 18px;
+}
+.stage-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36px;
+}
+.stage-cols p:first-of-type { margin-top: 0; }
+
+/* ---------- chat chips (ported from the old doc pages) ---------- */
+
+.chat-example {
+  display: flex; align-items: baseline; gap: 10px;
+  margin: 8px 0; padding: 8px 12px;
+  border: 1px solid var(--cds-border-subtle, #393939);
+  border-left: 3px solid var(--epmw-accent, #4589ff);
+  background: var(--cds-field, #262626);
+  border-radius: 2px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12.5px;
+}
+.chat-example .who {
+  font-family: inherit;
+  flex-shrink: 0;
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--cds-text-secondary, #8d8d8d);
+}
+.chat-example code { background: none; padding: 0; }
+
+/* ---------- diagrams ---------- */
+
+.guide-diagram {
+  margin: 20px 0 4px;
+  border: 1px solid var(--cds-border-subtle, #393939);
+  background: #161616; /* diagrams use a fixed dark palette, like the cube map */
+  border-radius: 2px;
+  overflow-x: auto;
+}
+.guide-diagram svg { display: block; min-width: 680px; width: 100%; height: auto; }
+.guide-diagram-caption { font-size: 12px; color: var(--cds-text-secondary, #8d8d8d); margin: 6px 0 0; }
+.guide-legend {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  font-size: 11.5px; color: var(--cds-text-secondary, #a8a8a8);
+  margin-top: 8px;
+}
+.guide-legend .sw {
+  display: inline-block; width: 10px; height: 10px;
+  border-radius: 2px; margin-right: 5px; vertical-align: middle;
+  background: var(--cds-layer, #262626);
+}
+
+/* ---------- "also in the box" grid ---------- */
+
+.guide-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  margin-top: 24px;
+  background: var(--cds-border-subtle, #393939); /* hairline grid via gap */
+  border: 1px solid var(--cds-border-subtle, #393939);
+}
+.guide-cell {
+  background: var(--cds-background, #161616);
+  padding: 22px 24px 20px;
+  transition: background 0.12s ease;
+}
+.guide-cell:hover { background: var(--cds-layer, #1f1f1f); }
+.guide-cell h3 { font-size: 15px; font-weight: 600; margin: 0 0 8px; }
+.guide-cell p { font-size: 13px; color: var(--cds-text-secondary, #c6c6c6); }
+
+/* ---------- guardrails ledger ---------- */
+
+.guide-ledger {
+  margin-top: 24px;
+  border-top: 2px solid var(--cds-text-primary, #f4f4f4);
+}
+.ledger-row {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--cds-border-subtle, #393939);
+}
+.ledger-claim { font-weight: 600; font-size: 14px; line-height: 1.45; }
+.ledger-how { font-size: 13px; color: var(--cds-text-secondary, #c6c6c6); }
+.ledger-how b { color: var(--cds-text-primary, #f4f4f4); }
+
+/* ---------- closing ---------- */
+
+.guide-close { padding-bottom: 88px; }
+.guide-close p { font-size: 15px; margin-bottom: 20px; }
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 900px) {
+  .guide-hero-inner, .guide-section { padding-left: 24px; padding-right: 24px; }
+  .stage-cols { grid-template-columns: 1fr; gap: 20px; }
+  .guide-grid { grid-template-columns: 1fr; }
+  .ledger-row { grid-template-columns: 1fr; gap: 6px; }
+  .guide-stage { grid-template-columns: 1fr; }
+  .stage-no { font-size: 36px; margin-bottom: 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-cta, .guide-cell { transition: none; }
+}

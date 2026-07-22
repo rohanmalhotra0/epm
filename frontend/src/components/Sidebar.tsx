@@ -9,7 +9,6 @@ import {
   ChevronRight,
   DataBase,
   DataTable,
-  FlowData,
   Folder,
   Help,
   Rocket,
@@ -33,8 +32,7 @@ const NAV = [
   { to: "/artifacts", label: "Artifacts", icon: Folder },
   { to: "/deployments", label: "Deployments", icon: Rocket },
   { to: "/data", label: "Data", icon: DataBase },
-  { to: "/how-to", label: "How to use", icon: Help },
-  { to: "/how-it-works", label: "How it works", icon: FlowData },
+  { to: "/guide", label: "Guide", icon: Help },
   { to: "/settings", label: "Settings", icon: Settings },
   { to: "/about", label: "About", icon: Information },
 ];
