@@ -60,7 +60,14 @@ It refuses a corpus below `MIN_EXAMPLES` (override with `--force`).
 
 ## 3. Launch (billable)
 
-Set the key and pass `--launch`. `--follow` polls the job to completion:
+The launch step uploads via the official Together SDK, so install the extra
+once (corpus export and dry runs don't need it):
+
+```bash
+pip install -e '.[finetune]'
+```
+
+Then set the key and pass `--launch`. `--follow` polls the job to completion:
 
 ```bash
 export TOGETHER_API_KEY=...

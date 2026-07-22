@@ -9,6 +9,8 @@ import pytest
 
 from scripts.launch_finetune import (
     FinetuneConfig,
+    TogetherClient,
+    _normalize_job,
     build_job_payload,
     build_parser,
     count_examples,
@@ -82,6 +84,42 @@ def test_count_examples_ignores_blank_lines(tmp_path):
     path = tmp_path / "c.jsonl"
     path.write_text('{"a":1}\n\n{"b":2}\n\n')
     assert count_examples(path) == 2
+
+
+class _Enum:
+    def __init__(self, value):
+        self.value = value
+
+
+class _Resp:
+    def __init__(self, **kw):
+        self.__dict__.update(kw)
+
+
+def test_normalize_job_handles_object_and_enum_status():
+    job = _normalize_job(_Resp(id="ft-1", status=_Enum("completed"),
+                               output_name="acct/model"))
+    assert job == {"id": "ft-1", "status": "completed", "output_name": "acct/model"}
+
+
+def test_normalize_job_handles_plain_dict_and_missing_fields():
+    job = _normalize_job({"id": "ft-2", "status": "running"})
+    assert job == {"id": "ft-2", "status": "running", "output_name": None}
+
+
+def test_client_raises_helpful_error_when_sdk_missing(monkeypatch):
+    # Simulate the optional 'together' package not being installed.
+    import builtins
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "together":
+            raise ImportError("no module named together")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    with pytest.raises(SystemExit, match="finetune"):
+        TogetherClient("some-key")
 
 
 # ---- dry run (default, no network, no cost) --------------------------------
