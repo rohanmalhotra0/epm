@@ -29,7 +29,7 @@ Usage (from backend/):
     python -m scripts.launch_finetune --train data/training/epm-tuning.jsonl \
         --val data/training/epm-tuning.val.jsonl
 
-    # Actually start the job (uploads + bills):
+    # Actually start the job (uploads + bills; needs `pip install -e '.[finetune]'`):
     TOGETHER_API_KEY=... python -m scripts.launch_finetune \
         --train data/training/epm-tuning.jsonl --launch --follow
 
@@ -46,19 +46,18 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import httpx
-
 # Base coder model to LoRA. Per OPENCLAW_PLAN.md §1/§2 we fine-tune only the
 # coder, and only onto a base confirmed for Together Serverless Multi-LoRA —
 # override with --model once eligibility is verified against the live
 # fine-tuning-models list.
 DEFAULT_BASE_MODEL = "Qwen/Qwen2.5-Coder-32B-Instruct"
 DEFAULT_TRAIN_PATH = "data/training/synthetic.jsonl"
-TOGETHER_BASE_URL = "https://api.together.xyz/v1"
 # Below this a paid run is almost certainly not worth it; --force overrides.
 _MIN_EXAMPLES = 10
-# Terminal Together job states (anything else is still in flight).
-_TERMINAL_STATES = {"completed", "error", "failed", "cancelled"}
+# Terminal Together job states (anything else is still in flight). Together's
+# job status values include pending/queued/running/uploading/compressing plus
+# these end states.
+_TERMINAL_STATES = {"completed", "error", "failed", "cancelled", "user_error"}
 
 
 @dataclass
@@ -116,50 +115,57 @@ def build_job_payload(training_file_id: str, cfg: FinetuneConfig,
     return payload
 
 
-class TogetherClient:
-    """Thin httpx wrapper over the three fine-tuning endpoints we use.
+def _attr(obj, key: str):
+    """Read ``key`` from an SDK response object or a plain dict."""
+    if isinstance(obj, dict):
+        return obj.get(key)
+    return getattr(obj, key, None)
 
-    Isolated so unit tests can substitute a fake with the same three methods
-    and never touch the network.
+
+def _normalize_job(resp) -> dict:
+    """Reduce an SDK fine-tune response to the fields the launcher uses.
+
+    ``status`` may come back as a string or an enum — take ``.value`` when
+    present so the terminal-state check compares plain strings.
+    """
+    status = _attr(resp, "status")
+    return {
+        "id": _attr(resp, "id"),
+        "status": getattr(status, "value", status),
+        "output_name": _attr(resp, "output_name"),
+    }
+
+
+class TogetherClient:
+    """Wrapper over the official ``together`` SDK's three fine-tuning calls.
+
+    The SDK owns Together's real upload protocol (a signed multi-step flow, not
+    a plain multipart POST) and job API, so we don't hand-roll the wire format.
+    The import is lazy so the module loads — and dry runs work — without the
+    optional ``together`` package installed; unit tests substitute a fake with
+    the same three methods and never construct this.
     """
 
-    def __init__(self, api_key: str, base_url: str = TOGETHER_BASE_URL,
-                 timeout: float = 120.0) -> None:
-        self._headers = {"Authorization": f"Bearer {api_key}"}
-        self._base = base_url.rstrip("/")
-        self._timeout = timeout
+    def __init__(self, api_key: str, base_url: str | None = None) -> None:
+        try:
+            from together import Together
+        except ImportError as exc:  # pragma: no cover - exercised via the CLI
+            raise SystemExit(
+                "The 'together' package is required to --launch. Install it with:\n"
+                "    pip install -e '.[finetune]'   (from backend/)"
+            ) from exc
+        self._client = Together(api_key=api_key, **({"base_url": base_url} if base_url else {}))
 
     def upload_file(self, path: Path, purpose: str = "fine-tune") -> str:
-        with httpx.Client(timeout=self._timeout) as client, path.open("rb") as fh:
-            resp = client.post(
-                f"{self._base}/files",
-                headers=self._headers,
-                data={"purpose": purpose, "file_name": path.name},
-                files={"file": (path.name, fh, "application/jsonl")},
-            )
-        _raise_for(resp, f"upload {path.name}")
-        return resp.json()["id"]
+        # check=True validates the JSONL shape before the upload is billed.
+        resp = self._client.files.upload(file=str(path), purpose=purpose, check=True)
+        return _attr(resp, "id")
 
     def create_finetune(self, payload: dict) -> dict:
-        with httpx.Client(timeout=self._timeout) as client:
-            resp = client.post(f"{self._base}/fine-tunes",
-                               headers={**self._headers, "content-type": "application/json"},
-                               json=payload)
-        _raise_for(resp, "create fine-tune")
-        return resp.json()
+        return _normalize_job(self._client.fine_tuning.create(**payload))
 
     def get_finetune(self, job_id: str) -> dict:
-        with httpx.Client(timeout=self._timeout) as client:
-            resp = client.get(f"{self._base}/fine-tunes/{job_id}", headers=self._headers)
-        _raise_for(resp, f"get {job_id}")
-        return resp.json()
-
-
-def _raise_for(resp: httpx.Response, what: str) -> None:
-    if resp.status_code == 401:
-        raise SystemExit("Together rejected the API key (401). Check $TOGETHER_API_KEY.")
-    if resp.status_code >= 400:
-        raise SystemExit(f"Together {what} failed ({resp.status_code}): {resp.text[:300]}")
+        return _normalize_job(self._client.fine_tuning.retrieve(job_id))
 
 
 def _build_synthetic(train_path: Path, val_split: float) -> dict:

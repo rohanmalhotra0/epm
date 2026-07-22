@@ -35,6 +35,9 @@ keychain = ["keyring>=25.0"]
 # PostgreSQL driver for hosted deployments (EPMW_DATABASE_URL). Local installs
 # stay lean — SQLite needs nothing extra.
 postgres = ["psycopg[binary]>=3.1"]
+# Together AI SDK, needed only to actually launch a fine-tune
+# (scripts.launch_finetune --launch). Corpus export and dry runs don't need it.
+finetune = ["together>=1.3"]
 
 [build-system]
 requires = ["setuptools>=68"]
