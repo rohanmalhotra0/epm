@@ -340,9 +340,10 @@ export function DocsPage() {
             </p>
             <ol className="docs-steps">
               <li data-reveal>
-                <b>Install it.</b> Today you load it unpacked: open <code>chrome://extensions</code>, turn on Developer
-                mode, and select the repo's <code>extension/</code> folder. A Chrome Web Store listing will replace this
-                step once it is published.
+                <b>Install it.</b> Today you load it unpacked: download the extension <code>.zip</code> from the Browser
+                Agent page at <code>/agent</code> (or point at the repo's <code>extension/</code> folder), unzip it, then
+                open <code>chrome://extensions</code>, turn on Developer mode, and <b>Load unpacked</b> the folder. A Chrome
+                Web Store listing will replace this step once it is published.
               </li>
               <li data-reveal>
                 <b>Launch it from the app.</b> The app's Browser Agent page at <code>/agent</code> detects the extension and
