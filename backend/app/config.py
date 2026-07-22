@@ -88,6 +88,13 @@ class Settings(BaseSettings):
     # How many timestamped SQLite backups to keep in <data>/backups (EPMW_BACKUP_KEEP).
     backup_keep: int = 5
 
+    # Run alembic migrations inside app startup (EPMW_STARTUP_MIGRATIONS). ON by
+    # default so local/dev "just works". Hosted deploys set it to false and run
+    # migrations in a Fly release command instead: uvicorn only opens its
+    # listening socket AFTER the lifespan finishes, so migrating in-process
+    # keeps the port closed and stalls the deploy's health checks.
+    startup_migrations: bool = True
+
     # Optional external database (EPMW_DATABASE_URL). When set it wins over the
     # local SQLite file — e.g. a hosted PostgreSQL:
     #   postgresql+psycopg://user:pass@host:port/db?sslmode=verify-full&sslrootcert=/path/ca.pem

@@ -51,7 +51,9 @@ def test_engine_kwargs_postgres_pool_settings():
     kwargs = engine_kwargs(PG_URL)
     assert kwargs["pool_pre_ping"] is True
     assert kwargs["pool_size"] >= 1 and kwargs["max_overflow"] >= 0
-    assert "connect_args" not in kwargs  # no SQLite-only connect args on Postgres
+    # Bounded connect: a hung database must fail fast, not stall startup forever.
+    assert kwargs["connect_args"]["connect_timeout"] >= 1
+    assert "check_same_thread" not in kwargs["connect_args"]  # SQLite-only arg
 
 
 # --- Backups degrade honestly on a managed database --------------------------

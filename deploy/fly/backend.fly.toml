@@ -25,8 +25,20 @@ primary_region = "iad"
   # / `COPY frontend/...` paths resolve.
   dockerfile = "../../backend/Dockerfile"
 
+# Migrations run in a throwaway release machine BEFORE machines are updated.
+# Rationale: uvicorn only opens its listening socket after the app lifespan
+# finishes, so migrating in-process keeps port 8000 closed while the deploy's
+# health checks tick ("not listening on 0.0.0.0:8000", endless "checking
+# health"). The release machine has the app's secrets (EPMW_DATABASE_URL) but
+# no volume — fine, migrations only touch Postgres.
+[deploy]
+  release_command = "python -m scripts.migrate"
+
 [env]
   EPMW_DATA_DIR = "/data"
+  # Migrations happen in the release command above; the web machine must not
+  # repeat them at startup (see [deploy] comment).
+  EPMW_STARTUP_MIGRATIONS = "false"
   # Multi-user owner-scoping ON: projects are scoped to the identity in the
   # X-Forwarded-Email header injected by the frontend nginx (which receives it
   # from oauth2-proxy when the auth gate is deployed — see README §6).
