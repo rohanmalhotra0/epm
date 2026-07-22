@@ -10,6 +10,14 @@
   line-height: 1.6;
 }
 
+/* The app-wide accent (#4589ff, Carbon blue50) is tuned for dark surfaces and
+   only reaches ~3.3:1 on white. This page sets accent-colored text (kickers,
+   tertiary CTA), so darken the accent to Carbon blue60/70 in the light theme. */
+[data-carbon-theme="white"] .page.guide-page {
+  --epmw-accent: #0f62fe;
+  --epmw-accent-hover: #0043ce;
+}
+
 /* ---------- shared bits ---------- */
 
 .guide-page code {
@@ -159,6 +167,13 @@
   line-height: 1;
   color: color-mix(in srgb, var(--cds-text-primary, #f4f4f4) 16%, transparent);
   user-select: none;
+}
+/* Grid items default to min-width:auto, so the diagrams' 680px min-width would
+   inflate the track and overflow the page at narrow widths. Let the items
+   shrink; the diagram wrappers scroll horizontally instead. */
+.stage-body,
+.stage-cols > div {
+  min-width: 0;
 }
 .stage-body h3 {
   font-size: 19px;
