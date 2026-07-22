@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "EPM Wizard — Narrated Browser Agent",
-  "version": "0.2.0",
-  "description": "Narrated browser agent for Oracle EPM Cloud: watches, explains each step, and drives the UI with an enforced production-safety gate.",
+  "version": "0.3.0",
+  "description": "Narrated browser agent for Oracle EPM Cloud with an enforced production-safety gate, plus a workbook inspector that reads every Excel macro and moving part.",
   "minimum_chrome_version": "116",
   "icons": {
     "16": "icons/icon16.png",
