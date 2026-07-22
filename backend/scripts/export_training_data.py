@@ -15,15 +15,15 @@ Builds instruction/response pairs from three local sources:
 Every string passes through the central redactor before it is written, so
 credentials never leave the machine. Output formats:
 
-- ``watsonx`` (default): ``{"input": ..., "output": ...}`` — the format
-  watsonx.ai Tuning Studio ingests directly (prompt tuning / fine-tuning).
-- ``chat``: ``{"messages": [{"role": "user", ...}, {"role": "assistant", ...}]}``
-  — chat-style SFT for InstructLab or a custom GPU fine-tune (see
-  docs/IBM_CLOUD.md).
+- ``chat`` (default): ``{"messages": [{"role": "user", ...}, {"role": "assistant", ...}]}``
+  — chat-style SFT, the shape most fine-tuning services (e.g. Together AI)
+  ingest directly.
+- ``instruct``: ``{"input": ..., "output": ...}`` — plain prompt/completion
+  pairs for trainers that want instruction format.
 
 Usage (from backend/):
     python -m scripts.export_training_data --out data/training/epm-tuning.jsonl
-    python -m scripts.export_training_data --format chat --project <project-id>
+    python -m scripts.export_training_data --format instruct --project <project-id>
 """
 
 from __future__ import annotations
@@ -125,7 +125,7 @@ def _to_record(prompt: str, completion: str, fmt: str) -> dict:
     return {"input": prompt, "output": completion}
 
 
-def export(out_path: Path, fmt: str = "watsonx", project_id: str | None = None,
+def export(out_path: Path, fmt: str = "chat", project_id: str | None = None,
            session: Session | None = None) -> dict:
     """Write the JSONL corpus; returns summary counts."""
     owns_session = session is None
@@ -167,7 +167,7 @@ def export(out_path: Path, fmt: str = "watsonx", project_id: str | None = None,
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--out", default="data/training/epm-tuning.jsonl", help="output JSONL path")
-    parser.add_argument("--format", choices=["watsonx", "chat"], default="watsonx")
+    parser.add_argument("--format", choices=["chat", "instruct"], default="chat")
     parser.add_argument("--project", default=None, help="limit to one project id")
     args = parser.parse_args()
 

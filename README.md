@@ -96,7 +96,7 @@ scripts, templates, naming conventions — shows them in a visible **"Grounded
 on"** block, and generates from them. Retrieval is deterministic pure-Python
 BM25 (fully offline, works in Demo Mode) and upgrades to hybrid
 lexical + embedding scoring when the configured provider supports embeddings
-(watsonx.ai, OpenAI-compatible). Rule drafts are **proposals only** — labelled,
+(any OpenAI-compatible endpoint). Rule drafts are **proposals only** — labelled,
 never executed, never auto-deployed — saved as reviewable artifacts.
 
 ---
@@ -122,7 +122,7 @@ Pydantic models  →  JSON Schema  →  TypeScript interfaces  →  Zod schemas
 | Connector boundary | `app/connector` | The one authoritative EPM boundary: Demo, Oracle REST, and a restricted EPM Automate runner (allowlist, no shell) |
 | Artifact engine | `app/artifacts` | Member resolution, validation, preview, deterministic XML render + round-trip parse, reproducible packaging |
 | Context engine | `app/context` | Quick/deep context, local retrieval, portable `.epwcontext` packages, LCM snapshot-zip upload layered onto the live context |
-| AI layer | `app/ai` | Provider-independent: deterministic **Mock** + IBM watsonx.ai / Anthropic / OpenAI-compatible / Gemini adapters; embeddings for RAG (watsonx, OpenAI-compatible, Mock) |
+| AI layer | `app/ai` | Provider-independent: deterministic **Mock** + Anthropic / OpenAI-compatible / Gemini adapters; embeddings for RAG (OpenAI-compatible, Mock) |
 | RAG grounding | `app/rag` | `/forms` and `/rules` ground generation on the active context (snapshot rule bodies, templates, naming digests) — offline BM25 by default, hybrid with embeddings when configured |
 | Agent | `app/agent` | Intent router, tool framework, skills, streaming orchestrator |
 | Cube visualizer | `app/architecture` | Deterministic Cube Architecture, coverage, cell intersection, comparison, sizing, hierarchy |
@@ -179,30 +179,13 @@ a real environment, add it in **Settings → Oracle Environments** and click
 
 ---
 
-## All-IBM cloud deployment
+## Fine-tuning corpus export
 
-EPM Wizard can run entirely on IBM Cloud as a login-gated website:
-
-- **watsonx.ai** for inference and RAG embeddings — token-billed defaults are
-  pinned end-to-end: `meta-llama/llama-3-3-70b-instruct` (chat, 131k context)
-  and `ibm/slate-125m-english-rtrvr` (embeddings). Fractions of a cent per
-  chat turn; no hourly GPU deployment.
-- **Code Engine** for hosting (scales to zero when idle) with an **App ID
-  (OAuth/OIDC) front door** — fully scripted, zero app-code changes: terraform
-  provisions App ID, the deploy script puts an oauth2-proxy gate in front as
-  the only public endpoint, and users are invited by email in App ID. An
-  optional Client-to-Site VPN topology exists for private-only access.
-- **Tuning Studio or GPU-as-a-Service** for fine-tuning on your own EPM data.
-  The corpus exporter turns conversations, validated specs **and the rule
-  bodies from uploaded snapshots** into instruction pairs:
-  `python -m scripts.export_training_data` (from `backend/`).
-
-Go-live is roughly: `terraform apply` → create two secrets → 
-`./deploy-code-engine.sh` → `./configure-app-id.sh` → invite users.
-
-- Runbook: [deploy/ibm-cloud/README.md](deploy/ibm-cloud/README.md)
-- Architecture, request flow, RAG/embeddings, and training paths:
-  [docs/IBM_CLOUD.md](docs/IBM_CLOUD.md)
+The corpus exporter turns conversations, validated specs **and the rule
+bodies from uploaded snapshots** into training pairs (chat or instruct JSONL):
+`python -m scripts.export_training_data` (from `backend/`). See
+[docs/OPENCLAW_PLAN.md](docs/OPENCLAW_PLAN.md) for the hosted-deployment and
+fine-tuning direction.
 
 ---
 

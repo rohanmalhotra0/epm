@@ -66,7 +66,6 @@ describe("HowItWorksPage", () => {
       "Context versions and provenance",
       "Security and redaction",
       "Local-first data",
-      "Hosted on IBM Cloud (optional)",
     ]) {
       expect(screen.getByRole("heading", { name: section })).toBeInTheDocument();
     }

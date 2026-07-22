@@ -94,7 +94,7 @@ context version (rule bodies, templates, forms, member-naming digests,
 variables) and emit a visible `groundingSources` block before generating.
 Retrieval is deterministic pure-Python lexical BM25 by default — fully offline —
 and upgrades to hybrid lexical + embedding scoring when the active AI provider
-supports `embed()` (watsonx.ai, OpenAI-compatible, deterministic Mock
+supports `embed()` (OpenAI-compatible, deterministic Mock
 embeddings in tests). The per-version index is cached as JSON under
 `<data>/rag/`; embedding failures fall back silently to lexical, so grounding
 never blocks creation.

@@ -1,7 +1,7 @@
 """Embeddings adapters for RAG grounding: base default, Mock determinism,
-watsonx.ai /ml/v1/text/embeddings and OpenAI-compatible /embeddings.
+and OpenAI-compatible /embeddings.
 
-No network: httpx posts and the IAM token helper are monkeypatched.
+No network: httpx posts are monkeypatched.
 """
 
 from __future__ import annotations
@@ -15,7 +15,6 @@ import pytest
 from app.ai.base import AIProvider, ProviderConfig, ProviderError, StreamDone
 from app.ai.mock import MockProvider
 from app.ai.openai_compat import OpenAICompatibleProvider
-from app.ai.watsonx import API_VERSION, WatsonxProvider
 
 
 class _FakeResponse:
@@ -69,113 +68,6 @@ async def test_mock_embed_is_deterministic_normalized_64d():
         assert math.isclose(math.sqrt(sum(v * v for v in vector)), 1.0, rel_tol=1e-6)
     # different texts embed differently
     assert first[0] != first[1]
-
-
-# ---- watsonx.ai ---------------------------------------------------------------
-
-
-def _watsonx(monkeypatch, **env) -> WatsonxProvider:
-    monkeypatch.delenv("WATSONX_PROJECT_ID", raising=False)
-    monkeypatch.delenv("WATSONX_SPACE_ID", raising=False)
-    monkeypatch.delenv("WATSONX_EMBEDDINGS_MODEL_ID", raising=False)
-    for key, value in env.items():
-        monkeypatch.setenv(key, value)
-    return WatsonxProvider(ProviderConfig(
-        provider_type="watsonx",
-        base_url="https://us-south.ml.cloud.ibm.com?project_id=proj-1",
-        api_key="k",
-    ))
-
-
-def _patch_watsonx_network(monkeypatch, calls: list) -> None:
-    async def fake_token(self, client):
-        return "tok-123"
-
-    async def fake_post(self, url, *, params=None, headers=None, json=None, data=None):
-        calls.append({"url": url, "params": params, "headers": headers, "json": json})
-        inputs = json["inputs"]
-        return _FakeResponse({"results": [{"embedding": [float(len(t)), 1.0]} for t in inputs]})
-
-    monkeypatch.setattr(WatsonxProvider, "_bearer_token", fake_token)
-    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
-
-
-async def test_watsonx_embed_url_version_scope_and_default_model(monkeypatch):
-    provider = _watsonx(monkeypatch)
-    calls: list = []
-    _patch_watsonx_network(monkeypatch, calls)
-
-    vectors = await provider.embed(["alpha", "be"])
-
-    assert vectors == [[5.0, 1.0], [2.0, 1.0]]
-    assert len(calls) == 1
-    call = calls[0]
-    assert call["url"] == "https://us-south.ml.cloud.ibm.com/ml/v1/text/embeddings"
-    assert call["params"] == {"version": API_VERSION}
-    assert call["headers"]["Authorization"] == "Bearer tok-123"
-    assert call["json"]["model_id"] == "ibm/slate-125m-english-rtrvr"
-    assert call["json"]["project_id"] == "proj-1"  # scope injected
-    assert call["json"]["inputs"] == ["alpha", "be"]
-
-
-async def test_watsonx_embed_model_resolution(monkeypatch):
-    provider = _watsonx(monkeypatch, WATSONX_EMBEDDINGS_MODEL_ID="ibm/slate-30m-english-rtrvr")
-    calls: list = []
-    _patch_watsonx_network(monkeypatch, calls)
-
-    await provider.embed(["x"])
-    assert calls[0]["json"]["model_id"] == "ibm/slate-30m-english-rtrvr"
-
-    # explicit argument wins over the environment variable
-    await provider.embed(["x"], model="ibm/custom-embedder")
-    assert calls[1]["json"]["model_id"] == "ibm/custom-embedder"
-
-
-async def test_watsonx_embed_batches_over_100_inputs_in_order(monkeypatch):
-    provider = _watsonx(monkeypatch)
-    calls: list = []
-    _patch_watsonx_network(monkeypatch, calls)
-
-    texts = [f"t{'x' * (i % 7)}{i}" for i in range(250)]
-    vectors = await provider.embed(texts)
-
-    assert [len(c["json"]["inputs"]) for c in calls] == [100, 100, 50]
-    assert calls[0]["json"]["inputs"][0] == texts[0]
-    assert calls[2]["json"]["inputs"][-1] == texts[-1]
-    # concatenated in input order
-    assert vectors == [[float(len(t)), 1.0] for t in texts]
-
-
-async def test_watsonx_embed_http_error_becomes_provider_error(monkeypatch):
-    provider = _watsonx(monkeypatch)
-
-    async def fake_token(self, client):
-        return "tok-123"
-
-    async def fake_post(self, url, *, params=None, headers=None, json=None, data=None):
-        return _FakeResponse({"errors": [{"message": "no such model"}]}, status_code=404)
-
-    monkeypatch.setattr(WatsonxProvider, "_bearer_token", fake_token)
-    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
-
-    with pytest.raises(ProviderError) as err:
-        await provider.embed(["x"])
-    assert "404" in err.value.message
-
-
-def test_watsonx_chat_model_resolution(monkeypatch):
-    provider = _watsonx(monkeypatch)
-    monkeypatch.delenv("WATSONX_CHAT_MODEL_ID", raising=False)
-    assert provider._chat_model(None) == "ibm/granite-3-8b-instruct"
-    monkeypatch.setenv("WATSONX_CHAT_MODEL_ID", "meta-llama/llama-3-3-70b-instruct")
-    assert provider._chat_model(None) == "meta-llama/llama-3-3-70b-instruct"
-    provider.config.default_model = "ibm/granite-13b-chat-v2"
-    assert provider._chat_model(None) == "ibm/granite-13b-chat-v2"  # profile beats env
-    assert provider._chat_model("explicit/model") == "explicit/model"  # arg beats all
-
-
-def test_watsonx_capabilities_declare_embeddings():
-    assert WatsonxProvider.capabilities["embeddings"] is True
 
 
 # ---- OpenAI-compatible --------------------------------------------------------
@@ -240,31 +132,27 @@ def test_openai_capabilities_declare_embeddings():
     assert OpenAICompatibleProvider.capabilities["embeddings"] is True
 
 
-def test_watsonx_embeddings_model_prefers_profile_role_model(monkeypatch):
-    from app.ai.base import ProviderConfig
-    from app.ai.watsonx import WatsonxProvider
-
-    monkeypatch.delenv("WATSONX_EMBEDDINGS_MODEL_ID", raising=False)
-    base = WatsonxProvider(ProviderConfig(provider_type="watsonx",
-                                          base_url="https://x?project_id=p", api_key="k"))
-    assert base.embeddings_model == "ibm/slate-125m-english-rtrvr"  # default
-    monkeypatch.setenv("WATSONX_EMBEDDINGS_MODEL_ID", "env/model")
+def test_openai_embeddings_model_prefers_profile_role_model(monkeypatch):
+    monkeypatch.delenv("OPENAI_EMBEDDINGS_MODEL", raising=False)
+    base = OpenAICompatibleProvider(ProviderConfig(provider_type="openai", api_key="k"))
+    assert base.embeddings_model == "text-embedding-3-small"  # default
+    monkeypatch.setenv("OPENAI_EMBEDDINGS_MODEL", "env/model")
     assert base.embeddings_model == "env/model"  # env beats default
-    with_role = WatsonxProvider(ProviderConfig(
-        provider_type="watsonx", base_url="https://x?project_id=p", api_key="k",
-        role_models={"embedding": "ibm/granite-embedding-107m"}))
-    assert with_role.embeddings_model == "ibm/granite-embedding-107m"  # profile beats env
+    with_role = OpenAICompatibleProvider(ProviderConfig(
+        provider_type="openai", api_key="k",
+        role_models={"embedding": "text-embedding-3-large"}))
+    assert with_role.embeddings_model == "text-embedding-3-large"  # profile beats env
 
 
 def test_provider_from_profile_threads_role_models(monkeypatch):
-    monkeypatch.delenv("WATSONX_EMBEDDINGS_MODEL_ID", raising=False)
+    monkeypatch.delenv("OPENAI_EMBEDDINGS_MODEL", raising=False)
     from app.ai.registry import provider_from_profile
     from app.db.models import ProviderProfile
 
-    profile = ProviderProfile(id="p1", name="wx", provider_type="watsonx",
-                              base_url="https://x?project_id=p",
-                              default_model="meta-llama/llama-3-3-70b-instruct",
-                              role_models={"embedding": "ibm/granite-embedding-278m"})
+    profile = ProviderProfile(id="p1", name="oai", provider_type="openai",
+                              base_url="https://api.openai.com/v1",
+                              default_model="gpt-4o-mini",
+                              role_models={"embedding": "text-embedding-3-large"})
     provider = provider_from_profile(profile)  # no DB write needed
-    assert provider.config.role_models == {"embedding": "ibm/granite-embedding-278m"}
-    assert provider.embeddings_model == "ibm/granite-embedding-278m"
+    assert provider.config.role_models == {"embedding": "text-embedding-3-large"}
+    assert provider.embeddings_model == "text-embedding-3-large"

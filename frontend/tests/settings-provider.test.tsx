@@ -34,7 +34,7 @@ describe("SettingsPage provider form", () => {
         const u = String(url);
         if (u.includes("/api/providers")) {
           if (opts?.method === "POST") {
-            return jsonResponse({ id: "pr1", name: "Watsonx", providerType: "watsonx", models: [], roleModels: {} }, 201);
+            return jsonResponse({ id: "pr1", name: "OpenAI", providerType: "openai", models: [], roleModels: {} }, 201);
           }
           return jsonResponse([]);
         }
@@ -62,9 +62,9 @@ describe("SettingsPage provider form", () => {
   it("sends roleModels.embedding in the create-provider payload", async () => {
     renderPage();
     const nameInput = screen.getAllByPlaceholderText("Name")[0];
-    fireEvent.change(nameInput, { target: { value: "Watsonx" } });
+    fireEvent.change(nameInput, { target: { value: "OpenAI" } });
     fireEvent.change(screen.getByPlaceholderText("Embedding model (RAG)"), {
-      target: { value: "ibm/slate-125m-english-rtrvr" },
+      target: { value: "text-embedding-3-small" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Add provider" }));
 
@@ -75,8 +75,8 @@ describe("SettingsPage provider form", () => {
       );
       expect(post).toBeTruthy();
       const body = JSON.parse(String((post![1] as RequestInit).body));
-      expect(body.roleModels).toEqual({ embedding: "ibm/slate-125m-english-rtrvr" });
-      expect(body.name).toBe("Watsonx");
+      expect(body.roleModels).toEqual({ embedding: "text-embedding-3-small" });
+      expect(body.name).toBe("OpenAI");
       // The transient form-only field must not leak into the payload.
       expect(body.embeddingModel).toBeUndefined();
     });

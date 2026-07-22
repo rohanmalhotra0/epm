@@ -30,10 +30,10 @@ def _seed(session) -> str:
     return project.id
 
 
-def test_export_watsonx_format(tmp_path, session):
+def test_export_instruct_format(tmp_path, session):
     project_id = _seed(session)
     out = tmp_path / "corpus.jsonl"
-    summary = export(out, fmt="watsonx", project_id=project_id, session=session)
+    summary = export(out, fmt="instruct", project_id=project_id, session=session)
     records = [json.loads(line) for line in out.read_text().splitlines()]
 
     assert summary["examples"] == len(records) == 3  # 2 turn pairs + 1 artifact spec
@@ -83,7 +83,7 @@ def test_export_includes_active_context_rule_bodies(tmp_path, session):
     session.flush()
 
     out = tmp_path / "corpus.jsonl"
-    summary = export(out, fmt="watsonx", project_id=project_id, session=session)
+    summary = export(out, fmt="instruct", project_id=project_id, session=session)
     lines = [json.loads(line) for line in out.read_text().splitlines()]
 
     assert summary["fromContextRules"] == 1  # the tiny body is skipped

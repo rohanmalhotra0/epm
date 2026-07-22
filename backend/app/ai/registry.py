@@ -15,7 +15,6 @@ from .base import AIProvider, ProviderConfig
 from .gemini import GeminiProvider
 from .mock import MockProvider
 from .openai_compat import OpenAICompatibleProvider
-from .watsonx import WatsonxProvider
 
 SECRET_NS = "provider"
 
@@ -25,7 +24,6 @@ _ENV_KEYS = {
     "openrouter": ["OPENROUTER_API_KEY"],
     "together": ["TOGETHER_API_KEY"],
     "gemini": ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
-    "watsonx": ["WATSONX_API_KEY", "IBM_CLOUD_API_KEY"],
 }
 
 
@@ -36,8 +34,6 @@ def _class_for(provider_type: str) -> type[AIProvider]:
         return AnthropicProvider
     if provider_type in ("gemini", "google"):
         return GeminiProvider
-    if provider_type in ("watsonx", "ibm"):
-        return WatsonxProvider
     return OpenAICompatibleProvider  # openai | openrouter | ollama | generic
 
 

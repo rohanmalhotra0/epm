@@ -1,6 +1,6 @@
 # Deploying EPM Wizard on Fly.io
 
-The pivot off IBM Cloud (rationale, model choices, phased build order) is in
+The hosting direction (rationale, model choices, phased build order) is in
 [`docs/OPENCLAW_PLAN.md`](../../docs/OPENCLAW_PLAN.md) — read it first. This
 directory holds the executable pieces for the Fly.io hosting target: two apps
 (frontend + backend) on private `.internal` networking, an optional
@@ -63,8 +63,8 @@ logged in.
 ## 2. Get a Neon Postgres database (recommended over Fly MPG)
 
 Neon is external, cheap (a free tier covers 3–5 light users), and needs no
-ICD-style certificate bundle — plain `sslmode=require` is enough (unlike the
-IBM Cloud `verify-full` + CA path).
+custom certificate bundle — plain `sslmode=require` is enough (no
+`verify-full` + CA path to mount).
 
 1. Create a project at <https://neon.tech> and copy its connection string.
 2. Rewrite the driver prefix to the one the backend uses (`postgresql+psycopg`)
@@ -125,7 +125,7 @@ fly releases --app epmw-backend
 fly deploy --app epmw-backend --image <registry.fly.io/...:deployment-XXXX>
 ```
 
-**Teardown** (destroys both apps + the volume; IBM Cloud is untouched):
+**Teardown** (destroys both apps + the volume):
 
 ```bash
 ./deploy/fly/deploy-fly.sh teardown

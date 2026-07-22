@@ -50,7 +50,7 @@ def _write(path: Path, pairs: list[TrainingPair], fmt: str) -> None:
                                 ensure_ascii=False) + "\n")
 
 
-def generate(out_path: Path, count: int = 2000, fmt: str = "watsonx", seed: int = 7,
+def generate(out_path: Path, count: int = 2000, fmt: str = "chat", seed: int = 7,
              edits_ratio: float = 0.3, val_split: float = 0.0,
              application: str = DEFAULT_APPLICATION) -> dict:
     """Write the synthetic JSONL corpus; returns summary counts."""
@@ -90,7 +90,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--count", type=int, default=2000, help="number of pairs to emit")
     parser.add_argument("--out", default="data/training/synthetic.jsonl", help="output JSONL path")
-    parser.add_argument("--format", choices=["watsonx", "chat"], default="watsonx")
+    parser.add_argument("--format", choices=["chat", "instruct"], default="chat")
     parser.add_argument("--seed", type=int, default=7, help="corpus seed (same seed → identical corpus)")
     parser.add_argument("--edits-ratio", type=float, default=0.3,
                         help="fraction of pairs that are edit pairs (0-1)")

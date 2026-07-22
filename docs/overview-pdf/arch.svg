@@ -66,9 +66,9 @@
   <!-- External: AI providers -->
   <rect x="556" y="48" width="128" height="70" fill="none" stroke="#0f62fe" stroke-width="1.3"/>
   <text x="620" y="66" text-anchor="middle" font-family="Helvetica" font-size="10" font-weight="bold" fill="#0f62fe">AI providers</text>
-  <text x="620" y="80" text-anchor="middle" font-family="Helvetica" font-size="8.5">IBM watsonx.ai (Granite)</text>
-  <text x="620" y="92" text-anchor="middle" font-family="Helvetica" font-size="8.5">Anthropic · OpenAI-compat</text>
-  <text x="620" y="104" text-anchor="middle" font-family="Helvetica" font-size="8.5">Gemini · local Mock</text>
+  <text x="620" y="80" text-anchor="middle" font-family="Helvetica" font-size="8.5">Anthropic · OpenAI-compat</text>
+  <text x="620" y="92" text-anchor="middle" font-family="Helvetica" font-size="8.5">Gemini · Ollama</text>
+  <text x="620" y="104" text-anchor="middle" font-family="Helvetica" font-size="8.5">local Mock</text>
   <line x1="504" y1="80" x2="548" y2="80" stroke="black" stroke-dasharray="4,3"/>
   <polygon points="556,80 546,75 546,85" fill="black"/>
 

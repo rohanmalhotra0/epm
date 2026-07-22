@@ -89,7 +89,7 @@ class Settings(BaseSettings):
     backup_keep: int = 5
 
     # Optional external database (EPMW_DATABASE_URL). When set it wins over the
-    # local SQLite file — e.g. IBM Cloud Databases for PostgreSQL:
+    # local SQLite file — e.g. a hosted PostgreSQL:
     #   postgresql+psycopg://user:pass@host:port/db?sslmode=verify-full&sslrootcert=/path/ca.pem
     # When empty (the default) the app uses sqlite:///<data>/epmwizard.db exactly
     # as before.

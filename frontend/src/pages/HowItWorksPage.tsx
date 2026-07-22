@@ -175,7 +175,7 @@ function RagDiagram() {
       <ArrowDefs id={m} />
       <Node x={COL3[0]} y={ROW2[0]} w={W3} label="Active context version" sub="live records + snapshot records" tone="store" />
       <Node x={COL3[1]} y={ROW2[0]} w={W3} label="Chunker" sub="records → indexed chunks" />
-      <Node x={COL3[2]} y={ROW2[0]} w={W3} label="BM25 index" sub="+ optional embeddings (watsonx / OpenAI)" />
+      <Node x={COL3[2]} y={ROW2[0]} w={W3} label="BM25 index" sub="+ optional embeddings (OpenAI-compatible)" />
       <Arrow x1={COL3[0] + W3} y1={ROW2[0] + H / 2} x2={COL3[1]} y2={ROW2[0] + H / 2} marker={m} />
       <Arrow x1={COL3[1] + W3} y1={ROW2[0] + H / 2} x2={COL3[2]} y2={ROW2[0] + H / 2} marker={m} />
       <Arrow x1={COL3[2] + W3 / 2} y1={ROW2[0] + H} x2={COL3[2] + W3 / 2} y2={ROW2[1]} marker={m} />
@@ -270,7 +270,7 @@ export function HowItWorksPage() {
             <b>active context version</b> — real rule scripts, templates, forms, variables, and naming digests, including
             everything a snapshot contributed. Retrieval is deterministic pure-Python <b>BM25</b>, fully offline (it
             works in Demo Mode), and upgrades to hybrid lexical + embedding scoring when the configured provider supports
-            embeddings (watsonx.ai or OpenAI-compatible). The retrieved excerpts are shown to you in a visible{" "}
+            embeddings (any OpenAI-compatible endpoint). The retrieved excerpts are shown to you in a visible{" "}
             <b>&ldquo;Grounded on&rdquo;</b> block and passed to the model as fenced excerpts in the prompt. The
             per-version index is cached on disk; embedding failures fall back silently to lexical scoring, so grounding
             never blocks creation.
@@ -338,15 +338,6 @@ export function HowItWorksPage() {
             per-version RAG index cache. Data survives browser refresh and container restarts; schemas are owned by
             Pydantic on the backend and code-generated into the TypeScript and Zod types this UI uses, with a drift test
             keeping them in lockstep.
-          </p>
-        </section>
-
-        <section>
-          <h3>Hosted on IBM Cloud (optional)</h3>
-          <p>
-            The same application can run as a login-gated website entirely on IBM Cloud: Code Engine hosts it (scaling to
-            zero when idle) behind an App ID (OAuth/OIDC) front door, and watsonx.ai provides token-billed inference and
-            RAG embeddings. See <code>docs/IBM_CLOUD.md</code> in the repository for the architecture and runbook.
           </p>
         </section>
       </div>

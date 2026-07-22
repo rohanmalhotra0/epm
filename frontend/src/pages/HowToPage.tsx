@@ -43,8 +43,8 @@ export function HowToPage() {
               is contacted.
             </li>
             <li>
-              To use a real AI model, open <b>Settings → AI Providers</b> and add watsonx.ai, Anthropic, an
-              OpenAI-compatible endpoint (OpenAI, OpenRouter, Ollama), or Gemini.
+              To use a real AI model, open <b>Settings → AI Providers</b> and add Anthropic, an
+              OpenAI-compatible endpoint (OpenAI, OpenRouter, Together AI, Ollama), or Gemini.
             </li>
             <li>
               To connect a real Oracle environment, open <b>Settings → Oracle Environments</b> and click <b>Connect</b> —

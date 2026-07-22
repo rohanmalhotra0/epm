@@ -126,33 +126,6 @@ def _seed_from_env(session: Session, project: Project) -> None:
             )
         )
 
-    # IBM watsonx.ai (the all-IBM hosted deployment): when WATSONX_API_KEY is
-    # injected (Code Engine secret), auto-seed a ready-to-use provider so the
-    # hosted app runs on watsonx out of the box — no Settings step. The key is
-    # resolved from the env at call time (registry._resolve_key), never copied
-    # into the DB. project_id/URL come from the same secret via base_url + env.
-    watsonx_key = bool(os.environ.get("WATSONX_API_KEY") or os.environ.get("IBM_CLOUD_API_KEY"))
-    if watsonx_key and not session.query(ProviderProfile).filter_by(provider_type="watsonx").first():
-        chat_model = os.environ.get("WATSONX_CHAT_MODEL_ID") or "meta-llama/llama-3-3-70b-instruct"
-        embed_model = os.environ.get("WATSONX_EMBEDDINGS_MODEL_ID") or "ibm/slate-125m-english-rtrvr"
-        base = os.environ.get("WATSONX_URL") or "https://us-south.ml.cloud.ibm.com"
-        project = os.environ.get("WATSONX_PROJECT_ID")
-        if project and "project_id=" not in base:
-            base = f"{base.rstrip('/')}?project_id={project}"
-        session.add(
-            ProviderProfile(
-                name="IBM watsonx.ai (from environment)",
-                provider_type="watsonx",
-                base_url=base,
-                default_model=chat_model,
-                models=[chat_model],
-                role_models={"chat": chat_model, "fast": chat_model, "structured": chat_model,
-                             "code": chat_model, "embedding": embed_model},
-                enabled=True,
-                has_key=True,  # resolved from env (WATSONX_API_KEY) at call time
-            )
-        )
-
 
 def initialize(seed: bool = True) -> None:
     run_migrations()

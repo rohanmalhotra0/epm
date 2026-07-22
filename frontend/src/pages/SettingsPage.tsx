@@ -12,7 +12,7 @@ import { useUi } from "../store/ui";
 import { DiagnosticsPanel } from "../components/DiagnosticsPanel";
 import { toast } from "../store/toast";
 
-const PROVIDER_TYPES = ["mock", "together", "watsonx", "anthropic", "openai", "openrouter", "gemini", "ollama", "generic"];
+const PROVIDER_TYPES = ["mock", "together", "anthropic", "openai", "openrouter", "gemini", "ollama", "generic"];
 
 export function SettingsPage() {
   const pid = useUi((s) => s.currentProjectId) ?? undefined;
@@ -163,7 +163,7 @@ export function SettingsPage() {
             style={{ ...inp, gridColumn: "1 / 3" }}
           />
           <div style={{ gridColumn: "1 / 3", fontSize: 11, color: "var(--cds-text-secondary, #8d8d8d)" }}>
-            Used for hybrid RAG scoring; leave empty for the provider default (e.g. ibm/slate-125m-english-rtrvr on watsonx).
+            Used for hybrid RAG scoring; leave empty for the provider default (e.g. text-embedding-3-small on OpenAI).
           </div>
         </div>
         <div className="action-row">

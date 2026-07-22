@@ -52,8 +52,7 @@ story = []
 # ---------------------------------------------------------------- page 1
 story.append(Paragraph("EPM Wizard", styles["title"]))
 story.append(Paragraph(
-    "A local-first, ChatGPT-style AI workspace for Oracle EPM implementation — "
-    "with an all-IBM Cloud hosted deployment path.",
+    "A local-first, ChatGPT-style AI workspace for Oracle EPM implementation.",
     styles["subtitle"]))
 story.append(HRFlowable(width="100%", thickness=1.4, color=BLUE, spaceAfter=6))
 story.append(Paragraph(
@@ -81,13 +80,6 @@ story.append(Paragraph(
     "and Zod are generated from them (a CI drift test enforces it). The connector "
     "boundary is the only path to Oracle.",
     styles["caption"]))
-
-story.append(Paragraph("IBM Cloud deployment — implementation &amp; goals", styles["h2"]))
-story.append(svg("ibmcloud.svg"))
-
-story.append(Paragraph("Training loop — your EPM data becomes a tuned Granite model", styles["h2"]))
-story.append(svg("training.svg"))
-
 
 def footer(canvas, doc):
     canvas.saveState()

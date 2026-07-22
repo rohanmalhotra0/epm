@@ -11,7 +11,7 @@ the bake-off verdict.
 The completion function is dependency-injected (``complete(system, user) ->
 text``), so tests drive the whole parse → validate → score pipeline with fakes
 and never touch a network; :func:`provider_complete` builds a real one from any
-registered ``AIProvider`` (watsonx, Ollama, OpenAI-compatible, …) for the CLI.
+registered ``AIProvider`` (Ollama, OpenAI-compatible, Anthropic, …) for the CLI.
 
 Routing stays deterministic (``detect_intent``): intent routing is not what the
 model is being trained or evaluated for, and keeping it fixed means the intent
@@ -305,7 +305,7 @@ def provider_complete(
     """A ``complete`` function backed by a real :class:`AIProvider`.
 
     The provider class comes from the registry's mapping, so every registered
-    provider type (watsonx, ollama, openai, generic, anthropic, gemini, mock, …)
+    provider type (ollama, openai, generic, anthropic, gemini, mock, …)
     works. The API key is the explicit argument if given, else the standard env
     vars the registry already knows for that provider type.
     """

@@ -5,7 +5,7 @@ Performance Management (EPM) implementation**. It runs entirely on your machine:
 a React frontend and a FastAPI backend orchestrated by Docker Compose, with all
 data in a local SQLite database. There is no hosted server, no cloud database,
 and no account system. Optional external AI providers (Anthropic, OpenAI,
-Gemini, watsonx.ai, Ollama, …) can be plugged in, but every piece of application
+Gemini, Ollama, …) can be plugged in, but every piece of application
 data — projects, conversations, contexts, artifacts, deployments, settings —
 stays on disk locally.
 
@@ -194,8 +194,8 @@ The **artifacts panel** (toggle in the header) is a Claude-style side panel:
 ## 1.9 Settings
 
 - **AI providers**: add and test providers of type `mock` (deterministic
-  local), `anthropic`, `openai`, `openrouter`, `gemini`, `ollama`, `generic`
-  (any OpenAI-compatible endpoint), and `watsonx` (IBM watsonx.ai). A
+  local), `anthropic`, `openai`, `openrouter`, `gemini`, `ollama`, and
+  `generic` (any OpenAI-compatible endpoint). A
   one-click **Ollama preset** configures a local model, and **Detect models**
   auto-discovers what's installed. API keys go to the encrypted local secret
   store, never the database.
@@ -230,7 +230,7 @@ The **artifacts panel** (toggle in the header) is a Claude-style side panel:
 │                                                             │
 │  api/ (routers) → services/ (logic) → db/ (SQLite + WAL)    │
 │  agent/  orchestrator · intent router · NLU · 13 skills     │
-│  ai/     mock · anthropic · gemini · openai-compat · watsonx│
+│  ai/     mock · anthropic · gemini · openai-compat          │
 │  context/ engine · retrieval · .epwcontext packages         │
 │  artifacts/ resolver · validation · preview · renderer ·    │
 │             packager · parser  (deterministic pipeline)     │
@@ -251,8 +251,7 @@ The **artifacts panel** (toggle in the header) is a Claude-style side panel:
 backend/            FastAPI app, Alembic migrations, fixtures, tests
 frontend/           React SPA, generated schemas, tests, nginx config
 docs/               ARCHITECTURE, SECURITY, EPM_AUTOMATE, ORACLE_ARTIFACT_RESEARCH,
-                    IBM_CLOUD, IMPROVEMENTS, this document
-deploy/ibm-cloud/   Optional hosted deployment (Terraform + Code Engine)
+                    IMPROVEMENTS, this document
 docker-compose.yml  Two services: backend (localhost-only :8000), frontend (:3000)
 ```
 
@@ -410,7 +409,6 @@ A small provider abstraction (`AIProvider`: `list_models`, `test_connection`,
 | **anthropic** | Messages API streaming; sampling params deliberately omitted for modern Claude models. |
 | **gemini** | `streamGenerateContent` SSE. |
 | **openai-compat** | One implementation covering OpenAI, OpenRouter, **Ollama** (default `http://localhost:11434/v1`), and any generic endpoint; requests usage in-stream. |
-| **watsonx** | IBM watsonx.ai (Granite models): IBM Cloud API key → IAM token exchange with caching, project/space scoping, `chat_stream` SSE. |
 
 `POST /api/providers/models/discover` probes any of these before saving a
 profile — backing the Settings "Detect models" button. Chat always works:
@@ -574,17 +572,13 @@ defined forms (usable as reference templates); 4 rules with runtime prompts
 (including a Groovy `Add New Hire` and calc-script `IR`); 6 substitution/user
 variables. Names are chosen so every documented example resolves end-to-end.
 
-## 2.13 Optional IBM Cloud path (`deploy/ibm-cloud/`, `docs/IBM_CLOUD.md`)
+## 2.13 Training-corpus export (`backend/scripts/export_training_data.py`)
 
-Local-first remains the default, but the repo ships an optional all-IBM hosted
-topology: watsonx.ai for inference (the `watsonx` provider), watsonx.ai Tuning
-Studio or GPU instances for fine-tuning — fed by
-`backend/scripts/export_training_data.py`, which exports **redacted** local
-conversations and validated specs as JSONL (watsonx or chat format, deduped) —
-Code Engine + Container Registry for hosting, and a VPC with Client-to-Site
-VPN so nothing is exposed to the public internet. Terraform and a deploy
-script are included. The Oracle integration point remains the same connector
-boundary.
+Local-first remains the default; for fine-tuning elsewhere,
+`backend/scripts/export_training_data.py` exports **redacted** local
+conversations and validated specs as JSONL (chat or instruct format, deduped).
+See `docs/OPENCLAW_PLAN.md` for the hosted-deployment direction. The Oracle
+integration point remains the same connector boundary.
 
 ## 2.14 Development workflow
 
@@ -603,7 +597,7 @@ npm run typecheck && npm test && npm run build
 Tests cover the API surface, the artifact pipeline (including lossless XML
 round-trips and reproducible packaging), connector security (allowlists,
 validation, redaction), the orchestrator (including the production-safeguard
-test), NLU + eval, schema drift, providers (including watsonx), bundles/
+test), NLU + eval, schema drift, providers, bundles/
 backups/ops features, and the frontend's blocks, composer, sidebar, palette,
 pages, and stores.
 
@@ -612,4 +606,4 @@ pages, and stores.
 *See also: `docs/ARCHITECTURE.md` (design rationale), `docs/SECURITY.md`
 (threat model), `docs/EPM_AUTOMATE.md` (runner setup),
 `docs/ORACLE_ARTIFACT_RESEARCH.md` (why deployment is gated),
-`docs/IBM_CLOUD.md` (hosted topology), `docs/IMPROVEMENTS.md` (roadmap).*
+`docs/IMPROVEMENTS.md` (roadmap).*

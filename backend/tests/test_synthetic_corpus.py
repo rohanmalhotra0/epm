@@ -104,9 +104,9 @@ async def test_dedup_drops_repeated_pairs(md, monkeypatch):
     assert stats["duplicatesDropped"] > 0
 
 
-def test_cli_watsonx_format_matches_exporter(tmp_path):
+def test_cli_instruct_format_matches_exporter(tmp_path):
     out = tmp_path / "syn.jsonl"
-    summary = generate(out, count=40, fmt="watsonx", seed=7, edits_ratio=0.25)
+    summary = generate(out, count=40, fmt="instruct", seed=7, edits_ratio=0.25)
     records = [json.loads(line) for line in out.read_text().splitlines()]
     assert summary["examples"] == len(records) == 40
     assert all(set(r) == {"input", "output"} for r in records)
@@ -132,8 +132,8 @@ def test_cli_chat_format_matches_exporter(tmp_path):
 
 def test_val_split_deterministic_and_disjoint(tmp_path):
     out1, out2 = tmp_path / "a.jsonl", tmp_path / "b.jsonl"
-    summary = generate(out1, count=80, fmt="watsonx", seed=7, val_split=0.2)
-    generate(out2, count=80, fmt="watsonx", seed=7, val_split=0.2)
+    summary = generate(out1, count=80, fmt="instruct", seed=7, val_split=0.2)
+    generate(out2, count=80, fmt="instruct", seed=7, val_split=0.2)
 
     train1, val1 = out1.read_text(), (tmp_path / "a.val.jsonl").read_text()
     train2, val2 = out2.read_text(), (tmp_path / "b.val.jsonl").read_text()

@@ -60,7 +60,7 @@ def engine_kwargs(url: str) -> dict:
 
     SQLite keeps ``check_same_thread=False`` (async request paths hop threads);
     everything else (PostgreSQL) gets connection health checks and a small,
-    bounded pool suited to a single Code Engine instance.
+    bounded pool suited to a single app instance.
     """
     if url.startswith("sqlite"):
         return {"connect_args": {"check_same_thread": False}, "future": True}

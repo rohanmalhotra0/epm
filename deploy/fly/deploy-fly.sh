@@ -180,7 +180,7 @@ do_teardown() {
       "$FLY" apps destroy "$app" --yes || true
     fi
   done
-  ok "Teardown complete. IBM Cloud resources are untouched (tear those down separately)."
+  ok "Teardown complete."
 }
 
 main() {
