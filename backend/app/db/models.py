@@ -266,3 +266,24 @@ class WorkflowState(IdMixin, TimestampMixin, Base):
     state: Mapped[str] = mapped_column(String(60))
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     data: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+class ApiToken(IdMixin, TimestampMixin, Base):
+    """A personal API token that lets the browser-agent extension authenticate
+    to the token-gated ``/api/ext`` routes WITHOUT the interactive login gate
+    (autonomous use). The plaintext token is shown to the user exactly once at
+    creation; only its SHA-256 hash is stored here. ``owner_id`` is the signed-in
+    email the token acts as, so token requests are owner-scoped just like a
+    logged-in session."""
+
+    __tablename__ = "api_tokens"
+
+    owner_id: Mapped[str] = mapped_column(String(120), index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(120), default="Browser agent")
+    # sha256 hex of the plaintext token — the token itself is never persisted.
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    # Short non-secret prefix (e.g. "epmw_ab12cd") shown in the UI to identify a
+    # token without revealing it.
+    prefix: Mapped[str] = mapped_column(String(24), nullable=False)
+    last_used_at: Mapped[datetime | None] = mapped_column()
+    revoked_at: Mapped[datetime | None] = mapped_column()

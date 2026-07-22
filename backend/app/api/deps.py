@@ -44,6 +44,53 @@ def get_current_owner(request: Request) -> str:
     return request.headers.get(settings.auth_email_header) or "local"
 
 
+def _bearer_token(request: Request) -> str | None:
+    """Extract a bearer token from the Authorization header, if present."""
+    auth = request.headers.get("authorization") or request.headers.get("Authorization")
+    if not auth:
+        return None
+    parts = auth.split(None, 1)
+    if len(parts) == 2 and parts[0].lower() == "bearer":
+        return parts[1].strip()
+    return None
+
+
+def get_owner_from_token(request: Request) -> str:
+    """Owner resolution for the token-gated ``/api/ext`` routes (autonomous use).
+
+    These routes sit OUTSIDE the interactive login gate, so — unlike
+    ``get_current_owner`` — they must NEVER trust a client-supplied identity
+    header (it could be spoofed on an ungated path). Identity comes ONLY from a
+    valid ``Authorization: Bearer epmw_…`` token. When multi-user is off the app
+    is single-user and the routes act as the "local" owner without a token.
+
+    Uses its own short-lived DB session (committed immediately) so no session is
+    held open across a streaming response.
+    """
+    from ..db.base import get_sessionmaker
+    from ..services import api_tokens as tokens_svc
+
+    token = _bearer_token(request)
+    if token:
+        SessionLocal = get_sessionmaker()
+        session = SessionLocal()
+        try:
+            owner = tokens_svc.resolve_owner(session, token)
+            session.commit()
+        finally:
+            session.close()
+        if owner is not None:
+            return owner
+        raise HTTPException(status_code=401, detail="invalid or revoked API token")
+
+    if not get_settings().multi_user:
+        return "local"
+    raise HTTPException(
+        status_code=401,
+        detail="missing API token — add an Authorization: Bearer epmw_… header",
+    )
+
+
 def _owner_may_access(project: Project | None, owner: str) -> bool:
     """True when `owner` may touch this project. No-op (always True) unless
     multi-user is on; legacy NULL-owner rows stay visible to everyone."""

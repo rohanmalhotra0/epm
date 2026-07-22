@@ -27,7 +27,12 @@
     <section id="settings" class="settings hidden">
       <label>
         Backend URL
-        <input id="backendUrl" type="text" placeholder="http://localhost:8000" />
+        <input id="backendUrl" type="text" placeholder="https://your-epm-wizard.app" />
+      </label>
+      <label>
+        API token <span class="hint">— for autonomous use (no website tab)</span>
+        <input id="apiToken" type="password" placeholder="epmw_… — generate on the Browser Agent page" autocomplete="off" />
+        <span class="field-help">Leave blank to use your website sign-in while it's open. Paste a token to run standalone.</span>
       </label>
       <label>
         Project id (optional)
@@ -41,7 +46,12 @@
         <input id="guardToggle" type="checkbox" checked />
         Enforce production-safety gate (recommended)
       </label>
-      <button id="saveConfig" class="secondary">Save settings</button>
+      <div class="settings-actions">
+        <button id="saveConfig" class="primary">Save settings</button>
+        <button id="testConn" class="secondary">Test connection</button>
+        <button id="signIn" class="secondary">Sign in on website</button>
+      </div>
+      <div id="connStatus" class="conn-status hidden"></div>
     </section>
 
     <section id="confirm" class="confirm hidden" role="alertdialog" aria-live="assertive">

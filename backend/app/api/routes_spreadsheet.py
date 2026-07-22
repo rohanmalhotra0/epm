@@ -28,11 +28,9 @@ INSPECT_MAX_BYTES = 25 * 1024 * 1024
 ALLOWED_EXTENSIONS = {".xlsx", ".xlsm", ".xlsb", ".csv"}
 
 
-@router.post("/api/spreadsheet/inspect", response_model=WorkbookInspection)
-async def inspect_workbook(
-    file: UploadFile = File(...),
-    _owner: str = Depends(get_current_owner),
-) -> WorkbookInspection:
+async def run_inspection(file: UploadFile) -> WorkbookInspection:
+    """Parse an uploaded workbook (no owner scoping — the caller's route decides
+    how to authenticate). Shared by the session-gated and token-gated routes."""
     filename = file.filename or "workbook.xlsx"
     ext = Path(filename).suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
@@ -52,3 +50,11 @@ async def inspect_workbook(
             return inspect_file(Path(tmp.name), filename=filename, size_bytes=len(data))
         except Exception as exc:  # noqa: BLE001 — never leak a stack trace to the client
             raise HTTPException(422, f"could not inspect workbook: {str(exc)[:200]}") from exc
+
+
+@router.post("/api/spreadsheet/inspect", response_model=WorkbookInspection)
+async def inspect_workbook(
+    file: UploadFile = File(...),
+    _owner: str = Depends(get_current_owner),
+) -> WorkbookInspection:
+    return await run_inspection(file)

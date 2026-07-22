@@ -5,12 +5,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from ..agent import TOOL_SPECS, skill_specs
 from ..agent.skills import skill_catalog
 from ..config import get_settings
 from ..schemas.api import SkillCatalogOut
+from .deps import get_current_owner
 
 router = APIRouter(prefix="/api", tags=["meta"])
 _SCHEMA_PATH = Path(__file__).resolve().parents[3] / "frontend" / "src" / "schemas" / "schemas.json"
@@ -20,6 +21,16 @@ _SCHEMA_PATH = Path(__file__).resolve().parents[3] / "frontend" / "src" / "schem
 def health() -> dict:
     s = get_settings()
     return {"ok": True, "app": s.app_name, "version": s.version}
+
+
+@router.get("/whoami")
+def whoami(owner: str = Depends(get_current_owner)) -> dict:
+    """Who the current (session/gate-authenticated) caller is. Behind the login
+    gate on hosted deploys, so the extension's "Test connection" uses it to
+    confirm integrated (cookie) auth is working; returns 401 via the gate when
+    the session has lapsed."""
+    s = get_settings()
+    return {"ok": True, "owner": owner, "multiUser": s.multi_user}
 
 
 @router.get("/skills")
