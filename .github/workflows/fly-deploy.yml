@@ -1,0 +1,85 @@
+# Auto-deploy EPM Wizard to Fly.io on every push to main.
+#
+# This SHIPS NEW IMAGES to apps that already exist — it does not bootstrap them.
+# Run deploy/fly/deploy-fly.sh once by hand first (it creates the apps, the
+# backend volume, and sets the Fly secrets). After that, this workflow keeps the
+# running apps up to date automatically.
+#
+# One-time setup in GitHub (Settings -> Secrets and variables -> Actions):
+#   FLY_API_TOKEN  — a Fly deploy token. Create it with:
+#                      fly tokens create deploy --name gha-epm
+#                    (org-scoped deploy tokens are preferred over a personal
+#                     auth token — they can only deploy, nothing else).
+#
+# Each app is deployed only when its own files change, so a frontend-only push
+# doesn't redeploy the always-warm backend (and vice versa). The backend's
+# Alembic migrations still run automatically via its release_command in
+# backend.fly.toml — nothing extra to wire up here.
+
+name: Deploy to Fly.io
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Detect changed apps
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        # Only diff on push; a manual run deploys both (handled in each job's if).
+        if: github.event_name == 'push'
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - 'deploy/fly/backend.fly.toml'
+              - '.github/workflows/fly-deploy.yml'
+            frontend:
+              - 'frontend/**'
+              - 'deploy/fly/frontend.fly.toml'
+              - '.github/workflows/fly-deploy.yml'
+
+  backend:
+    name: Deploy backend
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    # Serialize deploys of this app; never cancel one mid-flight.
+    concurrency:
+      group: fly-deploy-backend
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      # Repo root is the build context (positional "."); the Dockerfile path in
+      # backend.fly.toml (../../backend/Dockerfile) resolves relative to the
+      # config. --ha=false keeps it a single machine (one persistent volume).
+      - run: flyctl deploy . --config deploy/fly/backend.fly.toml --app epmw-backend --ha=false --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  frontend:
+    name: Deploy frontend
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: fly-deploy-frontend
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy . --config deploy/fly/frontend.fly.toml --app epmw-frontend --ha=false --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
