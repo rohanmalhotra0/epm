@@ -10,9 +10,10 @@ import "./artifacts/artifacts.css";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { App } from "./App";
 import { LandingPage } from "./pages/LandingPage";
+import { DocsPage } from "./pages/DocsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 15_000, refetchOnWindowFocus: false, retry: 1 } },
@@ -29,12 +30,28 @@ const isApp = window.location.pathname.startsWith(APP_BASENAME);
 
 // global.css locks the document to the viewport for the app shell
 // (body{overflow:hidden}, html/body/#root{height:100%}) because the chat UI
-// manages its own internal scroll regions. The landing page is a normal,
-// taller-than-viewport document, so tag <html> to release that lock (see
-// landing.css) — otherwise everything below the fold is clipped and unscrollable.
+// manages its own internal scroll regions. The public pages (landing + docs)
+// are normal, taller-than-viewport documents, so tag <html> to release that
+// lock (see landing.css) — otherwise everything below the fold is clipped and
+// unscrollable.
 if (!isApp) document.documentElement.classList.add("landing-doc");
 
 const root = ReactDOM.createRoot(document.getElementById("root")!);
+
+// The public tree is a small router of its own: "/" is the marketing landing
+// and "/docs" is public product documentation (both reachable without the auth
+// gate — see deploy/fly/auth.fly.toml). Neither is under /app, so oauth2-proxy
+// leaves them alone; nginx's SPA fallback serves index.html for a direct /docs
+// hit. Cross-tree links to /app stay plain <a> so they pass through the gate.
+function PublicRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/docs" element={<DocsPage />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
 
 root.render(
   <React.StrictMode>
@@ -45,7 +62,9 @@ root.render(
         </BrowserRouter>
       </QueryClientProvider>
     ) : (
-      <LandingPage />
+      <BrowserRouter>
+        <PublicRoutes />
+      </BrowserRouter>
     )}
   </React.StrictMode>,
 );
