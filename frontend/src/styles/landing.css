@@ -1,24 +1,45 @@
-/* Public landing page (see pages/LandingPage.tsx). Dark, matches the app's
-   Carbon g100 palette. Self-contained: reuses the global accent token but does
-   not depend on any app-shell layout. */
+/* Public landing page (see pages/LandingPage.tsx). Dark, editorial/industrial
+   look consistent with the in-app Guide: mono micro-labels, tight headline,
+   hairline grids, blueprint-grid hero, sharp corners. Self-contained — reuses
+   the global accent token but no app-shell layout. */
+
+/* ---- release the app shell's viewport lock -------------------------------
+   global.css sets body{overflow:hidden} and html,body,#root{height:100%} so the
+   chat shell can own its own scroll regions. The landing is a normal document
+   that is taller than the viewport, so main.tsx tags <html class="landing-doc">
+   to let it scroll — without this the features/footer below the fold are clipped
+   and unscrollable. */
+html.landing-doc,
+html.landing-doc body,
+html.landing-doc #root {
+  height: auto;
+  overflow: visible;
+}
+html.landing-doc {
+  scroll-behavior: smooth;
+}
 
 .landing {
   --lp-accent: var(--epmw-accent, #4589ff);
   --lp-accent-hover: var(--epmw-accent-hover, #6ea6ff);
-  --lp-bg: #0f0f0f;
+  --lp-bg: #161616;
   --lp-fg: #f4f4f4;
   --lp-muted: #a8a8a8;
+  --lp-faint: #6f6f6f;
   --lp-border: #303030;
-  --lp-layer: #1a1a1a;
+  --lp-layer: #1c1c1c;
 
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background:
-    radial-gradient(1100px 520px at 50% -12%, rgba(69, 137, 255, 0.16), transparent 60%),
-    var(--lp-bg);
+  background: var(--lp-bg);
   color: var(--lp-fg);
   font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+}
+
+.landing main {
+  flex: 1;
 }
 
 /* ---------- top nav ---------- */
@@ -26,174 +47,251 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px clamp(20px, 6vw, 64px);
-  max-width: 1120px;
+  padding: 18px clamp(20px, 6vw, 56px);
+  max-width: 1080px;
   width: 100%;
   margin: 0 auto;
+  border-bottom: 1px solid var(--lp-border);
 }
 .landing-brand {
   display: flex;
   align-items: center;
   gap: 10px;
   font-weight: 600;
-  font-size: 17px;
+  font-size: 16px;
+  letter-spacing: 0.01em;
   color: var(--lp-fg);
   text-decoration: none;
 }
 .landing-brand img {
   display: block;
-  border-radius: 6px;
+  border-radius: 4px;
 }
+/* the nav sign-in is compact: hide the "with Google" words, keep the glyph */
 .landing-nav-cta {
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--lp-fg);
   text-decoration: none;
-  padding: 8px 16px;
+  padding: 7px 16px;
   border: 1px solid var(--lp-border);
-  border-radius: 6px;
+  border-radius: 0;
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 .landing-nav-cta:hover {
   border-color: var(--lp-accent);
   background: rgba(69, 137, 255, 0.08);
 }
+.landing-nav-cta svg {
+  background: #fff;
+  border-radius: 2px;
+  padding: 2px;
+  box-sizing: content-box;
+}
 
 /* ---------- hero ---------- */
 .landing-hero {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: clamp(48px, 10vw, 104px) clamp(20px, 6vw, 64px) 40px;
-  max-width: 820px;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--lp-border);
+}
+/* subtle blueprint grid, decorative, behind the content */
+.landing-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 46px 46px;
+  background-position: center top;
+  pointer-events: none;
+}
+.landing-hero-inner {
+  position: relative;
+  max-width: 1080px;
   width: 100%;
   margin: 0 auto;
+  padding: clamp(64px, 9vw, 104px) clamp(20px, 6vw, 56px) clamp(56px, 8vw, 84px);
 }
 .landing-eyebrow {
-  font-size: 12px;
-  letter-spacing: 0.09em;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--lp-accent);
-  margin: 0 0 20px;
-  font-weight: 600;
+  margin: 0 0 22px;
 }
 .landing-title {
-  font-size: clamp(34px, 6vw, 58px);
-  line-height: 1.05;
+  font-size: clamp(32px, 5.4vw, 54px);
+  line-height: 1.04;
   font-weight: 600;
   letter-spacing: -0.02em;
   margin: 0 0 22px;
+  max-width: 16ch;
 }
 .landing-sub {
-  font-size: clamp(16px, 2.2vw, 19px);
-  line-height: 1.55;
+  font-size: clamp(15.5px, 1.7vw, 17px);
+  line-height: 1.6;
   color: var(--lp-muted);
-  max-width: 620px;
-  margin: 0 0 36px;
+  max-width: 60ch;
+  margin: 0 0 34px;
 }
 .landing-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
-  justify-content: center;
+  gap: 18px;
   align-items: center;
 }
 .landing-btn-primary {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   background: var(--lp-accent);
   color: #fff;
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 600;
-  padding: 13px 24px;
-  border-radius: 8px;
+  padding: 12px 22px;
+  border: 1px solid var(--lp-accent);
+  border-radius: 0;
   text-decoration: none;
-  transition: background 0.15s ease, transform 0.05s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 .landing-btn-primary:hover {
   background: var(--lp-accent-hover);
-}
-.landing-btn-primary:active {
-  transform: translateY(1px);
+  border-color: var(--lp-accent-hover);
 }
 .landing-btn-primary svg {
   background: #fff;
-  border-radius: 3px;
+  border-radius: 2px;
   padding: 2px;
   box-sizing: content-box;
 }
 .landing-btn-ghost {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--lp-fg);
   text-decoration: none;
-  padding: 13px 8px;
+  border-bottom: 1px solid var(--lp-faint);
+  padding-bottom: 2px;
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
 .landing-btn-ghost:hover {
   color: var(--lp-accent-hover);
+  border-color: var(--lp-accent-hover);
 }
 .landing-fineprint {
-  margin: 28px 0 0;
-  font-size: 13px;
-  color: var(--lp-muted);
+  margin: 26px 0 0;
+  font-size: 12.5px;
+  color: var(--lp-faint);
+  max-width: 60ch;
 }
 
-/* ---------- features ---------- */
+/* ---------- sections ---------- */
+.landing-section {
+  max-width: 1080px;
+  width: 100%;
+  margin: 0 auto;
+  padding: clamp(48px, 7vw, 72px) clamp(20px, 6vw, 56px);
+  border-bottom: 1px solid var(--lp-border);
+}
+.landing-kicker {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lp-faint);
+  margin: 0 0 28px;
+}
+
+/* features — hairline grid, mono ghost numbers, no rounded pills or icons */
 .landing-features {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  max-width: 1120px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 40px clamp(20px, 6vw, 64px) 72px;
+  gap: 1px;
+  background: var(--lp-border);
+  border: 1px solid var(--lp-border);
 }
 .landing-feature {
-  background: var(--lp-layer);
-  border: 1px solid var(--lp-border);
-  border-radius: 12px;
-  padding: 26px 24px;
+  background: var(--lp-bg);
+  padding: 28px 26px;
   text-align: left;
 }
+.landing-feature-no {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--lp-accent);
+  display: block;
+  margin-bottom: 14px;
+}
 .landing-feature h3 {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
+  letter-spacing: -0.01em;
   margin: 0 0 10px;
 }
 .landing-feature p {
-  font-size: 14.5px;
+  font-size: 13.5px;
   line-height: 1.55;
   color: var(--lp-muted);
   margin: 0;
 }
 
+/* guarantees — plain declarative lines with a left accent rule */
+.landing-guarantees {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+}
+.landing-guarantee {
+  border-left: 2px solid var(--lp-accent);
+  padding-left: 14px;
+  font-size: 13.5px;
+  color: var(--lp-muted);
+  line-height: 1.55;
+}
+.landing-guarantee b {
+  display: block;
+  color: var(--lp-fg);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
 /* ---------- footer ---------- */
 .landing-footer {
+  max-width: 1080px;
+  width: 100%;
+  margin: 0 auto;
+  padding: clamp(36px, 5vw, 48px) clamp(20px, 6vw, 56px) clamp(44px, 6vw, 60px);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 28px 20px 40px;
-  font-size: 13px;
-  color: var(--lp-muted);
-  border-top: 1px solid var(--lp-border);
+  justify-content: space-between;
+  gap: 24px;
 }
-.landing-footer a {
-  color: var(--lp-muted);
-  text-decoration: none;
-}
-.landing-footer a:hover {
-  color: var(--lp-fg);
-}
-.landing-footer-sep {
-  opacity: 0.5;
+.landing-disclaimer {
+  font-size: 11.5px;
+  color: var(--lp-faint);
+  line-height: 1.55;
+  max-width: 62ch;
+  margin: 0;
 }
 
 @media (max-width: 760px) {
-  .landing-features {
+  .landing-features,
+  .landing-guarantees {
     grid-template-columns: 1fr;
+  }
+  .landing-nav-cta span {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.landing-doc {
+    scroll-behavior: auto;
   }
 }
