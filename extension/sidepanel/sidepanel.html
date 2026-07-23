@@ -25,19 +25,18 @@
     </nav>
 
     <section id="settings" class="settings hidden">
-      <label>
-        Backend URL
-        <input id="backendUrl" type="text" placeholder="https://your-epm-wizard.app" />
-      </label>
-      <label>
-        API token <span class="hint">— for autonomous use (no website tab)</span>
-        <input id="apiToken" type="password" placeholder="epmw_… — generate on the Browser Agent page" autocomplete="off" />
-        <span class="field-help">Leave blank to use your website sign-in while it's open. Paste a token to run standalone.</span>
-      </label>
-      <label>
-        Project id (optional)
-        <input id="projectId" type="text" placeholder="selects that project's provider" />
-      </label>
+      <div class="signin-card">
+        <div class="signin-copy">
+          <strong>Connect to EPM Wizard</strong>
+          <span class="field-help">Sign in to your hosted EPM Wizard account — then the agent drives it for you. It connects to the app automatically; there's nothing to set up.</span>
+        </div>
+        <div class="settings-actions">
+          <button id="signIn" class="primary">Sign in to EPM Wizard</button>
+          <button id="testConn" class="secondary">Test connection</button>
+        </div>
+        <div id="connStatus" class="conn-status hidden"></div>
+      </div>
+
       <label class="row">
         <input id="voiceToggle" type="checkbox" />
         Speak narration (Web Speech TTS)
@@ -46,12 +45,26 @@
         <input id="guardToggle" type="checkbox" checked />
         Enforce production-safety gate (recommended)
       </label>
-      <div class="settings-actions">
-        <button id="saveConfig" class="primary">Save settings</button>
-        <button id="testConn" class="secondary">Test connection</button>
-        <button id="signIn" class="secondary">Sign in on website</button>
-      </div>
-      <div id="connStatus" class="conn-status hidden"></div>
+
+      <details class="advanced">
+        <summary>Advanced — server &amp; token</summary>
+        <label>
+          Server URL
+          <input id="backendUrl" type="text" placeholder="https://epmw-auth.fly.dev" />
+          <span class="field-help">The hosted EPM Wizard app. Leave this as-is unless you self-host or run it locally.</span>
+        </label>
+        <label>
+          API token <span class="hint">— for autonomous use (no website tab)</span>
+          <input id="apiToken" type="password" placeholder="epmw_… — generate on the Browser Agent page" autocomplete="off" />
+          <span class="field-help">Leave blank to use your website sign-in while it's open. Paste a token to run standalone.</span>
+        </label>
+        <label>
+          Project id (optional)
+          <input id="projectId" type="text" placeholder="selects that project's provider" />
+        </label>
+      </details>
+
+      <button id="saveConfig" class="secondary settings-save">Save settings</button>
     </section>
 
     <section id="confirm" class="confirm hidden" role="alertdialog" aria-live="assertive">

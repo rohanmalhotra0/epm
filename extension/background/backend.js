@@ -59,8 +59,8 @@ function authedRequest(config, subpath, init = {}) {
 // a raw "Backend 404". `mode` is "autonomous" (token) or "integrated" (cookie).
 function diagnose({ status, url, mode, networkErr }) {
   if (networkErr) {
-    return `Can't reach the backend at ${url}. Check the Backend URL in Settings ` +
-           `(it should be the EPM Wizard app's address) and your connection.`;
+    return `Can't reach the backend at ${url}. Check the Server URL in Settings → ` +
+           `Advanced (it should be the EPM Wizard app's address) and your connection.`;
   }
   if (status === 401 || status === 403) {
     return mode === "autonomous"
@@ -71,7 +71,7 @@ function diagnose({ status, url, mode, networkErr }) {
   }
   if (status === 404) {
     return `Reached a server at ${url}, but it has no agent API there. Point the ` +
-           `Backend URL at the EPM Wizard app itself (not a bare host or a different site).`;
+           `Server URL at the EPM Wizard app itself (not a bare host or a different site).`;
   }
   if (status >= 500) return `Backend error (${status}). Try again shortly.`;
   return `Backend ${status}.`;

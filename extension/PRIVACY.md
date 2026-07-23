@@ -11,8 +11,10 @@ explains exactly what data it handles and where that data goes.
 - The extension sends what it "sees" on the page you point it at — an
   accessibility-tree snapshot (text: element roles, names, values, positions)
   and, when needed, a screenshot of the visible tab — to **a backend server that
-  you configure**. By default that is `http://localhost:8000`; when launched
-  from an EPM Wizard web app it is that app's own origin.
+  you configure**. By default that is the hosted EPM Wizard app
+  (`https://epmw-auth.fly.dev`); when launched from an EPM Wizard web app it is
+  that app's own origin, and you can point it at a self-hosted or local backend
+  under Settings → Advanced.
 - It does **not** send your data to the extension's authors, to any analytics
   service, to any advertising network, or to any third party other than the
   backend URL you set.

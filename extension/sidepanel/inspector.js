@@ -35,7 +35,7 @@ export function initInspector({ getConfig }) {
     setStatus(`Inspecting ${file.name}…`);
     const cfg = getConfig() || {};
     const base = (cfg.backendUrl || "").replace(/\/+$/, "");
-    if (!base) { setStatus("Set a Backend URL in ⚙ Settings first.", true); return; }
+    if (!base) { setStatus("Set a Server URL in ⚙ Settings → Advanced first.", true); return; }
     const form = new FormData();
     form.append("file", file, file.name);
 
