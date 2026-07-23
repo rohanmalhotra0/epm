@@ -427,11 +427,11 @@ export function LandingPage() {
                 CHAT · BROWSER AGENT · ORACLE EPM
               </p>
               <h1 className="lp-title">
-                Chat with your EPM app.
+                Chat with EPM.
                 <br />
-                Or let it drive the screen.
+                It drives.
                 <br />
-                You approve everything.
+                You approve.
               </h1>
               <p className="lp-sub">
                 A ChatGPT-style workspace for Oracle EPM (Hyperion Planning). Ask in plain language and get back live,
