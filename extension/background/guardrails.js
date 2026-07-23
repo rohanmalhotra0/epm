@@ -16,8 +16,7 @@
 //      (click/type), including blind coordinate clicks whose target we cannot
 //      read, is held for confirmation.
 //
-// Read-only actions (scroll, wait, screenshot, navigate to a URL, done) are
-// never gated.
+// Navigation is evaluated separately: leaving the bound Oracle origin is held.
 
 // Destructive / irreversible verbs, matched against the target's accessible
 // name (case-insensitive). Kept tight so it flags real mutations, not every
@@ -67,7 +66,7 @@ export function isDestructiveLabel(label = "") {
 }
 
 // Actions that never mutate the page — always safe to run unattended.
-const READ_ONLY = new Set(["scroll", "wait", "screenshot", "navigate", "done"]);
+const READ_ONLY = new Set(["scroll", "wait", "screenshot", "done"]);
 
 /**
  * Decide whether an action must be held for human approval.
@@ -81,7 +80,21 @@ export function assessAction(action, ctx = {}) {
   if (!type || READ_ONLY.has(type)) return { hold: false };
 
   const label = (ctx.label || "").trim();
-  const prod = isProdContext(ctx.url, ctx.title);
+  const prod = ctx.classification === "production" || isProdContext(ctx.url, ctx.title);
+
+  if (type === "navigate") {
+    const destination = safeOrigin(action.url);
+    const current = safeOrigin(ctx.url);
+    const allowed = ctx.allowedOrigin || current;
+    if (!destination || !allowed || destination !== allowed) {
+      return {
+        hold: true,
+        label: action.url || "",
+        reason: `Navigation leaves the bound Oracle origin (${allowed || "unknown"} → ${destination || "invalid URL"})`,
+      };
+    }
+    return { hold: false };
+  }
 
   // 1) Destructive target by name — held everywhere.
   if (isDestructiveLabel(label)) {
@@ -103,7 +116,25 @@ export function assessAction(action, ctx = {}) {
     };
   }
 
+  // A coordinate-only write has no trustworthy accessible target. Hold it
+  // everywhere unless a human has explicitly approved the action.
+  if ((type === "click" || type === "type") && action.ref == null) {
+    return {
+      hold: true,
+      label: "",
+      reason: `Coordinate-only ${type} cannot verify its target`,
+    };
+  }
+
   return { hold: false };
+}
+
+function safeOrigin(value) {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return "";
+  }
 }
 
 function truncate(s, n = 60) {

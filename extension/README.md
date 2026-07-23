@@ -6,11 +6,36 @@ step in a side panel** — "Claude-for-Chrome, but domain-specific," targeting
 Oracle EPM Cloud (Planning / Financial Consolidation).
 
 It is a **real, loadable extension** that runs the full
-**plan → act → observe → narrate** loop against the EPM Wizard backend. It is
-**not** a hardened Oracle-specific agent — the genuinely hard Oracle-UI
-heuristics are stubbed behind clean seams and marked below.
+**plan → act → observe → narrate** loop against the EPM Wizard backend. The
+Oracle-aware adapter covers nested frames, open Shadow DOM, JET/ADF semantics,
+virtualized grids, and canvas fallback; an installed-extension harness exercises
+those paths against deterministic fixtures.
 
-No build step. Plain ES modules + two classic content scripts. Load it as-is.
+No build step. Plain ES modules + two classic content scripts. Load it as-is,
+or download the packaged ZIP from the public EPM Wizard landing page at
+`/epm-wizard-extension.zip`.
+
+**New in 0.6.0**
+
+- **Minimum-by-default permissions.** Only the EPM Wizard bridge origins are
+  pre-granted. Target-site access is requested for the current site after a
+  direct user gesture; Chrome Debugger access for canvas coordinate input is a
+  separate optional grant.
+- **Secure origin binding.** Bridge messages are checked against Chrome's
+  sender document, hosted sites may select only bound backend origins silently,
+  and self-hosted origin changes require confirmation in extension-owned UI.
+  Backend-scoped credentials are cleared whenever the origin changes.
+- **Oracle-aware page adapter.** Stable refs span nested frames; the snapshot
+  traverses open Shadow DOM, recognizes JET/ADF components and virtualized
+  grids, and describes canvas bounds for coordinate fallback.
+- **Action outcomes and a faster loop.** Every attempted action records its
+  success, failure, guardrail disposition, and duration. History and workbook
+  context are bounded, page settling replaces fixed sleeps, and screenshots are
+  compressed, resized, hashed, and skipped when a duplicate is detected.
+- **Installed-extension E2E.** A persistent Chromium harness verifies
+  user-triggered injection, nested frames, Shadow DOM, JET, virtualized grids,
+  screenshots, canvas clicks, origin-spoof rejection, action-result history,
+  keyboard use, and critical accessibility checks.
 
 **New in 0.5.0**
 
@@ -43,10 +68,10 @@ No build step. Plain ES modules + two classic content scripts. Load it as-is.
 - **Store-ready packaging.** Icons, a privacy policy, a listing pack, and a
   packaging script. See _Publishing_ below.
 
-> **Honesty note:** nothing here has been run against a live Oracle EPM tenant.
-> The Oracle-specific grounding (iframes, canvas/JET grids) is still stubbed.
-> Validate against a real Planning UI before trusting any driving behaviour, and
-> read the safety caveats before publishing publicly.
+> **Validation note:** the Oracle adapter is covered by unit tests and an
+> installed-extension fixture suite, but nothing here has been run against a
+> live Oracle EPM tenant. Validate against a real Planning UI before trusting
+> production driving behaviour, and read the safety caveats before publishing.
 
 ---
 
@@ -85,9 +110,12 @@ No build step. Plain ES modules + two classic content scripts. Load it as-is.
 5. Type a **goal** (e.g. *"Open the Actuals data form and set Scenario to
    Forecast"*) and press **Start**. Watch/pause/stop the run.
 
-> **Permissions note:** the manifest requests `debugger` for the CDP
-> screenshot/coordinate fallback. Chrome shows a *"… is debugging this browser"*
-> banner while attached — expected for the scaffold (see stubs below).
+> **Permissions note:** normal screenshots use `chrome.tabs.captureVisibleTab`.
+> Access to the current HTTPS target site and any custom backend origin is
+> requested from the direct Grant/Save/Approve click that needs it; `debugger`
+> is a separate optional permission. Plain HTTP access is limited to loopback
+> development. If `debugger` is enabled for CDP capture or coordinate input,
+> Chrome shows a *"… is debugging this browser"* banner while attached.
 
 ---
 
@@ -97,10 +125,14 @@ Launched from the EPM Wizard web app, the extension configures itself — no
 typing a backend URL or project id.
 
 - The app has a **Browser Agent** page (sidebar → *Browser Agent*, route
-  `/agent`). It detects whether the extension is installed and offers a one-click
+  `/app/agent`). It detects whether the extension is installed and offers a one-click
   **Launch agent on the current tab**.
 - On launch, the app hands the extension its **backend URL** (the app's own
   origin), your **current project id**, and an optional **goal** to prefill.
+  The service worker derives the actual page origin from Chrome rather than
+  trusting event data. Hosted page/backend pairs are allowlisted; an unbound
+  self-hosted backend opens an extension-owned confirmation dialog before any
+  config is changed.
   The extension still verifies both the website OAuth session and a live Oracle
   EPM connection before unlocking agent controls.
 - The transport is a content script (`content/site-bridge.js`) that runs only on
@@ -113,34 +145,40 @@ Opening the side panel programmatically needs a user gesture the relayed message
 may not carry; if Chrome declines, the config is already saved and one click on
 the toolbar icon opens the fully-wired panel.
 
-To point the bridge at other origins, edit the second `content_scripts` entry in
-`manifest.json` and `SITE_ORIGINS` in `common/protocol.js`.
+To point the bridge at another product origin, add the exact origin to the
+`content_scripts` entry in `manifest.json` and bind it explicitly in
+`background/origin-policy.js`.
 
-## Safety gate (enforced)
+## Safety gate (default-on)
 
 The system prompt *asks* the model not to fire destructive Oracle actions. That
-is advice, not a guarantee. `background/guardrails.js` turns it into a **hard
-gate**: before every action executes, the service worker consults the guardrail
+is advice, not a guarantee. When enabled, `background/guardrails.js` turns it
+into an enforced gate: before every action executes, the service worker consults the guardrail
 and, when it flags one, **holds** the action until you approve or skip it in the
 panel. Nothing destructive fires on the model's word alone.
 
-Two independent triggers:
+Independent triggers:
 
 1. **Destructive target** — the element about to be clicked/typed has an
    accessible name matching a destructive verb (deploy, delete, clear, drop,
    *run rule*, *refresh database*, push/promote/publish, consolidate, …). Held
    everywhere.
-2. **Production context** — the tab looks like a production tenant (URL/title
-   contains `prod`/`production`/`live`/…). On PROD, **any** write (click/type),
-   including blind coordinate clicks whose target can't be read, is held.
+2. **Production context** — the connected environment classification is
+   authoritative when available, with URL/title patterns only as a fallback.
+   On PROD, **any** click/type write is held.
+3. **Unknown coordinate write** — a coordinate-only click/type cannot be tied
+   to a readable target and is held in every environment.
+4. **Cross-origin navigation** — navigating away from the current origin is
+   held before the target page loads.
 
-Read-only actions (scroll, wait, screenshot, navigate, done) are never gated.
+Scroll, wait, screenshot, same-origin navigation, and done remain read-only.
 The gate is on by default and can be toggled in the panel's **⚙ Settings**
-(*Enforce production-safety gate*). Tune the verb/PROD patterns at the top of
-`guardrails.js`.
+(*Enforce production-safety gate*). Tune the verb/fallback PROD patterns at the
+top of `guardrails.js`.
 
 > This is a genuine guardrail but not a formal proof of safety: detection is by
-> accessible-name and URL heuristics. Keep it on, and still supervise real runs.
+> accessible-name plus environment metadata/URL heuristics. Keep it on, and
+> still supervise real runs.
 
 ## Inspect a workbook
 
@@ -193,9 +231,9 @@ Store-readiness lives alongside the code:
 ./scripts/package.sh   # build the upload zip
 ```
 
-Read the review-risk note at the top of `STORE_LISTING.md` first: the `debugger`
-+ broad-host permissions and UI-driving behaviour draw scrutiny, and this has not
-been validated on a live tenant.
+Read the review-risk note at the top of `STORE_LISTING.md` first: the optional
+`debugger` + broad-host permissions and UI-driving behaviour draw scrutiny, and
+this has not been validated on a live tenant.
 
 ---
 
@@ -223,19 +261,21 @@ in `OPENCLAW_PLAN.md` §6:
 
 - **`background/service-worker.js`** — owns the agent session and the run loop
   (`plan→act→observe→narrate`), routes messages between panel and content
-  script, holds the backend connection, and attaches the CDP debugger for the
-  screenshot/coordinate fallback. Session state is persisted to
+  script, holds the backend connection, aggregates frame snapshots, and uses
+  optional CDP input only for coordinate-grounded controls. Session state is
+  persisted to
   `chrome.storage.session` after every step, so an MV3 worker restart lands the
   run in **PAUSED** (history preserved) rather than losing it.
   - `background/backend.js` — hand-rolled SSE reader over `fetch` (EventSource
     isn't available in a service worker).
-  - `background/cdp.js` — `chrome.debugger` attach/detach, `Page.captureScreenshot`,
-    `Input.dispatchMouseEvent`.
+  - `background/cdp.js` — optional `chrome.debugger` attachment,
+    `Page.captureScreenshot`, `Input.dispatchMouseEvent`, keyboard events, and
+    Unicode text insertion.
 - **`content/content-script.js`** — builds the **accessibility-tree / DOM
-  snapshot with stable integer `ref` ids** (the *primary* grounding — the agent
-  targets `ref=42`, not pixels) and executes low-level actions **by ref**
-  (click / type / scroll). Self-contained classic script (content scripts can't
-  be ES modules via the manifest).
+  snapshot with stable integer `ref` ids** across accessible frames (the
+  *primary* grounding — the agent targets `ref=42`, not pixels), recognizes
+  Oracle JET/ADF/virtual-grid semantics, traverses open Shadow DOM, and executes
+  low-level actions by ref or coordinate. It is injected only after Start.
 - **`sidepanel/`** — the "watch it work" chat/narration UI: streams tokens +
   steps, shows the current action, Start/Pause/Resume/Stop, and optional
   **SpeechSynthesis** voice narration (mirrors the main app's Web Speech TTS —
@@ -245,74 +285,90 @@ in `OPENCLAW_PLAN.md` §6:
 
 ### Grounding strategy
 
-1. **Primary — accessibility tree with `ref` ids.** The content script walks the
-   DOM for interactive/labelled elements, assigns stable refs, and reports role
-   / name / value / rect. Actions reference elements by `ref`.
-2. **Fallback — screenshot + coordinates (vision).** When the tree is empty or
-   the model asks for a `screenshot`, the SW captures via CDP and attaches it to
-   the observation as a data URL. The backend routes screenshot-bearing turns to
-   the provider's **vision** role model (`AIMessage.images` →
-   `app/ai/openai_compat.py`). Coordinate clicks go through
-   `Input.dispatchMouseEvent`.
+1. **Primary — accessibility tree with `ref` ids.** The adapter walks accessible
+   nested frames and open Shadow DOM, assigns locally stable refs that the
+   service worker namespaces globally, and reports role/name/value/rect plus
+   Oracle component and frame metadata. Actions reference elements by `ref`.
+2. **Fallback — screenshot + coordinates (vision).** When the tree is empty,
+   ARIA-poor, canvas-backed, or the model requests a screenshot, the worker
+   captures a bounded JPEG with `captureVisibleTab` (CDP fallback when granted),
+   records image/viewport scaling, and avoids resending a duplicate. The backend
+   routes screenshot-bearing turns to its vision model. Optional CDP input
+   handles real canvas mouse and text/keyboard events; without that permission,
+   the frame adapter reports its best-effort pointer result.
 
 ### Backend contract
 
 `POST /api/agent/step` (SSE) — see `backend/app/api/routes_agent.py`. Request:
-`{ goal, observation: { url, title, nodes, screenshot? }, history[], projectId? }`.
+`{ goal, observation: { url, title, nodes, viewport?, screenshot?,
+screenshotMeta? }, history[], projectId?, workbookContext? }`.
 Stream: `start` → `token`* → `step` → `done`. The `step` payload is
-`{ index, narration, action, done }`; `action.type ∈ {click,type,scroll,navigate,
-screenshot,wait,done}`, grounded by `ref` (preferred) or `x/y`. A non-streaming
+`{ index, narration, action, done }`; after execution the extension adds
+`result: { ok, detail, gate, durationMs }` to history. `action.type ∈
+{click,type,scroll,navigate,screenshot,wait,done}`, grounded by `ref`
+(preferred) or `x/y` with explicit CSS/image coordinate space. A non-streaming
 twin lives at `POST /api/agent/step/once`.
 
 ---
 
-## What's scaffolded vs. what needs Oracle-specific hardening
+## Implemented and remaining validation
 
-**Works now (scaffold):**
+**Implemented:**
+
 - Loads as an unpacked MV3 extension; side panel opens from the toolbar icon.
 - Full plan→act→observe→narrate loop over SSE, with Start/Pause/Resume/Stop.
-- Accessibility-tree snapshot with stable `ref` ids; click/type/scroll by ref.
-- CDP screenshot capture + coordinate-click fallback.
+- Accessibility snapshots with stable refs across accessible nested frames and
+  open Shadow DOM; click/type/scroll by ref.
+- JET/ADF semantic metadata, virtualized-grid state, canvas bounds, and
+  ARIA-poor fallback signals.
+- Bounded visible-tab screenshots with image/viewport metadata, hashing, and
+  duplicate suppression; optional CDP screenshot fallback.
+- Optional CDP canvas click, Unicode coordinate typing, and keyboard dispatch.
 - Vision routing (screenshots → `AIMessage.images` → vision role model).
+- Action-result history for success, failure, guardrail approval/rejection, and
+  duration; bounded history/workbook context and DOM-settling waits.
 - Streaming narration UI + optional Web-Speech voice.
 - MV3 worker-restart resilience (state persisted; resume from PAUSED).
-- **Enforced production-safety gate** — destructive / PROD-write actions are
-  held for explicit approval before executing (`background/guardrails.js`).
+- **Enforced production-safety gate** — destructive targets, PROD writes,
+  blind coordinate writes, and cross-origin navigation are held before
+  executing (`background/guardrails.js`).
+- **Minimum permissions + origin binding** — no always-on target-site content
+  script, per-site optional access, optional debugger, verified bridge sender,
+  confirmation for unbound backend origins, and credential clearing on change.
 - **Zero-setup site integration** — the EPM Wizard web app configures and
   launches the agent (`content/site-bridge.js` ↔ `frontend/src/agent/`).
+- **Installed-extension E2E** — persistent Chromium verifies injection,
+  frames, Shadow DOM, JET, virtual grids, screenshots/canvas, origin rejection,
+  result history, keyboard operation, and critical accessibility checks.
 - **Store-ready** — icons, privacy policy, listing pack, packaging script.
 
-**Stubbed / TODO — the multi-week Oracle ADF/JET hardening (~6–10 wks per §6):**
-- **iframes.** Oracle EPM renders forms/task-flows in nested iframes. The
-  content script snapshots only the **top document** (`all_frames:false`). Real
-  coverage needs `all_frames:true`, per-frame `ref` namespacing, frame
-  coordinate offsets, and cross-frame focus tracking.
-  *(Seam: `content/content-script.js` `buildSnapshot`.)*
-- **Canvas/JET data grids.** ADF/JET grids paint to `<canvas>` with no ARIA;
-  their rows/cells never enter the accessibility tree. The agent must lean on
-  the screenshot + coordinate path — the vision model's grid-cell grounding is
-  the hard, un-built part.
-- **Selector heuristics.** No mapping yet from Oracle's `af:`/`oj-` component
-  roles, virtualized rows, or shadow DOM to stable refs; the accessible-name
-  computation is a simplified accname, not the full ARIA algorithm.
-  *(Seam: `roleOf` / `accessibleName` / `shouldInclude`.)*
-- **Keyboard input by coordinate.** `Input.dispatchKeyEvent` isn't wired —
-  typing works only through the content script by ref; the canvas-grid typing
-  path is unimplemented. *(Seam: `background/cdp.js`.)*
-- **CDP hardening.** Per-step naive attach/detach and the debugging banner; a
-  real build keeps one session attachment, handles `onDetach` (user opens
-  DevTools) by re-attaching, and may prefer `chrome.tabs.captureVisibleTab` for
-  banner-free screenshots. *(Seam: `background/cdp.js`.)*
-- **Agent prompt / action model.** The system prompt and `Action` schema live
-  backend-side (`backend/app/agent/computer_use/`). EPM-specific compound
-  gestures (POV member picker, form save workflow, drill-through) are *composed*
-  from the primitive actions by the model — not yet encoded as skills, and not
-  yet evaluated against a real tenant. Note: destructive/PROD actions are now
-  **held by an enforced client-side gate** (`guardrails.js`) — but that gate is
-  heuristic (accessible-name + URL matching), not a formal safety proof.
-- **Driven-tab session.** The extension's access gate connects EPM Wizard's
-  backend connector; it does not perform Oracle SSO inside the tab being driven
-  or automatically resolve Oracle session timeout / re-auth prompts there.
+**Still requires live-tenant qualification:**
 
-Nothing here has been run against a live Oracle EPM tenant — validate against a
-real Planning UI before trusting any driving behaviour.
+- Oracle versions/themes can expose proprietary components differently from the
+  fixtures. Extend adapter heuristics from captured, redacted tenant examples.
+- Cross-origin subframes still require the user-granted host pattern, and Chrome
+  internal/restricted frames cannot be injected.
+- Compound EPM workflows (POV member picker, save/recalculate, rule launch,
+  drill-through) remain model-composed primitives rather than deterministic
+  domain skills.
+- The extension validates the EPM Wizard backend connection but does not perform
+  SSO inside the driven tab or resolve every session-timeout/re-auth screen.
+- The safety gate reduces risk; it is not a formal proof of correct
+  classification or harmless behavior.
+
+Nothing here has been run against a live Oracle EPM tenant. Validate read-only
+flows first, keep guardrails enabled, and supervise writes before production use.
+
+## Test commands
+
+```bash
+node --test tests/*.test.mjs
+cd ../frontend
+npm run e2e:extension
+```
+
+The extension E2E command launches a clean persistent Chromium profile, installs
+the extension, and runs a local fixture/backend. Because automation cannot click
+Chrome's own permission prompts, the generated **test-only manifest copy**
+pre-grants the fixture origin and debugger; the production manifest remains
+minimum-by-default.

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "EPM Wizard — Narrated Browser Agent",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Narrated Oracle EPM browser agent with a safety gate and AI-grounded Excel context for macros, formulas, and workbook structure.",
   "minimum_chrome_version": "116",
   "icons": {
@@ -14,26 +14,29 @@
     "activeTab",
     "scripting",
     "sidePanel",
-    "tabs",
-    "storage",
-    "debugger"
+    "storage"
   ],
   "host_permissions": [
+    "https://epmw-auth.fly.dev/*",
+    "https://epmw-frontend.fly.dev/*",
+    "http://localhost:3000/*",
+    "http://localhost:8000/*",
+    "http://127.0.0.1:3000/*",
+    "http://127.0.0.1:8000/*"
+  ],
+  "optional_permissions": [
+    "debugger"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
     "http://localhost/*",
-    "http://127.0.0.1/*",
-    "https://*/*"
+    "http://127.0.0.1/*"
   ],
   "background": {
     "service_worker": "background/service-worker.js",
     "type": "module"
   },
   "content_scripts": [
-    {
-      "matches": ["https://*/*", "http://localhost/*"],
-      "js": ["content/content-script.js"],
-      "run_at": "document_idle",
-      "all_frames": false
-    },
     {
       "matches": [
         "https://epmw-auth.fly.dev/*",

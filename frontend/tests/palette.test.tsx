@@ -44,7 +44,7 @@ describe("CommandPalette", () => {
     renderPalette();
     expect(screen.getByText("Quick actions")).toBeInTheDocument();
     for (const label of ["New chat", "Contexts", "Artifacts", "Deployments", "Skills", "Explorer", "Data", "Guide", "Settings"]) {
-      expect(screen.getByText(label)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
     }
     expect(screen.getByText(/Toggle theme/)).toBeInTheDocument();
     // the two pre-merge documentation entries are gone

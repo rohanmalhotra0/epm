@@ -12,8 +12,10 @@ import {
   DataTable,
   Folder,
   Help,
+  Compass,
   Rocket,
   Settings,
+  SkillLevel,
   Information,
   PinFilled,
 } from "@carbon/icons-react";
@@ -32,6 +34,8 @@ const NAV = [
   { to: "/contexts", label: "Contexts", icon: DataTable },
   { to: "/artifacts", label: "Artifacts", icon: Folder },
   { to: "/deployments", label: "Deployments", icon: Rocket },
+  { to: "/skills", label: "Skills", icon: SkillLevel },
+  { to: "/explorer", label: "Explorer", icon: Compass },
   { to: "/data", label: "Data", icon: DataBase },
   { to: "/agent", label: "Browser Agent", icon: Bot },
   { to: "/guide", label: "Guide", icon: Help },
@@ -53,6 +57,7 @@ function sortConversations(list: ConversationOut[]): ConversationOut[] {
 export function Sidebar() {
   const projectId = useUi((s) => s.currentProjectId);
   const collapsed = useUi((s) => s.sidebarCollapsed);
+  const setSidebarCollapsed = useUi((s) => s.setSidebarCollapsed);
   const [search, setSearch] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [renameTarget, setRenameTarget] = useState<ConversationOut | null>(null);
@@ -69,9 +74,16 @@ export function Sidebar() {
 
   const sorted = sortConversations(conversations);
 
+  const closeAfterMobileNavigation = () => {
+    if (window.matchMedia?.("(max-width: 767px)").matches) {
+      setSidebarCollapsed(true);
+    }
+  };
+
   const newChat = async () => {
     const conv = await create.mutateAsync();
     nav(`/c/${conv.id}`);
+    closeAfterMobileNavigation();
   };
 
   const openRename = (c: ConversationOut) => {
@@ -124,11 +136,34 @@ export function Sidebar() {
   };
 
   const renderRow = (c: ConversationOut) => (
-    <div key={c.id} className={`conv-item ${id === c.id ? "active" : ""}`} onClick={() => nav(`/c/${c.id}`)}>
-      <Chat size={14} />
-      <span className="title">{c.title}</span>
-      {c.pinned && <PinFilled size={13} aria-label="Pinned" />}
-      <span onClick={(e) => e.stopPropagation()} style={{ marginLeft: "auto" }}>
+    <div key={c.id} className={`conv-item ${id === c.id ? "active" : ""}`}>
+      <button
+        type="button"
+        aria-current={id === c.id ? "page" : undefined}
+        onClick={() => {
+          nav(`/c/${c.id}`);
+          closeAfterMobileNavigation();
+        }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          flex: 1,
+          minWidth: 0,
+          padding: 0,
+          border: 0,
+          background: "none",
+          color: "inherit",
+          cursor: "pointer",
+          font: "inherit",
+          textAlign: "left",
+        }}
+      >
+        <Chat size={14} />
+        <span className="title">{c.title}</span>
+        {c.pinned && <PinFilled size={13} aria-label="Pinned" />}
+      </button>
+      <span style={{ marginLeft: "auto" }}>
         <OverflowMenu size="sm" flipped iconDescription={`Options for ${c.title}`}>
           <OverflowMenuItem itemText="Rename" onClick={() => openRename(c)} />
           <OverflowMenuItem itemText={c.pinned ? "Unpin" : "Pin"} onClick={() => togglePin(c)} />
@@ -142,7 +177,14 @@ export function Sidebar() {
   if (collapsed) return null;
 
   return (
-    <aside className="epmw-sidebar">
+    <>
+      <button
+        type="button"
+        className="sidebar-backdrop"
+        aria-label="Close sidebar"
+        onClick={() => setSidebarCollapsed(true)}
+      />
+      <aside className="epmw-sidebar" aria-label="Workspace sidebar">
       <div className="sidebar-section">
         <button className="conv-item" style={{ border: "1px solid var(--cds-border-subtle,#393939)", fontWeight: 600 }} onClick={newChat}>
           <Add size={16} /> New chat
@@ -153,6 +195,7 @@ export function Sidebar() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search chats"
+            aria-label="Search conversations"
             style={{ width: "100%", padding: "6px 8px 6px 28px", background: "var(--cds-field,#262626)", color: "inherit", border: "1px solid var(--cds-border-subtle,#393939)", fontSize: 12 }}
           />
         </div>
@@ -181,7 +224,13 @@ export function Sidebar() {
       </div>
       <nav className="sidebar-nav">
         {NAV.map((n) => (
-          <Link key={n.to} to={n.to} className={`nav-link ${loc.pathname === n.to ? "active" : ""}`}>
+          <Link
+            key={n.to}
+            to={n.to}
+            className={`nav-link ${loc.pathname === n.to ? "active" : ""}`}
+            onClick={closeAfterMobileNavigation}
+            aria-current={loc.pathname === n.to ? "page" : undefined}
+          >
             <n.icon size={16} /> {n.label}
           </Link>
         ))}
@@ -223,6 +272,7 @@ export function Sidebar() {
           <p style={{ fontSize: 13 }}>This permanently deletes the conversation and its messages.</p>
         </Modal>
       )}
-    </aside>
+      </aside>
+    </>
   );
 }

@@ -138,13 +138,19 @@ web app's UI while **narrating each step in a side panel** — "Claude-for-Chrom
 but domain-specific," targeting Oracle EPM Cloud. It runs the full
 **plan → act → observe → narrate** loop against the EPM Wizard backend.
 
+- **Public download.** Open the landing page and choose **Download Chrome
+  extension**, or fetch `/epm-wizard-extension.zip` directly. Today it is a
+  Chrome 116+ developer-mode install: unzip it, open `chrome://extensions`,
+  enable Developer mode, and choose **Load unpacked**. It is not yet in the
+  Chrome Web Store.
 - **Launched from the app.** The **Agent** page detects the extension and hands
-  it the backend URL, project id and goal — no manual setup. With no provider
-  configured it uses the deterministic Mock provider, so the loop is demoable
-  offline.
-- **Enforced production-safety gate.** Destructive actions and any write on a
-  production tenant are *held* for explicit human approval before they execute —
-  a hard gate, not a prompt hint.
+  it the backend URL, project id and goal — no manual setup. Extension runs
+  require a valid website session and a connected non-demo Oracle environment;
+  the web workspace's tenant-free Demo Mode does not unlock the extension.
+- **Production-safety gate.** With the gate enabled (the default), recognized
+  destructive actions, coordinate-only writes, cross-origin navigation, and
+  writes on a detected production tenant are *held* for explicit human approval
+  before they execute.
 - **Excel-grounded agent context.** Choose an `.xlsm`, `.xlsx`, `.xlsb` or
   `.csv` in the extension and the agent can reason over its inert VBA source,
   formulas, sheets, named ranges, tables, pivots, charts and connections while
@@ -153,10 +159,11 @@ but domain-specific," targeting Oracle EPM Cloud. It runs the full
 - **Store-ready.** Icons, a privacy policy, a listing pack and a packaging script
   are included.
 
-> **Honesty note:** the Oracle-specific UI grounding (iframes, canvas/JET grids)
-> is still stubbed and nothing here has been run against a live Oracle EPM
-> tenant. Validate against a real Planning UI before trusting any driving
-> behaviour. See [`extension/README.md`](extension/README.md).
+> **Validation note:** nested iframe, open Shadow DOM, Oracle JET/ADF,
+> virtualized-grid, screenshot, and canvas-coordinate paths run in an installed
+> extension E2E harness. Nothing here has been run against a live Oracle EPM
+> tenant, so validate against a real Planning UI before trusting production
+> driving behaviour. See [`extension/README.md`](extension/README.md).
 
 ---
 
@@ -322,7 +329,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full design.
   loop (create → edit → coverage → deploy → verify, plus the production
   safeguard and rule execution), the fine-tuning corpus export/launcher, and the
   HTTP API incl. SSE streaming.
-- **Frontend:** `vitest` + React Testing Library — 110+ tests: inline blocks
+- **Frontend:** `vitest` + React Testing Library tests cover inline blocks
   (incl. snapshot summary and grounding sources), the cube map, the
   runtime-prompt form, deployment result, the composer (Enter/Shift+Enter,
   slash menu, stop, voice dictation, zip/spreadsheet uploads), the public

@@ -151,8 +151,13 @@ manually from the Actions tab (**Run workflow**), which redeploys both apps.
 ```bash
 fly logs --app epmw-backend            # watch startup + migrations
 fly ssh console --app epmw-backend -C 'wget -qO- http://localhost:8000/api/health'
+curl -I https://epmw-frontend.fly.dev/epm-wizard-extension.zip
 open https://epmw-frontend.fly.dev
 ```
+
+The frontend build packages the current `extension/` source into that public
+ZIP. The deploy workflow therefore treats changes under `extension/**` as
+frontend changes and republishes the download automatically.
 
 ## 6. Add the oauth2-proxy login gate (before sharing the URL)
 
@@ -225,11 +230,13 @@ The extension authenticates two ways, both handled by the config already in
   cookie rides along on the extension's requests. This needs
   `OAUTH2_PROXY_COOKIE_SAMESITE = "none"` (set) so the cookie is sent on the
   extension's cross-site background requests.
-- **Autonomous** (no website tab): the user generates a personal API token on
-  the app's **Browser Agent** page and pastes it into the extension's settings.
+- **Token-authenticated transport:** the user can generate a personal API token
+  on the app's **Browser Agent** page and paste it into the extension's settings.
   The token authenticates the `^/api/ext/*` routes, which `auth.fly.toml` skips
-  from the Google gate — safe because the backend *requires* a valid
-  `Authorization: Bearer epmw_…` token there and ignores any identity header.
+  from the Google gate because the backend requires a valid
+  `Authorization: Bearer epmw_…` token. The current extension UI still requires
+  a valid website session and connected non-demo Oracle environment before a
+  run can start; the token does not bypass that onboarding gate.
 
 No extra deploy step beyond redeploying `auth.fly.toml` after pulling these
 changes (`fly deploy --config deploy/fly/auth.fly.toml --app epmw-auth`).

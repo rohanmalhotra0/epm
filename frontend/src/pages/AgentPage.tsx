@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Button, InlineNotification, TextArea, TextInput } from "@carbon/react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { Button, InlineNotification, Modal, TextArea, TextInput } from "@carbon/react";
 import { Add, Bot, CheckmarkFilled, Copy, Download, Launch, TrashCan } from "@carbon/icons-react";
 import { useUi } from "../store/ui";
 import { toast } from "../store/toast";
@@ -125,14 +125,19 @@ function TokenManager() {
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
   const [fresh, setFresh] = useState<ExtTokenCreated | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [revokeTarget, setRevokeTarget] = useState<ExtToken | null>(null);
+  const [revoking, setRevoking] = useState(false);
+  const [revokeError, setRevokeError] = useState<string | null>(null);
+  const revokeLauncherRef = useRef<HTMLButtonElement | null>(null);
 
   const load = async () => {
     try {
       setTokens(await api<ExtToken[]>("/api/ext-tokens"));
-      setError(null);
+      setLoadError(null);
     } catch (e) {
-      setError(e instanceof ApiError ? `Couldn't load tokens (${e.status}).` : String(e));
+      setLoadError(e instanceof ApiError ? `Couldn't load tokens (${e.status}).` : String(e));
       setTokens([]);
     }
   };
@@ -140,6 +145,7 @@ function TokenManager() {
 
   const create = async () => {
     setCreating(true);
+    setCreateError(null);
     try {
       const t = await api<ExtTokenCreated>("/api/ext-tokens", {
         method: "POST",
@@ -149,19 +155,38 @@ function TokenManager() {
       setName("");
       await load();
     } catch (e) {
-      toast.error("Couldn't create token", e instanceof ApiError ? e.message : String(e));
+      setCreateError(e instanceof ApiError ? e.message : String(e));
     } finally {
       setCreating(false);
     }
   };
 
-  const revoke = async (id: string) => {
+  const requestRevoke = (token: ExtToken, launcher: HTMLButtonElement) => {
+    revokeLauncherRef.current = launcher;
+    setRevokeError(null);
+    setRevokeTarget(token);
+  };
+
+  const closeRevoke = () => {
+    if (revoking) return;
+    setRevokeTarget(null);
+    setRevokeError(null);
+  };
+
+  const revoke = async () => {
+    if (!revokeTarget || revoking) return;
+    const token = revokeTarget;
+    setRevoking(true);
+    setRevokeError(null);
     try {
-      await api(`/api/ext-tokens/${id}`, { method: "DELETE" });
-      if (fresh?.id === id) setFresh(null);
+      await api(`/api/ext-tokens/${token.id}`, { method: "DELETE" });
+      if (fresh?.id === token.id) setFresh(null);
+      setRevokeTarget(null);
       await load();
     } catch (e) {
-      toast.error("Couldn't revoke token", e instanceof ApiError ? e.message : String(e));
+      setRevokeError(e instanceof ApiError ? e.message : String(e));
+    } finally {
+      setRevoking(false);
     }
   };
 
@@ -186,12 +211,20 @@ function TokenManager() {
       </div>
 
       {fresh && (
-        <div className="token-fresh">
-          <div className="token-fresh-title">
+        <div
+          className="token-fresh"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          aria-labelledby="fresh-token-title"
+        >
+          <div id="fresh-token-title" className="token-fresh-title">
             <CheckmarkFilled size={16} /> Copy your token now — it won't be shown again
           </div>
           <div className="token-fresh-row">
-            <code className="token-value mono">{fresh.token}</code>
+            <code className="token-value mono" aria-label={`New API token: ${fresh.token}`}>
+              {fresh.token}
+            </code>
             <Button size="sm" kind="tertiary" renderIcon={Copy} onClick={() => copy(fresh.token)}>
               Copy
             </Button>
@@ -209,14 +242,24 @@ function TokenManager() {
           onChange={(e) => setName(e.target.value)}
         />
         <Button size="sm" renderIcon={Add} onClick={create} disabled={creating}>
-          Generate token
+          {creating ? "Generating…" : "Generate token"}
         </Button>
       </div>
 
-      {error && <div className="token-error">{error}</div>}
+      {createError && (
+        <div className="token-error" role="alert">
+          Couldn't create token: {createError}
+        </div>
+      )}
+
+      {loadError && (
+        <div className="token-error" role="alert">
+          {loadError}
+        </div>
+      )}
 
       {tokens && tokens.length > 0 && (
-        <ul className="token-list">
+        <ul className="token-list" aria-label="API tokens">
           {tokens.map((t) => (
             <li key={t.id}>
               <span className="token-prefix mono">{t.prefix}…</span>
@@ -229,14 +272,50 @@ function TokenManager() {
                 kind="ghost"
                 hasIconOnly
                 renderIcon={TrashCan}
-                iconDescription="Revoke"
+                iconDescription={`Revoke ${t.name}`}
                 tooltipPosition="left"
-                onClick={() => revoke(t.id)}
+                onClick={(event: MouseEvent<HTMLButtonElement>) =>
+                  requestRevoke(t, event.currentTarget)
+                }
               />
             </li>
           ))}
         </ul>
       )}
+
+      <Modal
+        alert
+        danger
+        open={revokeTarget !== null}
+        size="xs"
+        launcherButtonRef={revokeLauncherRef}
+        modalHeading={revokeTarget ? `Revoke “${revokeTarget.name}”?` : "Revoke token?"}
+        primaryButtonText={revoking ? "Revoking…" : "Revoke token"}
+        secondaryButtonText="Cancel"
+        primaryButtonDisabled={revoking}
+        preventCloseOnClickOutside
+        onRequestClose={closeRevoke}
+        onRequestSubmit={revoke}
+      >
+        {revokeTarget && (
+          <div className="token-revoke-body">
+            <p>
+              The browser agent using <b>{revokeTarget.name}</b> ({revokeTarget.prefix}…) will
+              immediately lose access. This action cannot be undone.
+            </p>
+            {revokeError && (
+              <InlineNotification
+                kind="error"
+                lowContrast
+                hideCloseButton
+                role="alert"
+                title="Couldn't revoke token"
+                subtitle={revokeError}
+              />
+            )}
+          </div>
+        )}
+      </Modal>
     </section>
   );
 }

@@ -1,23 +1,17 @@
-import "@carbon/styles/css/styles.css";
 import "@fontsource/ibm-plex-sans/400.css";
 import "@fontsource/ibm-plex-sans/500.css";
 import "@fontsource/ibm-plex-sans/600.css";
 import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/500.css";
 import "./styles/global.css";
-import "./artifacts/artifacts.css";
 
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import ReactDOM from "react-dom/client";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import { App } from "./App";
-import { LandingPage } from "./pages/LandingPage";
-import { DocsPage } from "./pages/DocsPage";
 
-const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 15_000, refetchOnWindowFocus: false, retry: 1 } },
-});
+const App = lazy(() => import("./App").then(({ App }) => ({ default: App })));
+const LandingPage = lazy(() => import("./pages/LandingPage").then(({ LandingPage }) => ({ default: LandingPage })));
+const DocsPage = lazy(() => import("./pages/DocsPage").then(({ DocsPage }) => ({ default: DocsPage })));
 
 // Public landing (/) vs. the authenticated app (/app/*). The app is served
 // under the /app basename so the oauth2-proxy front door (epmw-auth) can gate
@@ -26,7 +20,9 @@ const queryClient = new QueryClient({
 // unchanged — they resolve under /app automatically. This is a single-bundle
 // SPA, so which tree we mount is decided by the entry path at load time.
 const APP_BASENAME = "/app";
-const isApp = window.location.pathname.startsWith(APP_BASENAME);
+const isApp =
+  window.location.pathname === APP_BASENAME ||
+  window.location.pathname.startsWith(`${APP_BASENAME}/`);
 
 // global.css locks the document to the viewport for the app shell
 // (body{overflow:hidden}, html/body/#root{height:100%}) because the chat UI
@@ -53,18 +49,26 @@ function PublicRoutes() {
   );
 }
 
+function EntryLoading() {
+  return (
+    <main className="page" role="status" aria-live="polite" aria-busy="true">
+      Loading EPM Wizard…
+    </main>
+  );
+}
+
 root.render(
   <React.StrictMode>
-    {isApp ? (
-      <QueryClientProvider client={queryClient}>
+    <Suspense fallback={<EntryLoading />}>
+      {isApp ? (
         <BrowserRouter basename={APP_BASENAME}>
           <App />
         </BrowserRouter>
-      </QueryClientProvider>
-    ) : (
-      <BrowserRouter>
-        <PublicRoutes />
-      </BrowserRouter>
-    )}
+      ) : (
+        <BrowserRouter>
+          <PublicRoutes />
+        </BrowserRouter>
+      )}
+    </Suspense>
   </React.StrictMode>,
 );

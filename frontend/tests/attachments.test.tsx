@@ -167,6 +167,32 @@ describe("ChatPage send with attachments", () => {
     Element.prototype.scrollTo = Element.prototype.scrollTo || (() => {});
   });
 
+  it("exposes starter prompts as keyboard-accessible buttons", async () => {
+    const fetchMock = stubFetch();
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={["/c/c1"]}>
+          <Routes>
+            <Route path="/c/:id" element={<ChatPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const starter = await screen.findByRole("button", {
+      name: "Create an Actuals form: Level-zero descendants of Total Payroll in rows",
+    });
+    fireEvent.click(starter);
+
+    await vi.waitFor(() => {
+      const call = fetchMock.mock.calls.find(
+        (c) => String(c[0]).includes("/messages") && (c[1] as RequestInit)?.method === "POST",
+      );
+      expect(call).toBeTruthy();
+    });
+  });
+
   it("includes attachment ids in the message POST body and shows chips on the pending bubble", async () => {
     const fetchMock = stubFetch();
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });

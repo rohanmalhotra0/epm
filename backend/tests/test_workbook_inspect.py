@@ -28,6 +28,7 @@ def _sample_workbook() -> Path:
     ws.append(["Region", "Q1", "Q2", "Total"])
     ws.append(["East", 10, 20, "=B2+C2"])
     ws.append(["West", 5, 7, "=B3+C3"])
+    ws.append(["Credentials", "password=hunter2", 0, 0])
     ws.add_table(Table(displayName="SalesTbl", ref="A1:D3"))
     wb.defined_names.add(DefinedName("TaxRate", attr_text="Data!$B$1"))
     hidden = wb.create_sheet("Scratch")
@@ -86,6 +87,8 @@ def test_inspect_json_uses_camelcase_keys_the_extension_reads():
     assert "SalesTbl" in payload["aiContext"]
     assert "=B2+C2" in payload["aiContext"]
     assert "East" in payload["aiContext"]
+    assert "hunter2" not in payload["aiContext"]
+    assert "redacted" in payload["aiContext"]
     assert payload["aiContextTruncated"] is False
 
 

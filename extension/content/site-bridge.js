@@ -21,20 +21,29 @@
   };
 
   const version = chrome.runtime.getManifest().version;
+  // This value is derived from the actual document, never from page-provided
+  // event detail. The service worker independently compares it with
+  // MessageSender.origin/url before accepting a site handoff.
+  const pageOrigin = window.location.origin;
 
   // Synchronous presence marker so the page can detect the extension without
   // waiting for an event round-trip (e.g. on first paint).
   try { document.documentElement.dataset.epmwExtension = version; } catch { /* no <html> yet */ }
 
   function announce() {
-    window.dispatchEvent(new CustomEvent(SITE.READY, { detail: { installed: true, version } }));
+    window.dispatchEvent(new CustomEvent(SITE.READY, {
+      detail: { installed: true, version, origin: pageOrigin },
+    }));
   }
 
   // Tell the SW to configure/launch; returns nothing (fire-and-forget with a
   // best-effort callback that just swallows a missing worker).
   function toWorker(kind, data) {
     try {
-      chrome.runtime.sendMessage({ kind, data: data || {} }, () => void chrome.runtime.lastError);
+      chrome.runtime.sendMessage(
+        { kind, pageOrigin, data: data || {} },
+        () => void chrome.runtime.lastError,
+      );
     } catch { /* worker gone; it will rehydrate on next open */ }
   }
 
@@ -52,8 +61,8 @@
   function sanitize(detail) {
     const d = detail || {};
     const out = {};
-    if (typeof d.backendUrl === "string") out.backendUrl = d.backendUrl;
-    if (typeof d.projectId === "string") out.projectId = d.projectId;
+    if (typeof d.backendUrl === "string") out.backendUrl = d.backendUrl.slice(0, 2048);
+    if (typeof d.projectId === "string") out.projectId = d.projectId.slice(0, 200);
     if (typeof d.goal === "string") out.goal = d.goal.slice(0, 2000);
     return out;
   }

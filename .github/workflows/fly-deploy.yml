@@ -47,6 +47,8 @@ jobs:
               - '.github/workflows/fly-deploy.yml'
             frontend:
               - 'frontend/**'
+              # The frontend build packages extension/ into the public ZIP.
+              - 'extension/**'
               - 'deploy/fly/frontend.fly.toml'
               - '.github/workflows/fly-deploy.yml'
 

@@ -150,7 +150,10 @@ export async function getExtensionAccess(config) {
       owner: whoami?.owner,
       projectId: project.id,
       projectName: project.name,
+      environmentId: connected.id,
       environmentName: connected.name,
+      environmentBaseUrl: connected.baseUrl || "",
+      environmentClassification: connected.classification || "development",
       application: connected.preferredApplication || "",
       message: `Connected to ${connected.name}.`,
     };
@@ -248,7 +251,10 @@ export async function connectEpmEnvironment(config, form) {
     stage: "ready",
     projectId,
     projectName: access.projectName,
+    environmentId: environment.id,
     environmentName: environment.name,
+    environmentBaseUrl: environment.baseUrl || baseUrl,
+    environmentClassification: environment.classification || form.classification || "development",
     application: result.application || "",
     message: result.message || `Connected to ${environment.name}.`,
   };

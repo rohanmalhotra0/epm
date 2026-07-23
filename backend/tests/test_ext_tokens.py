@@ -104,7 +104,7 @@ def test_ext_spreadsheet_inspect_requires_token(monkeypatch):
     """The autonomous workbook-inspect route is token-gated like the agent one."""
     from app.main import app
 
-    csv = ("wb.csv", "a,b\n1,2\n", "text/csv")
+    csv = ("password=hunter2.csv", "a,b\n1,2\n", "text/csv")
     with _multi_user(monkeypatch, True), TestClient(app) as client:
         token = client.post("/api/ext-tokens", json={}, headers={HEADER: ALICE}).json()["token"]
 
@@ -117,6 +117,7 @@ def test_ext_spreadsheet_inspect_requires_token(monkeypatch):
         ok = client.post("/api/ext/spreadsheet/inspect",
                          files={"file": csv}, headers={"Authorization": f"Bearer {token}"})
         assert ok.status_code == 200
+        assert "hunter2" not in ok.json()["filename"]
 
 
 def test_resolve_owner_unit():

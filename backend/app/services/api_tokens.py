@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import secrets
+from datetime import timedelta
 
 from sqlalchemy.orm import Session
 
@@ -19,6 +20,7 @@ from ..db.models import ApiToken
 TOKEN_PREFIX = "epmw_"
 # Bytes of entropy in the random part (43 url-safe chars ≈ 256 bits).
 _ENTROPY_BYTES = 32
+_LAST_USED_WRITE_INTERVAL = timedelta(minutes=5)
 
 
 def _hash(token: str) -> str:
@@ -75,5 +77,7 @@ def resolve_owner(session: Session, token: str) -> str | None:
     )
     if row is None:
         return None
-    row.last_used_at = utcnow()
+    now = utcnow()
+    if row.last_used_at is None or now - row.last_used_at >= _LAST_USED_WRITE_INTERVAL:
+        row.last_used_at = now
     return row.owner_id

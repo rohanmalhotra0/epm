@@ -86,7 +86,13 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: ["./tests/setup.ts"],
-    exclude: [...configDefaults.exclude, "e2e/**"],
+    exclude: [
+      ...configDefaults.exclude,
+      "e2e/**",
+      "e2e-extension/**",
+      "playwright-report/**",
+      "test-results/**",
+    ],
     css: false,
   },
 });

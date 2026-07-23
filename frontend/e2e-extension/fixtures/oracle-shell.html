@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Oracle EPM Planning — Development</title>
+    <style>
+      body { margin: 0; min-width: 900px; font: 14px Arial, sans-serif; color: #161513; }
+      header { display: flex; align-items: center; height: 48px; padding: 0 20px; color: white; background: #312d2a; }
+      main { display: grid; grid-template-columns: 1fr 360px; gap: 20px; padding: 20px; }
+      iframe { width: 100%; height: 500px; border: 1px solid #aca899; }
+      canvas { border: 1px solid #6b665f; background: white; }
+      #eventLog { min-height: 120px; padding: 12px; background: #f4f4f4; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <header><strong>Oracle Cloud EPM · Planning</strong></header>
+    <main>
+      <iframe title="Planning task flow" src="/fixture/task-frame.html"></iframe>
+      <aside>
+        <h2>Canvas data grid</h2>
+        <canvas id="dataGrid" width="320" height="180" aria-label="Planning data grid"></canvas>
+        <h2>Interaction log</h2>
+        <div id="eventLog" role="status" aria-live="polite">ready</div>
+      </aside>
+    </main>
+    <script>
+      const eventLog = document.querySelector("#eventLog");
+      const canvas = document.querySelector("#dataGrid");
+      const context = canvas.getContext("2d");
+      context.fillStyle = "#f7f7f7";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "#161513";
+      context.font = "14px Arial";
+      context.fillText("Account", 16, 30);
+      context.fillText("Jan", 170, 30);
+      context.fillText("1100", 16, 70);
+      context.fillText("1,250", 170, 70);
+      for (const y of [42, 82, 122, 162]) {
+        context.beginPath();
+        context.moveTo(0, y);
+        context.lineTo(320, y);
+        context.strokeStyle = "#c8c4bd";
+        context.stroke();
+      }
+      canvas.addEventListener("click", (event) => {
+        eventLog.dataset.canvasClicked = "true";
+        eventLog.textContent += `\ncanvas:${event.offsetX},${event.offsetY}`;
+      });
+      addEventListener("message", (event) => {
+        if (event.origin !== location.origin || typeof event.data?.epmwEvent !== "string") return;
+        eventLog.dataset[event.data.epmwEvent] = "true";
+        eventLog.textContent += `\n${event.data.epmwEvent}`;
+      });
+    </script>
+  </body>
+</html>

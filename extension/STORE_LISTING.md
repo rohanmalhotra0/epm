@@ -4,9 +4,10 @@ Everything you need to publish **EPM Wizard — Narrated Browser Agent** to the
 Chrome Web Store. Copy the fields below into the Developer Dashboard listing;
 follow the checklist at the bottom before hitting **Submit for review**.
 
-> Reality check before you publish: this extension requests broad host access
-> and the `debugger` permission and it drives a real application's UI. Reviewers
-> scrutinise both. The justifications below are written to pass review, but the
+> Reality check before you publish: this extension can request optional broad
+> host access and the optional `debugger` permission, and it drives a real
+> application's UI. Reviewers scrutinise both. The justifications below are
+> written to pass review, but the
 > single biggest thing that gets an extension like this **removed** post-launch
 > is behaving beyond its stated single purpose — so keep the behaviour matching
 > the description. See also the honesty note in `README.md`: this has not been
@@ -20,7 +21,7 @@ follow the checklist at the bottom before hitting **Submit for review**.
 `EPM Wizard — Narrated Browser Agent`
 
 **Summary** (max 132 chars)
-`Watches and narrates as it drives Oracle EPM Cloud's web UI, with an enforced production-safety gate.`
+`Watches and narrates as it drives Oracle EPM Cloud's web UI, with a default-on production-safety gate.`
 
 **Category:** Workflow & Planning (or Developer Tools)
 **Language:** English
@@ -76,7 +77,7 @@ or a docs page). Required because the extension handles website content.
 
 ## Permission justifications (paste into the review form)
 
-- **`debugger`** — Captures a screenshot of the active tab
+- **Optional `debugger`** — Captures a screenshot of the active tab
   (`Page.captureScreenshot`) as fallback grounding when a view has no
   accessibility information, and dispatches coordinate mouse clicks
   (`Input.dispatchMouseEvent`) on those same views. Not used to read network
@@ -84,17 +85,16 @@ or a docs page). Required because the extension handles website content.
 - **`activeTab`** — Grants access to the tab the user is actively driving.
 - **`scripting`** — Injects the content script that reads the accessibility tree
   and performs click/type/scroll actions by element reference.
-- **`tabs`** — Identifies the active tab to drive and re-injects the content
-  script after navigation.
 - **`sidePanel`** — Presents the step-by-step narration UI.
 - **`storage`** — Stores the user's settings and the current run transcript
   locally.
-- **Host permission `https://*/*`** — The target application (Oracle EPM Cloud)
+- **Optional host permission `https://*/*`** — The target application (Oracle EPM Cloud)
   can be hosted on any HTTPS domain and tenant subdomain, so the agent must be
-  able to read and act on the page the user chooses. It operates only on the tab
-  the user actively drives.
-- **Host permission `http://localhost/*`** — Local development against a
-  localhost backend/app.
+  able to read and act on the page the user chooses. It also lets a user connect
+  to a custom HTTPS EPM Wizard backend. The exact origin is requested only from
+  a direct Grant/Save/Approve click.
+- **Optional host permissions `http://localhost/*` and
+  `http://127.0.0.1/*`** — Local development against a loopback backend/app.
 
 ## Data-usage disclosures (Privacy tab)
 
@@ -102,10 +102,13 @@ or a docs page). Required because the extension handles website content.
 - **What is collected:** Website content (accessibility snapshots + screenshots
   of the active tab), user-typed goals, user-selected workbook content and
   parsed workbook context, and Oracle EPM credentials submitted during
-  connection, sent to the user-configured backend.
-- **Not collected/used for:** No personally identifiable info beyond page
-  content, no health/financial data collection by the extension itself, no
-  location, and no authentication credentials stored in extension storage.
+  connection, sent to the user-configured backend. Page/workbook context may
+  then be sent to the AI provider configured on that backend.
+- **Not collected/used for:** No separate profile, health or location
+  collection. Page or workbook content can include business/financial data
+  because that is the extension's user-selected subject matter. No Oracle
+  password/client secret is stored in extension storage. A personal API token
+  may be held in browser session storage until the browser session ends.
 - **Sold to third parties:** No.
 - **Used for purposes unrelated to core functionality:** No.
 - **Used for creditworthiness / lending:** No.

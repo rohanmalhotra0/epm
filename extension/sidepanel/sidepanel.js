@@ -30,12 +30,15 @@ const els = {
   backendUrl: $("backendUrl"), projectId: $("projectId"), apiToken: $("apiToken"),
   voiceToggle: $("voiceToggle"), guardToggle: $("guardToggle"), saveConfig: $("saveConfig"),
   testConn: $("testConn"), signIn: $("signIn"), connStatus: $("connStatus"),
+  sitePermission: $("sitePermission"), sitePermissionStatus: $("sitePermissionStatus"),
+  canvasPermission: $("canvasPermission"), canvasPermissionStatus: $("canvasPermissionStatus"),
   goal: $("goal"), startBtn: $("startBtn"), pauseBtn: $("pauseBtn"),
   resumeBtn: $("resumeBtn"), stopBtn: $("stopBtn"),
   feed: $("feed"), emptyHint: $("emptyHint"),
   thinking: $("thinking"), thinkingText: $("thinkingText"),
   stepCount: $("stepCount"),
   confirm: $("confirm"), confirmReason: $("confirmReason"), confirmDetail: $("confirmDetail"),
+  confirmTitleText: $("confirmTitleText"),
   approveBtn: $("approveBtn"), rejectBtn: $("rejectBtn"),
   tabAgent: $("tabAgent"), tabInspect: $("tabInspect"),
   agentView: $("agentView"), inspectView: $("inspectView"),
@@ -49,6 +52,9 @@ let port = connect();
 let renderedSteps = 0;
 let thinkingBuffer = "";
 let pendingConfirmId = null; // id of the destructive action currently held
+let pendingConfirmMode = null; // "action" | "origin"
+let pendingOriginChange = null;
+let confirmReturnFocus = null;
 let currentConfig = {};      // last config from the service worker
 let currentWorkbookContext = null;
 let accessState = { stage: "checking" };
@@ -91,6 +97,10 @@ function onMessage({ type, data }) {
     case EVT.ERROR: appendLine(data.message, "error"); hideThinking(); break;
     case EVT.LOG: appendLine(data.line, "log"); break;
     case EVT.CONFIRM: onConfirmRequest(data); break;
+    case EVT.ORIGIN_CONFIRM: onOriginConfirmRequest(data); break;
+    case EVT.ORIGIN_UPDATED:
+      appendLine(data.ok ? `Backend changed to ${data.backendUrl}.` : data.detail, data.ok ? "log" : "error");
+      break;
     case EVT.CONN: onConnResult(data); break;
     case EVT.ACCESS: onAccessState(data); break;
     default: break;
@@ -115,6 +125,7 @@ function applyState(state) {
   // Prefill the goal — a run's goal, or one handed over by the web app.
   if (!els.goal.value) els.goal.value = state.goal || state.pendingGoal || "";
   applyWorkbookContext(state.workbookContext || null);
+  if (state.pendingOriginChange) onOriginConfirmRequest(state.pendingOriginChange);
 }
 
 function applyWorkbookContext(context) {
@@ -223,18 +234,58 @@ function onAccessState(next) {
   showInlineStatus(els.oauthStatus, isError ? "err" : "", accessState.message || "Sign in to continue.");
 }
 
+function normalizeBackendForUi(value) {
+  let parsed;
+  try {
+    parsed = new URL(String(value || "").trim());
+  } catch {
+    throw new Error("Enter a complete EPM Wizard URL, including https://.");
+  }
+  const loopback = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+  if (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && loopback)) {
+    throw new Error("Use HTTPS, or HTTP only for localhost/127.0.0.1 development.");
+  }
+  if (
+    parsed.username
+    || parsed.password
+    || parsed.pathname !== "/"
+    || parsed.search
+    || parsed.hash
+  ) {
+    throw new Error("The Server URL must be an origin without credentials, a path, query, or fragment.");
+  }
+  return parsed.origin;
+}
+
+async function ensureBackendAccess(value) {
+  const backendUrl = normalizeBackendForUi(value);
+  const origins = [`${backendUrl}/*`];
+  if (!(await chrome.permissions.contains({ origins }))) {
+    const granted = await chrome.permissions.request({ origins });
+    if (!granted) throw new Error(`Chrome access to ${backendUrl} was not granted.`);
+  }
+  return backendUrl;
+}
+
 function websiteAppUrl() {
-  const base = (
+  const base = normalizeBackendForUi(
     els.accessBackendUrl.value.trim()
     || els.backendUrl.value.trim()
     || currentConfig.backendUrl
-    || PROD_BACKEND_URL
-  ).replace(/\/+$/, "");
+    || PROD_BACKEND_URL,
+  );
   return `${base}/app`;
 }
 
 function openWebsiteSignIn() {
-  chrome.tabs.create({ url: websiteAppUrl() });
+  let url;
+  try {
+    url = websiteAppUrl();
+  } catch (error) {
+    showInlineStatus(els.oauthStatus, "err", error.message);
+    return;
+  }
+  chrome.tabs.create({ url });
   showInlineStatus(els.oauthStatus, "pending", "Finish signing in in the new tab. This panel will continue automatically.");
   startAccessPolling();
 }
@@ -299,23 +350,18 @@ function currentEpmCredentials() {
 
 els.signInAccess.addEventListener("click", openWebsiteSignIn);
 els.checkAccess.addEventListener("click", () => checkMandatoryAccess("Verifying your EPM Wizard sign-in…"));
-els.saveAccessServer.addEventListener("click", () => {
-  const backendUrl = els.accessBackendUrl.value.trim().replace(/\/+$/, "");
-  let parsed;
+els.saveAccessServer.addEventListener("click", async () => {
   try {
-    parsed = new URL(backendUrl);
-  } catch {
-    showInlineStatus(els.oauthStatus, "err", "Enter a complete EPM Wizard URL, including http:// or https://.");
+    const backendUrl = await ensureBackendAccess(els.accessBackendUrl.value);
+    currentConfig = { ...currentConfig, backendUrl };
+    els.accessBackendUrl.value = backendUrl;
+    els.backendUrl.value = backendUrl;
+    send(CMD.SET_CONFIG, { backendUrl });
+    checkMandatoryAccess("Checking the selected EPM Wizard server…");
+  } catch (error) {
+    showInlineStatus(els.oauthStatus, "err", error.message);
     return;
   }
-  if (!["http:", "https:"].includes(parsed.protocol)) {
-    showInlineStatus(els.oauthStatus, "err", "The EPM Wizard server must use http:// or https://.");
-    return;
-  }
-  currentConfig = { ...currentConfig, backendUrl };
-  els.backendUrl.value = backendUrl;
-  send(CMD.SET_CONFIG, { backendUrl });
-  checkMandatoryAccess("Checking the selected EPM Wizard server…");
 });
 els.epmAuthMode.addEventListener("change", setEpmAuthMode);
 els.loadCredentials.addEventListener("click", () => els.credentialsFile.click());
@@ -345,18 +391,72 @@ setEpmAuthMode();
 // ── enforced-guardrail confirmation ──────────────────────────────────────────
 function onConfirmRequest({ id, reason, label, action }) {
   pendingConfirmId = id;
+  pendingConfirmMode = "action";
+  pendingOriginChange = null;
+  els.confirmTitleText.textContent = "Confirm before it runs";
+  els.rejectBtn.textContent = "Skip";
+  els.approveBtn.textContent = "Approve & run";
   els.confirmReason.textContent = reason || "This action was flagged as risky.";
   els.confirmDetail.textContent = describeAction(action || {}) + (label ? ` · “${label}”` : "");
-  els.confirm.classList.remove("hidden");
+  showConfirmDialog();
   hideThinking();
   if (els.voiceToggle.checked) speak("Confirmation needed. " + (reason || ""));
 }
 
-function resolveConfirm(approve) {
-  if (pendingConfirmId == null) return;
-  send(CMD.CONFIRM, { id: pendingConfirmId, approve });
+function onOriginConfirmRequest(request) {
+  if (!request?.backendUrl) return;
   pendingConfirmId = null;
-  els.confirm.classList.add("hidden");
+  pendingConfirmMode = "origin";
+  pendingOriginChange = request;
+  els.confirmTitleText.textContent = "Approve backend change";
+  els.rejectBtn.textContent = "Keep current server";
+  els.approveBtn.textContent = "Use this server";
+  els.confirmReason.textContent = request.reason || "A website requested a different backend.";
+  els.confirmDetail.textContent = `${request.pageOrigin || "EPM Wizard"} → ${request.backendUrl}`;
+  showConfirmDialog();
+}
+
+async function resolveConfirm(approve) {
+  if (pendingConfirmMode === "origin" && pendingOriginChange) {
+    if (approve) {
+      try {
+        await ensureBackendAccess(pendingOriginChange.backendUrl);
+      } catch (error) {
+        els.confirmReason.textContent = error.message;
+        els.rejectBtn.focus();
+        return;
+      }
+    }
+    send(CMD.CONFIRM_ORIGIN, { approve });
+    pendingOriginChange = null;
+  } else if (pendingConfirmMode === "action" && pendingConfirmId != null) {
+    send(CMD.CONFIRM, { id: pendingConfirmId, approve });
+  } else {
+    return;
+  }
+  pendingConfirmId = null;
+  pendingConfirmMode = null;
+  closeConfirmDialog();
+}
+
+function showConfirmDialog() {
+  confirmReturnFocus = document.activeElement;
+  if (typeof els.confirm.showModal === "function" && !els.confirm.open) {
+    els.confirm.showModal();
+  } else {
+    els.confirm.setAttribute("open", "");
+  }
+  els.rejectBtn.focus();
+}
+
+function closeConfirmDialog() {
+  if (typeof els.confirm.close === "function" && els.confirm.open) {
+    els.confirm.close();
+  } else {
+    els.confirm.removeAttribute("open");
+  }
+  confirmReturnFocus?.focus?.();
+  confirmReturnFocus = null;
 }
 
 function onToken(text) {
@@ -410,6 +510,12 @@ function renderStep(step) {
     d.textContent = detail;
     card.appendChild(d);
   }
+  if (step.result) {
+    const outcome = document.createElement("div");
+    outcome.className = `acted ${step.result.ok ? "ok" : "fail"}`;
+    outcome.textContent = `${step.result.ok ? "✓" : "✗"} ${step.result.detail || "Action completed."}`;
+    card.appendChild(outcome);
+  }
 
   els.feed.appendChild(card);
   els.feed.scrollTop = els.feed.scrollHeight;
@@ -420,7 +526,10 @@ function renderStep(step) {
 function describeAction(a) {
   switch (a.type) {
     case "click": return a.ref != null ? `click ref=${a.ref}` : `click (${a.x}, ${a.y})`;
-    case "type": return `type ${JSON.stringify(a.text ?? "")} → ref=${a.ref}`;
+    case "type":
+      return a.ref != null
+        ? `type ${JSON.stringify(a.text ?? "")} → ref=${a.ref}`
+        : `type ${JSON.stringify(a.text ?? "")} at (${a.x}, ${a.y})`;
     case "scroll": return `scroll Δy=${a.deltaY || 0}`;
     case "navigate": return `navigate → ${a.url}`;
     case "screenshot": return "capture screenshot (vision fallback)";
@@ -461,7 +570,11 @@ function setStatus(status) {
   els.resumeBtn.classList.toggle("hidden", !paused);
   if (!running && !confirming) hideThinking();
   // Leaving the confirm state (resumed elsewhere, paused, stopped) drops the banner.
-  if (!confirming) { pendingConfirmId = null; els.confirm.classList.add("hidden"); }
+  if (!confirming && pendingConfirmMode === "action") {
+    pendingConfirmId = null;
+    pendingConfirmMode = null;
+    closeConfirmDialog();
+  }
 }
 
 // ── voice (Web Speech) ───────────────────────────────────────────────────────
@@ -491,6 +604,10 @@ els.clearWorkbookContext.addEventListener("click", () => {
 
 els.approveBtn.addEventListener("click", () => resolveConfirm(true));
 els.rejectBtn.addEventListener("click", () => resolveConfirm(false));
+els.confirm.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  resolveConfirm(false);
+});
 
 // ── view tabs (Agent / Inspect workbook) ─────────────────────────────────────
 function showTab(which) {
@@ -507,25 +624,37 @@ els.tabInspect.addEventListener("click", () => showTab("inspect"));
 
 els.settingsToggle.addEventListener("click", () => els.settings.classList.toggle("hidden"));
 
-function currentSettings() {
+function currentSettings(backendUrl = els.backendUrl.value.trim()) {
   return {
-    backendUrl: els.backendUrl.value.trim(),
+    backendUrl,
     projectId: els.projectId.value.trim(),
     apiToken: els.apiToken.value.trim(),
     enforceGuardrails: els.guardToggle.checked,
   };
 }
 
-els.saveConfig.addEventListener("click", () => {
-  send(CMD.SET_CONFIG, currentSettings());
-  els.settings.classList.add("hidden");
+els.saveConfig.addEventListener("click", async () => {
+  try {
+    const backendUrl = await ensureBackendAccess(els.backendUrl.value);
+    els.backendUrl.value = backendUrl;
+    send(CMD.SET_CONFIG, currentSettings(backendUrl));
+    els.settings.classList.add("hidden");
+  } catch (error) {
+    showConn("err", error.message);
+  }
 });
 
 // Test connection: save first (so the SW tests the fields as shown), then probe.
-els.testConn.addEventListener("click", () => {
-  send(CMD.SET_CONFIG, currentSettings());
-  showConn("pending", "Testing connection…");
-  send(CMD.TEST_CONNECTION);
+els.testConn.addEventListener("click", async () => {
+  try {
+    const backendUrl = await ensureBackendAccess(els.backendUrl.value);
+    els.backendUrl.value = backendUrl;
+    send(CMD.SET_CONFIG, currentSettings(backendUrl));
+    showConn("pending", "Testing connection…");
+    send(CMD.TEST_CONNECTION);
+  } catch (error) {
+    showConn("err", error.message);
+  }
 });
 
 // Open the protected app path (not the public landing page), which initiates
@@ -547,3 +676,41 @@ els.voiceToggle.addEventListener("change", () => {
   chrome.storage.local.set({ [VOICE_KEY]: els.voiceToggle.checked });
 });
 chrome.storage.local.get(VOICE_KEY).then((v) => { els.voiceToggle.checked = !!v[VOICE_KEY]; });
+
+// Optional permissions are requested only from these direct user gestures.
+els.sitePermission.addEventListener("click", async () => {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    const parsed = new URL(tab?.url || "");
+    if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("Open the Oracle tab first.");
+    const origin = `${parsed.origin}/*`;
+    const granted = await chrome.permissions.request({ origins: [origin] });
+    showInlineStatus(
+      els.sitePermissionStatus,
+      granted ? "ok" : "err",
+      granted ? `Access granted for ${parsed.origin}.` : "Site access was not granted.",
+    );
+  } catch (error) {
+    showInlineStatus(els.sitePermissionStatus, "err", error.message || "Could not request site access.");
+  }
+});
+
+els.canvasPermission.addEventListener("click", async () => {
+  try {
+    const granted = await chrome.permissions.request({ permissions: ["debugger"] });
+    showInlineStatus(
+      els.canvasPermissionStatus,
+      granted ? "ok" : "err",
+      granted ? "Trusted canvas mouse and keyboard input enabled." : "Canvas control was not enabled.",
+    );
+    if (granted) els.canvasPermission.disabled = true;
+  } catch (error) {
+    showInlineStatus(els.canvasPermissionStatus, "err", error.message || "Could not enable canvas control.");
+  }
+});
+
+chrome.permissions.contains({ permissions: ["debugger"] }).then((granted) => {
+  if (!granted) return;
+  els.canvasPermission.disabled = true;
+  showInlineStatus(els.canvasPermissionStatus, "ok", "Trusted canvas input is enabled.");
+});

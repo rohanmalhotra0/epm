@@ -12,6 +12,7 @@ import pytest
 
 from app.agent.computer_use import (
     Action,
+    ActionResult,
     ActionType,
     AxNode,
     Observation,
@@ -40,6 +41,7 @@ class ScriptedProvider(AIProvider):
         self.response = response
         self.seen_messages: list[AIMessage] = []
         self.seen_system: str | None = None
+        self.seen_max_tokens: int | None = None
 
     async def list_models(self) -> list[str]:
         return ["scripted"]
@@ -51,6 +53,7 @@ class ScriptedProvider(AIProvider):
                      max_tokens=1024, cancel=None) -> AsyncIterator[StreamChunk]:
         self.seen_messages = list(messages)
         self.seen_system = system
+        self.seen_max_tokens = max_tokens
         for word in self.response.split(" "):
             yield TextDelta(word + " ")
         yield StreamDone()
@@ -194,6 +197,69 @@ async def test_history_is_included_in_messages():
     await decide_step(provider, "goal", _obs(), history=[prior], index=1)
     roles = [m.role for m in provider.seen_messages]
     assert "assistant" in roles  # the prior step was replayed as context
+
+
+async def test_history_includes_action_outcome_and_uses_compact_token_budget():
+    provider = ScriptedProvider('{"narration": "next", "action": {"type": "done"}}')
+    prior = Step(
+        index=0,
+        narration="clicked save",
+        action=Action(type=ActionType.click, ref=42),
+        result=ActionResult(
+            ok=False,
+            detail="button was detached",
+            gate="allowed",
+            duration_ms=19,
+        ),
+        raw="large raw model output that must not be replayed",
+    )
+
+    await decide_step(provider, "goal", _obs(), history=[prior], index=1)
+
+    history_message = next(
+        message.content for message in provider.seen_messages
+        if message.role == "assistant"
+    )
+    assert '"ok":false' in history_message
+    assert "button was detached" in history_message
+    assert "large raw model output" not in history_message
+    assert provider.seen_max_tokens == 256
+
+
+def test_observation_accepts_frame_and_screenshot_coordinate_metadata():
+    observation = Observation.model_validate({
+        "url": "https://epm.example",
+        "nodes": [{
+            "ref": 1,
+            "role": "grid",
+            "name": "Planning grid",
+            "rect": [10.5, 20, 800, 500],
+            "frameId": "7",
+            "framePath": "top/Planning",
+            "oracleComponent": "oj-data-grid",
+            "state": {"rowcount": 1000, "busy": False},
+            "grid": {
+                "rowCount": 1000,
+                "renderedRows": 20,
+                "virtualized": True,
+                "orientation": {"rows": "vertical", "columns": "horizontal"},
+            },
+            "canvas": True,
+            "canvasMeta": {
+                "bitmapWidth": 1600,
+                "cssWidth": 800,
+                "bitmapScaleX": 2,
+            },
+        }],
+        "viewport": {"width": 1200, "height": 800, "deviceScaleFactor": 2},
+        "screenshotMeta": {"width": 2400, "height": 1600, "format": "jpeg"},
+    })
+
+    assert observation.nodes[0].frame_id == "7"
+    assert observation.nodes[0].canvas is True
+    assert observation.nodes[0].grid["virtualized"] is True
+    assert observation.nodes[0].canvas_meta["bitmapScaleX"] == 2
+    assert observation.screenshot_meta["width"] == 2400
 
 
 async def test_workbook_context_is_sent_as_untrusted_reference_data():

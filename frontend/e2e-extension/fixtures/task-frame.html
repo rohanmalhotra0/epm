@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Planning task flow</title>
+    <style>
+      body { margin: 0; padding: 16px; font: 14px Arial, sans-serif; }
+      iframe { width: 100%; height: 140px; border: 1px solid #c8c4bd; }
+      oj-button, oj-input-text { display: block; margin: 12px 0; }
+      .virtual-viewport { height: 76px; overflow: auto; border: 1px solid #c8c4bd; }
+      [role="row"] { display: grid; grid-template-columns: 1fr 1fr; min-height: 36px; }
+      [role="gridcell"] { padding: 8px; border-bottom: 1px solid #e3e1dc; }
+    </style>
+  </head>
+  <body>
+    <h1>Forecast data form</h1>
+    <iframe title="Nested Planning form" src="/fixture/nested-form.html"></iframe>
+    <div id="shadowHost"></div>
+    <oj-button id="runRule" chroming="callToAction" aria-label="Run business rule" tabindex="0">
+      Run business rule
+    </oj-button>
+    <div class="virtual-viewport" role="grid" aria-label="Accounts virtualized grid" aria-rowcount="5000">
+      <div role="row" aria-rowindex="1">
+        <button role="gridcell" aria-label="Account 1100">1100</button>
+        <div role="gridcell">Revenue</div>
+      </div>
+      <div role="row" aria-rowindex="2">
+        <button role="gridcell" aria-label="Account 1200">1200</button>
+        <div role="gridcell">Expense</div>
+      </div>
+    </div>
+    <script>
+      const host = document.querySelector("#shadowHost");
+      const root = host.attachShadow({ mode: "open" });
+      root.innerHTML = `
+        <style>label { display: block; margin: 12px 0; }</style>
+        <label>Scenario <input aria-label="Scenario" value="Actual" /></label>
+      `;
+      root.querySelector("input").addEventListener("change", () => {
+        parent.parent.postMessage({ epmwEvent: "shadowTyped" }, location.origin);
+      });
+      document.querySelector("#runRule").addEventListener("click", () => {
+        parent.parent.postMessage({ epmwEvent: "jetClicked" }, location.origin);
+      });
+      document.querySelector('[aria-label="Account 1100"]').addEventListener("click", () => {
+        parent.parent.postMessage({ epmwEvent: "virtualRowClicked" }, location.origin);
+      });
+    </script>
+  </body>
+</html>

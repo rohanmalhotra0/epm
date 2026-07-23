@@ -159,6 +159,22 @@
         <input id="guardToggle" type="checkbox" checked />
         Enforce production-safety gate (recommended)
       </label>
+      <div class="permission-card">
+        <div>
+          <strong>Oracle page access</strong>
+          <span class="field-help">Grant only the current Oracle origin. Needed when the panel was not opened from the toolbar on that tab.</span>
+        </div>
+        <button id="sitePermission" class="secondary" type="button">Grant current site</button>
+        <div id="sitePermissionStatus" class="conn-status hidden" role="status" aria-live="polite"></div>
+      </div>
+      <div class="permission-card">
+        <div>
+          <strong>Trusted canvas input</strong>
+          <span class="field-help">Optional. Enables real mouse and keyboard input for Oracle canvas grids. Chrome displays its debugger notice while active.</span>
+        </div>
+        <button id="canvasPermission" class="secondary" type="button">Enable canvas control</button>
+        <div id="canvasPermissionStatus" class="conn-status hidden" role="status" aria-live="polite"></div>
+      </div>
 
       <details class="advanced">
         <summary>Advanced — server &amp; token</summary>
@@ -170,7 +186,7 @@
         <label>
           API token <span class="hint">— for autonomous use (no website tab)</span>
           <input id="apiToken" type="password" placeholder="epmw_… — generate on the Browser Agent page" autocomplete="off" />
-          <span class="field-help">Leave blank to use your website sign-in while it's open. Paste a token to run standalone.</span>
+          <span class="field-help">Session only. Changing the server clears this token automatically.</span>
         </label>
         <label>
           Project id (optional)
@@ -181,15 +197,15 @@
       <button id="saveConfig" class="secondary settings-save">Save settings</button>
     </section>
 
-    <section id="confirm" class="confirm hidden" role="alertdialog" aria-live="assertive">
-      <div class="confirm-title"><svg viewBox="0 0 32 32" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M16.002,6.1714h-.004L4.6487,27.9966,4.6506,28H27.3494l.0019-.0034ZM14.875,12h2.25v9h-2.25ZM16,26a1.5,1.5,0,1,1,1.5-1.5A1.5,1.5,0,0,1,16,26Z" opacity="0"></path><path d="M29,30H3a1,1,0,0,1-.8872-1.4614l13-25a1,1,0,0,1,1.7744,0l13,25A1,1,0,0,1,29,30ZM4.6507,28H27.3493l.002-.0033L16.002,6.1714h-.004L4.6487,27.9967ZM14.875,12h2.25v9h-2.25ZM16,26a1.5,1.5,0,1,1,1.5-1.5A1.5,1.5,0,0,1,16,26Z"></path></svg> Confirm before it runs</div>
+    <dialog id="confirm" class="confirm" aria-labelledby="confirmTitle" aria-describedby="confirmReason confirmDetail">
+      <div id="confirmTitle" class="confirm-title"><svg viewBox="0 0 32 32" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M16.002,6.1714h-.004L4.6487,27.9966,4.6506,28H27.3494l.0019-.0034ZM14.875,12h2.25v9h-2.25ZM16,26a1.5,1.5,0,1,1,1.5-1.5A1.5,1.5,0,0,1,16,26Z" opacity="0"></path><path d="M29,30H3a1,1,0,0,1-.8872-1.4614l13-25a1,1,0,0,1,1.7744,0l13,25A1,1,0,0,1,29,30ZM4.6507,28H27.3493l.002-.0033L16.002,6.1714h-.004L4.6487,27.9967ZM14.875,12h2.25v9h-2.25ZM16,26a1.5,1.5,0,1,1,1.5-1.5A1.5,1.5,0,0,1,16,26Z"></path></svg><span id="confirmTitleText">Confirm before it runs</span></div>
       <div class="confirm-reason" id="confirmReason"></div>
       <div class="confirm-detail" id="confirmDetail"></div>
       <div class="confirm-actions">
-        <button id="rejectBtn" class="secondary">Skip</button>
-        <button id="approveBtn" class="danger-solid">Approve &amp; run</button>
+        <button id="rejectBtn" class="secondary" type="button">Skip</button>
+        <button id="approveBtn" class="danger-solid" type="button">Approve &amp; run</button>
       </div>
-    </section>
+    </dialog>
 
     <div id="agentView">
       <section class="goalbar">

@@ -26,7 +26,9 @@ describe("Composer", () => {
     render(<Composer onSend={vi.fn()} streaming={false} onStop={() => {}} />);
     const ta = screen.getByLabelText("Message EPM Wizard");
     fireEvent.change(ta, { target: { value: "/for" } });
-    expect(screen.getByText("/forms")).toBeInTheDocument();
+    expect(screen.getByRole("listbox", { name: "Slash commands" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /\/forms/ })).toHaveAttribute("aria-selected", "true");
+    expect(ta).toHaveAttribute("aria-activedescendant", "slash-command-0");
   });
 
   it("shows a stop button while streaming", () => {

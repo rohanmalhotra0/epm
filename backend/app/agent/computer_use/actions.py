@@ -67,6 +67,9 @@ class Action(CamelModel):
     # Coordinate fallback for canvas / ARIA-poor regions (screenshot-grounded).
     x: int | None = None
     y: int | None = None
+    # Coordinate actions default to CSS viewport pixels. Vision models may
+    # explicitly return image pixels when using screenshot metadata.
+    coordinate_space: str = "css"
     # ``type`` payload.
     text: str | None = None
     # ``navigate`` payload.
@@ -99,6 +102,8 @@ class Action(CamelModel):
                 raise ValueError("type requires a `ref` (preferred) or `x`+`y` coordinates")
         if t is ActionType.navigate and not self.url:
             raise ValueError("navigate requires a `url`")
+        if self.coordinate_space not in {"css", "image"}:
+            raise ValueError("coordinateSpace must be `css` or `image`")
         return self
 
 
@@ -115,8 +120,19 @@ class AxNode(CamelModel):
     value: str | None = None        # current value for inputs
     focused: bool = False
     disabled: bool = False
-    # Optional viewport rectangle [x, y, w, h] — enables the coordinate fallback.
-    rect: list[int] | None = None
+    # Optional top-level viewport rectangle [x, y, w, h]. Coordinates from
+    # nested frames are translated by the extension before they cross the wire.
+    rect: list[float] | None = None
+    # Frame context keeps refs debuggable and lets the model distinguish
+    # otherwise-identical Oracle controls rendered in nested task-flow frames.
+    frame_id: str | None = None
+    frame_path: str | None = None
+    # Adapter metadata for Oracle JET/ADF and ARIA-poor canvas grids.
+    oracle_component: str | None = None
+    state: dict[str, bool | int | float | str] | None = None
+    grid: dict[str, object] | None = None
+    canvas: bool = False
+    canvas_meta: dict[str, object] | None = None
 
 
 class Observation(CamelModel):
@@ -129,6 +145,10 @@ class Observation(CamelModel):
     # Optional screenshot as a data URL (``data:image/png;base64,...``); the
     # FALLBACK grounding, routed to the provider's vision role model.
     screenshot: str | None = None
+    # Screenshot/viewport metadata is required to translate vision-model image
+    # coordinates back to CSS viewport coordinates on HiDPI displays.
+    viewport: dict[str, float] | None = None
+    screenshot_meta: dict[str, str | int | float | bool] | None = None
     # Free-form notes the content script wants the model to know (e.g. "iframe").
     notes: str | None = None
 
@@ -146,6 +166,19 @@ class WorkbookContext(CamelModel):
     truncated: bool = False
 
 
+class ActionResult(CamelModel):
+    """Observed outcome of executing a prior step's action.
+
+    Results travel with history so a rejected, failed, or no-op action is never
+    silently replayed by the model on the next turn.
+    """
+
+    ok: bool
+    detail: str = Field(default="", max_length=2000)
+    gate: str | None = Field(default=None, max_length=32)
+    duration_ms: int | None = Field(default=None, ge=0)
+
+
 class Step(CamelModel):
     """One plan→act→observe→narrate cycle result.
 
@@ -158,5 +191,7 @@ class Step(CamelModel):
     action: Action
     # Whether the loop believes the goal is met (mirrors action.type == done).
     done: bool = False
+    # Filled by the extension after the action executes (or is rejected).
+    result: ActionResult | None = None
     # Raw model text, kept for debugging / transcript. Not shown to the user.
     raw: str | None = None

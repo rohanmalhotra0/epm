@@ -15,7 +15,10 @@
     "e2e:ui": "playwright test --project=chromium --ui",
     "e2e:debug": "playwright test --project=chromium --debug",
     "e2e:auth": "playwright test auth.setup.ts --project=auth-capture --headed",
-    "e2e:report": "playwright show-report"
+    "e2e:report": "playwright show-report",
+    "e2e:extension": "playwright test --config=playwright.extension.config.ts",
+    "e2e:extension:headed": "PW_EXTENSION_HEADED=1 playwright test --config=playwright.extension.config.ts",
+    "e2e:extension:debug": "PWDEBUG=1 PW_EXTENSION_HEADED=1 playwright test --config=playwright.extension.config.ts"
   },
   "dependencies": {
     "@carbon/icons-react": "^11.50.0",

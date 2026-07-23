@@ -12,6 +12,29 @@ const diagnostics = {
   subsystems: [],
 };
 
+const environments = [
+  {
+    id: "env-dev",
+    projectId: "p1",
+    name: "Development",
+    baseUrl: "https://dev.example.com",
+    username: "dev-user",
+    classification: "development",
+    demo: false,
+    connected: false,
+  },
+  {
+    id: "env-prod",
+    projectId: "p1",
+    name: "Production",
+    baseUrl: "https://prod.example.com",
+    username: "prod-user",
+    classification: "production",
+    demo: false,
+    connected: true,
+  },
+];
+
 function jsonResponse(data: unknown, status = 200) {
   return { ok: true, status, statusText: "OK", json: async () => data } as Response;
 }
@@ -163,5 +186,49 @@ describe("SettingsPage provider form", () => {
       expect(body.roleModels).toEqual({ vision: "qwen2.5-vl:7b" });
       expect(body.visionModel).toBeUndefined();
     });
+  });
+
+  it("exposes persistent labels for provider and environment fields", async () => {
+    renderPage();
+
+    expect(await screen.findByLabelText("Provider name")).toHaveAttribute("id", "provider-name");
+    expect(screen.getByLabelText("Provider type")).toHaveAttribute("id", "provider-type");
+    expect(screen.getByLabelText("Base URL (optional)")).toHaveAttribute("id", "provider-base-url");
+    expect(screen.getByLabelText("Default model")).toHaveAttribute("id", "provider-default-model");
+    expect(screen.getByLabelText("API key")).toHaveAttribute("id", "provider-api-key");
+    expect(screen.getByLabelText("Embedding model (RAG)")).toHaveAttribute("id", "provider-embedding-model");
+
+    expect(screen.getByLabelText("Environment name")).toHaveAttribute("id", "environment-name");
+    expect(screen.getByLabelText("Classification")).toHaveAttribute("id", "environment-classification");
+    expect(screen.getByLabelText("Base URL")).toHaveAttribute("id", "environment-base-url");
+    expect(screen.getByLabelText("Username")).toHaveAttribute("id", "environment-username");
+    expect(screen.getByLabelText("Demo environment (no Oracle tenant)")).toHaveAttribute("id", "environment-demo");
+  });
+
+  it("names table scroll regions and gives every environment password a unique accessible name", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: RequestInfo | URL) => {
+        const u = String(url);
+        if (u.includes("/api/providers")) return jsonResponse([]);
+        if (u.includes("/api/diagnostics/logs")) return jsonResponse({ logs: [] });
+        if (u.includes("/api/diagnostics")) return jsonResponse(diagnostics);
+        if (u.includes("/environments")) return jsonResponse(environments);
+        return jsonResponse([]);
+      }),
+    );
+
+    renderPage();
+
+    expect(await screen.findByRole("region", { name: "AI Providers" })).toHaveAttribute("tabindex", "0");
+    expect(screen.getByRole("region", { name: "Oracle Environments" })).toHaveAttribute("tabindex", "0");
+    expect(await screen.findByLabelText("Password for Development")).toHaveAttribute(
+      "id",
+      "environment-password-env-dev",
+    );
+    expect(screen.getByLabelText("Password for Production")).toHaveAttribute(
+      "id",
+      "environment-password-env-prod",
+    );
   });
 });

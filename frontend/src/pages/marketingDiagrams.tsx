@@ -61,10 +61,9 @@ function Box({
 }
 
 /**
- * Trust-boundary / architecture diagram: everything that touches secrets stays
- * on your machine; only deterministic code crosses the connector boundary to
- * the Oracle tenant, carrying metadata and artifacts — never credentials, and
- * never the model itself.
+ * Trust-boundary / architecture diagram: configured credentials stay inside
+ * the selected EPM Wizard environment and out of model prompts; deterministic
+ * connector code reaches Oracle. Hosted storage/provider policies still apply.
  */
 export function TrustBoundaryDiagram() {
   const seg = (i: number): React.CSSProperties => ({ "--seg": i }) as unknown as React.CSSProperties;
@@ -73,7 +72,7 @@ export function TrustBoundaryDiagram() {
       className="md-svg"
       viewBox="0 0 840 372"
       role="img"
-      aria-label="Trust boundary diagram. On your machine: you approve every change; a deterministic code layer validates and ships; a language model proposes only; and an encrypted secret store holds credentials that never leave. Only the deterministic code crosses the connector boundary to the Oracle EPM tenant, carrying metadata, rules, and artifacts — never secrets, and never the model."
+      aria-label="Trust boundary diagram. In your configured EPM Wizard environment, you approve every change, deterministic code validates and ships, a language model proposes, and an encrypted secret store keeps configured credentials out of model prompts. Deterministic connector code reaches the Oracle EPM tenant with metadata, rules, and artifacts."
     >
       <defs>
         <marker id="md-arrow" viewBox="0 0 10 10" refX={9} refY={5} markerWidth={7} markerHeight={7} orient="auto-start-reverse">
@@ -81,15 +80,15 @@ export function TrustBoundaryDiagram() {
         </marker>
       </defs>
 
-      {/* your-machine enclosure */}
+      {/* configured-environment enclosure */}
       <rect x={16} y={40} width={476} height={312} rx={3} fill="none" stroke={C.stroke} strokeWidth={1} strokeDasharray="2 4" />
       <text x={28} y={30} fill={C.muted} fontSize={11} letterSpacing="0.12em" fontFamily="'IBM Plex Mono', monospace">
-        YOUR MACHINE
+        YOUR EPM WIZARD ENVIRONMENT
       </text>
 
       {/* nodes inside the machine */}
       <Box x={40} y={64} w={196} label="You" sub="approve every change" stroke={C.human} />
-      <Box x={40} y={158} w={196} label="Encrypted secret store" sub="sealed · secrets never leave" stroke={C.store} />
+      <Box x={40} y={158} w={196} label="Encrypted secret store" sub="configured credentials stay out of prompts" stroke={C.store} />
       <Box x={40} y={264} w={196} label="Language model" sub="proposes only" stroke={C.llm} />
       <Box x={276} y={158} w={196} label="Deterministic code" sub="validates & ships" stroke={C.code} />
 

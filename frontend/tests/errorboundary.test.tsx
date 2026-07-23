@@ -8,6 +8,12 @@ function Boom({ explode }: { explode: boolean }): JSX.Element {
   return <div>all good</div>;
 }
 
+function ChunkBoom({ message, name = "TypeError" }: { message: string; name?: string }): never {
+  const error = new Error(message);
+  error.name = name;
+  throw error;
+}
+
 describe("ErrorBoundary", () => {
   // React logs the caught error to console.error; silence it for clean output.
   let spy: ReturnType<typeof vi.spyOn>;
@@ -72,6 +78,49 @@ describe("ErrorBoundary", () => {
     shouldThrow = false;
     fireEvent.click(screen.getByText("Try again"));
     expect(screen.getByText("recovered")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["ChunkLoadError", "Loading chunk 42 failed"],
+    ["TypeError", "Failed to fetch dynamically imported module: /assets/GuidePage-abc.js"],
+    ["TypeError", "Importing a module script failed."],
+    ["Error", "Unable to preload CSS for /assets/App-abc.css"],
+  ])("offers reload recovery for %s chunk failures", (name, message) => {
+    render(
+      <ErrorBoundary label="this view">
+        <ChunkBoom name={name} message={message} />
+      </ErrorBoundary>,
+    );
+
+    expect(screen.getByRole("heading", { name: "Reload to finish updating" })).toBeInTheDocument();
+    expect(screen.getByText(/after an app update or when the connection is interrupted/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reload and retry" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
+    expect(screen.getByText(message)).toBeInTheDocument();
+  });
+
+  it("does not misclassify an ordinary render error as a chunk-load failure", () => {
+    render(
+      <ErrorBoundary>
+        <ChunkBoom message="Could not calculate the next data chunk" />
+      </ErrorBoundary>,
+    );
+
+    expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Reload and retry" })).not.toBeInTheDocument();
+  });
+
+  it("reloads the app in one click when a chunk cannot be loaded", () => {
+    const onReload = vi.fn();
+    render(
+      <ErrorBoundary onReload={onReload}>
+        <ChunkBoom message="error loading dynamically imported module" />
+      </ErrorBoundary>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Reload and retry" }));
+    expect(onReload).toHaveBeenCalledOnce();
   });
 });
 

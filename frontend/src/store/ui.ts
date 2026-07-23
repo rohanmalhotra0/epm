@@ -10,6 +10,7 @@ interface UiState {
   oracleGateSkipped: boolean;
   setProject: (id: string) => void;
   toggleSidebar: () => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
   setTheme: (t: "g100" | "white") => void;
   toggleTheme: () => void;
   skipOracleGate: () => void;
@@ -24,6 +25,7 @@ export const useUi = create<UiState>()(
       oracleGateSkipped: false,
       setProject: (id) => set({ currentProjectId: id }),
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+      setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
       setTheme: (theme) => set({ theme }),
       toggleTheme: () => set((s) => ({ theme: s.theme === "g100" ? "white" : "g100" })),
       skipOracleGate: () => set({ oracleGateSkipped: true }),

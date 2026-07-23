@@ -63,6 +63,8 @@ describe("Sidebar conversation management", () => {
       (el) => el.textContent,
     );
     expect(titles).toEqual(["Alpha", "Beta"]);
+    expect(screen.getByRole("button", { name: "Alpha Pinned" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Beta" })).toBeInTheDocument();
   });
 
   it("shows a per-conversation overflow menu with management actions", async () => {
@@ -93,5 +95,35 @@ describe("Sidebar conversation management", () => {
     const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
     const urls = fetchMock.mock.calls.map((c) => String(c[0]));
     expect(urls.some((u) => u.includes("include_archived=true"))).toBe(true);
+  });
+
+  it("links to every page promised by the first-run tour", async () => {
+    renderSidebar();
+    await screen.findByText("Alpha");
+
+    expect(screen.getByRole("complementary", { name: "Workspace sidebar" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Skills" })).toHaveAttribute("href", "/skills");
+    expect(screen.getByRole("link", { name: "Explorer" })).toHaveAttribute("href", "/explorer");
+  });
+
+  it("closes the sidebar after mobile navigation", async () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({
+        matches: true,
+        media: "(max-width: 767px)",
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    );
+    renderSidebar();
+    await screen.findByText("Alpha");
+
+    fireEvent.click(screen.getByRole("link", { name: "Explorer" }));
+    expect(useUi.getState().sidebarCollapsed).toBe(true);
   });
 });

@@ -431,9 +431,9 @@ def _build_ai_context(
 
     add(
         "WORKBOOK OVERVIEW\n"
-        f"Filename: {inspection.filename}\n"
+        f"Filename: {redact_text(inspection.filename)}\n"
         f"Format: {inspection.file_format}\n"
-        f"Summary: {inspection.summary}\n"
+        f"Summary: {redact_text(inspection.summary)}\n"
         "Safety: parsed as data only; VBA and formulas were not executed."
     )
 
@@ -454,7 +454,9 @@ def _build_ai_context(
     )
     if not add(
         "WORKBOOK STRUCTURE\n"
-        + json.dumps(structure, ensure_ascii=False, separators=(",", ":"), default=str)
+        + redact_text(
+            json.dumps(structure, ensure_ascii=False, separators=(",", ":"), default=str)
+        )
     ):
         return "".join(parts), truncated
 
@@ -492,7 +494,14 @@ def _build_ai_context(
                 if value is not None
             }
             if not add(
-                json.dumps(serializable, ensure_ascii=False, separators=(",", ":"), default=str)
+                redact_text(
+                    json.dumps(
+                        serializable,
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                        default=str,
+                    )
+                )
             ):
                 break
 

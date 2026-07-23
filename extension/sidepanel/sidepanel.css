@@ -499,17 +499,36 @@ textarea#goal:focus { outline: 2px solid var(--focus); outline-offset: -2px; }
 }
 .workbook-context button { flex: none; padding-inline: 10px; }
 
-/* ── Guardrail confirm banner ──────────────────────────────────────────────── */
-.confirm {
-  margin: 0; padding: 12px; background: rgba(241,194,27,.10);
-  border-bottom: 1px solid var(--warn); border-left: 3px solid var(--warn);
+/* ── Guardrail / backend-origin confirmation ─────────────────────────────── */
+dialog.confirm {
+  width: min(380px, calc(100vw - 24px));
+  margin: auto;
+  padding: 14px;
+  color: var(--text);
+  background: var(--layer);
+  border: 1px solid var(--warn);
+  border-left: 3px solid var(--warn);
+  border-radius: 2px;
   display: flex; flex-direction: column; gap: 8px;
 }
+dialog.confirm:not([open]) { display: none; }
+dialog.confirm::backdrop { background: rgba(0, 0, 0, .56); }
 .confirm-title { display: flex; align-items: center; gap: 7px; font-weight: 600; color: var(--warn); }
 .confirm-title svg { width: 16px; height: 16px; flex: none; }
 .confirm-reason { color: var(--text); }
 .confirm-detail { color: var(--muted); font-size: 12px; word-break: break-word; }
 .confirm-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.permission-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  background: var(--layer);
+}
+.permission-card strong,
+.permission-card .field-help { display: block; }
+.permission-card button { justify-self: start; }
 
 /* ── Narration feed ────────────────────────────────────────────────────────── */
 .feed { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
@@ -593,6 +612,12 @@ textarea#goal:focus { outline: 2px solid var(--focus); outline-offset: -2px; }
 .imuted { color: var(--muted); font-size: 11px; }
 
 .hidden { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .step { animation: none; }
+  .spinner { animation: none; }
+  * { scroll-behavior: auto !important; }
+}
 
 @media (max-width: 390px) {
   .access-view {

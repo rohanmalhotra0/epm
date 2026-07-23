@@ -10,13 +10,21 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from ..agent.computer_use.actions import Action, AxNode, Observation, Step, WorkbookContext
+from ..agent.computer_use.actions import (
+    Action,
+    ActionResult,
+    AxNode,
+    Observation,
+    Step,
+    WorkbookContext,
+)
 from .common import CamelModel
 
 __all__ = [
     "AgentStepRequest",
     "AgentStepResponse",
     "Action",
+    "ActionResult",
     "AxNode",
     "Observation",
     "Step",

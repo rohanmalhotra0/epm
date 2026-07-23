@@ -1,144 +1,41 @@
-import { Fragment, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import "../styles/landing.css";
-import { useScrollReveal, usePrefersReducedMotion } from "../hooks/useScrollReveal";
-import { TrustBoundaryDiagram, BrowserAgentDiagram } from "./marketingDiagrams";
-
-/**
- * Public marketing / landing page — served without the Google auth gate at "/"
- * (see main.tsx). The primary CTA links to "/app", which oauth2-proxy intercepts
- * and sends through Google, returning to /app once signed in.
- *
- * The product has TWO surfaces and the page leads with both:
- *   1. A ChatGPT-style chat workspace for Oracle EPM — you ask in plain language
- *      and get back live, typed result blocks (form-preview grids, cube maps,
- *      validation, deployment plans), not walls of text.
- *   2. A Chrome extension — the Narrated Browser Agent — that drives Oracle EPM
- *      Cloud's real web UI for you, narrating each step, with an enforced gate
- *      that HOLDS destructive and production actions for your approval.
- *
- * Aesthetic: dark IBM Carbon industrial (flat surfaces, hairline borders, sharp
- * corners, IBM Plex, accent #4589ff sparingly, Carbon green #24a148 for
- * live/verified, red #fa4d56 for a held/denied action). All motion is plain CSS
- * + one IntersectionObserver hook; every mockup is legible at rest, so
- * prefers-reduced-motion loses choreography, never content. Faux UI is
- * illustrative and aria-hidden.
- */
 
 const APP_ENTRY = "/app";
 
-const v = (o: Record<string, string | number>): React.CSSProperties => o as unknown as React.CSSProperties;
+const extensionVersion =
+  __EXTENSION_ZIP_NAME__.match(/extension-(\d+\.\d+\.\d+)\.zip$/)?.[1] ?? "latest";
 
-/* ------------------------------------------------------------------ content */
-
-// Section 01 — what a request renders back as.
-const ANATOMY = [
+const WORKFLOWS = [
   {
-    asked: "“Create an Actuals form with level-zero descendants of Total Payroll in rows.”",
-    rendered: "A form-preview grid you can read — accounts in rows, months in columns, validated against your outline before anything ships.",
+    number: "01",
+    label: "BUILD",
+    title: "Turn a sentence into a real EPM artifact.",
+    body: "Ask for a form, rule, or cube view in plain language. EPM Wizard returns a structured preview you can inspect and refine.",
+    example: "Create an Actuals form for Total Payroll",
   },
   {
-    asked: "“Visualize OEP_DCSH”",
-    rendered: "An interactive cube map — every dimension, its coverage and sizing — rendered inline in the conversation.",
+    number: "02",
+    label: "UNDERSTAND",
+    title: "Bring the context your application is missing.",
+    body: "Layer an LCM snapshot or workbook over live metadata, then ground drafts in your own hierarchies, rules, formulas, and conventions.",
+    example: "Explain why this forecast workbook behaves this way",
   },
   {
-    asked: "“Draft a rule that copies Working to Final”",
-    rendered: "A script grounded on your real rules, with a visible “Grounded on” block — a proposal, never auto-run.",
-  },
-  {
-    asked: "“Deploy it to TEST”",
-    rendered: "An approval card. The model proposes; nothing changes on your tenant until you approve.",
-  },
-];
-
-// Section 02 — the typed result blocks the chat renders.
-const BLOCKS = [
-  { no: "01", name: "Form preview", body: "A live EPM-style grid — POV, rows, columns, and a validation status you can read at a glance." },
-  { no: "02", name: "Cube map", body: "An interactive view of a cube — its dimensions, coverage, and sizing — drawn inline." },
-  { no: "03", name: "Validation report", body: "Member existence, axis rules, sizing, and security, checked against your real outline." },
-  { no: "04", name: "Deployment plan", body: "The plan, its progress, and the result — marked verified only once confirmed." },
-  { no: "05", name: "Grounded-on", body: "The real rule scripts and templates a draft was generated from — no hidden context." },
-  { no: "06", name: "Diff", body: "Exactly what a refresh or snapshot merge changed, member by member." },
-  { no: "07", name: "Runtime-prompt form", body: "A rule's runtime prompts, rendered as a small form to fill in and submit." },
-  { no: "08", name: "Member search", body: "Resolve members exactly — identifier-first, with no fuzzy substitution." },
-];
-
-// Section 03 — the working loop, chat-native.
-const LOOP = [
-  { no: "01", name: "Propose", sub: "you ask in plain language" },
-  { no: "02", name: "Validate", sub: "checked against your tenant" },
-  { no: "03", name: "Approve", sub: "you, explicitly — it stops here", gate: true },
-  { no: "04", name: "Deploy", sub: "the reviewed artifact ships" },
-  { no: "05", name: "Verify", sub: "read back · marked verified" },
-];
-
-// Section 04 — browser-agent capabilities + narration.
-const AGENT_CAPS: Array<[string, string]> = [
-  ["Grounds on the page", "Accessibility-tree first — it targets real elements by ref id, not blind pixel coordinates."],
-  ["Falls back to vision", "For canvas / JET data grids with no accessibility info: a screenshot and a vision model."],
-  ["Narrates every step", "Numbered click / type / scroll / navigate actions stream into a side panel, with optional spoken narration."],
-  ["Enforced safety gate", "Destructive targets and any write on a production tab are held for your approval. On by default."],
-];
-
-const NARRATION: Array<{ t: string; state: "ok" | "run"; text: string; ref?: string }> = [
-  { t: "00:00:01", state: "ok", text: "Opened Forms library", ref: "ref=12" },
-  { t: "00:00:03", state: "ok", text: "Selected “Actuals”", ref: "ref=42" },
-  { t: "00:00:05", state: "run", text: "Typing period range Jan–Dec…" },
-];
-
-// Section 07 — honest, on-message telemetry.
-const STATS = [
-  { to: 0, suffix: "", label: "secrets sent to the model" },
-  { to: 0, suffix: "", label: "destructive actions run without your approval" },
-  { to: 8, suffix: "", label: "typed result blocks rendered in chat" },
-  { to: 100, suffix: "%", label: "of actions are typed, allowlisted functions" },
-];
-
-// Section 08 — the model layer.
-const MODEL_SPEC: Array<[string, string]> = [
-  ["Providers", "Anthropic · any OpenAI-compatible endpoint · Gemini · local"],
-  ["EPM Coder v1", "A LoRA fine-tune on a Qwen2.5-32B-Instruct base"],
-  ["Specialized for", "Plain-English request → validated FormSpecification"],
-  ["Training set", "1,810 examples, each checked schema-valid · 3 epochs"],
-  ["Result", "Converged cleanly · eval loss 0.011 → 0.0038"],
-];
-
-type Tag = "policy" | "deny" | "local" | "verify";
-const LEDGER: Array<{ t: string; tag: Tag; claim: string; how: string; gate?: boolean }> = [
-  {
-    t: "00:00:01",
-    tag: "policy",
-    gate: true,
-    claim: "Nothing deploys without your explicit approval.",
-    how: "Every modifying operation stops at an approval card in the chat. The model proposes; you approve.",
-  },
-  {
-    t: "00:00:02",
-    tag: "deny",
-    claim: "The browser agent holds destructive & production actions.",
-    how: "Deploy, delete, clear, run-rule, and any write on a production tab are held for approval in the side panel — read-only actions never pause.",
-  },
-  {
-    t: "00:00:03",
-    tag: "deny",
-    claim: "Secrets never reach the model.",
-    how: "Credentials live in an encrypted local store and are scrubbed from logs, tool results, and errors.",
-  },
-  {
-    t: "00:00:04",
-    tag: "deny",
-    claim: "No shell, ever.",
-    how: "Executable actions are typed, allowlisted functions — argument arrays with strict validation, never a shell string.",
-  },
-  {
-    t: "00:00:05",
-    tag: "local",
-    claim: "Your data stays on your machine.",
-    how: "Projects, contexts, artifacts, and history live in one local data directory — not a hosted service.",
+    number: "03",
+    label: "OPERATE",
+    title: "Let the extension handle the click path.",
+    body: "Give the browser agent a goal. It targets the active tab, narrates each step, and pauses before destructive or production-facing actions.",
+    example: "Open Actuals and set Scenario to Forecast",
   },
 ];
 
-/* --------------------------------------------------------------- primitives */
+const PROOF_POINTS = [
+  ["Manifest V3", "A real, loadable Chrome extension — not a video mockup."],
+  ["Local-first", "Projects, context, artifacts, and history stay in your environment."],
+  ["Human-gated", "With the default safety gate on, recognized risky actions stop for approval."],
+  ["Demo-ready", "Explore the web workspace with no tenant and no model API key."],
+];
 
 function GoogleGlyph() {
   return (
@@ -151,561 +48,357 @@ function GoogleGlyph() {
   );
 }
 
-function SignInButton({ variant }: { variant: "primary" | "nav" }) {
+function DownloadIcon() {
   return (
-    <a className={variant === "primary" ? "lp-btn lp-btn-primary" : "lp-btn lp-btn-nav"} href={APP_ENTRY}>
-      <GoogleGlyph />
-      <span>Sign in with Google</span>
+    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+      <path d="M9 2v9m0 0 3.5-3.5M9 11 5.5 7.5M3 15h12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ArrowIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 17 17" aria-hidden="true">
+      <path d="M3 8.5h10m-3.5-3.5 3.5 3.5L9.5 12" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ExtensionDownload({ compact = false }: { compact?: boolean }) {
+  return (
+    <a
+      className={`lp-button lp-button-download${compact ? " compact" : ""}`}
+      href={__EXTENSION_ZIP_URL__}
+      download={__EXTENSION_ZIP_NAME__}
+    >
+      <DownloadIcon />
+      <span>{compact ? "Download extension" : "Download Chrome extension"}</span>
     </a>
   );
 }
 
-/** Count-up telemetry tile. Ramps 0 → `to` on first view; renders the final
- *  value immediately under reduced motion. */
-function Stat({ to, suffix, label, reduce }: { to: number; suffix: string; label: string; reduce: boolean }) {
-  const numRef = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    const el = numRef.current;
-    if (!el) return;
-    const final = `${to}${suffix}`;
-    if (reduce || typeof IntersectionObserver === "undefined" || typeof requestAnimationFrame === "undefined") {
-      el.textContent = final;
-      return;
-    }
-    el.textContent = `0${suffix}`;
-    let raf = 0;
-    const io = new IntersectionObserver(
-      (entries, obs) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          obs.disconnect();
-          const start = performance.now();
-          const dur = 850;
-          const step = (now: number) => {
-            const p = Math.min(1, (now - start) / dur);
-            const eased = 1 - Math.pow(1 - p, 3);
-            el.textContent = `${Math.round(to * eased)}${suffix}`;
-            raf = p < 1 ? requestAnimationFrame(step) : 0;
-          };
-          raf = requestAnimationFrame(step);
-        }
-      },
-      { threshold: 0.4 },
-    );
-    io.observe(el);
-    return () => {
-      io.disconnect();
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, [to, suffix, reduce]);
-
+function GoogleSignIn({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="lp-stat" data-reveal>
-      <span className="lp-stat-num" ref={numRef}>
-        {to}
-        {suffix}
-      </span>
-      <span className="lp-stat-label">{label}</span>
-    </div>
+    <a
+      className={`lp-button lp-button-google${compact ? " compact" : ""}`}
+      href={APP_ENTRY}
+      aria-label={compact ? "Sign in" : undefined}
+    >
+      <GoogleGlyph />
+      <span>{compact ? "Sign in" : "Continue with Google"}</span>
+    </a>
   );
 }
 
-/* --------------------------------------------------------------- hero chat */
-
-/** A ChatGPT-style conversation that streams a real EPM request end-to-end and
- *  rests on an in-chat approval card — the product's core guarantee, shown as
- *  motion. Decorative → aria-hidden; a readable summary sits in .lp-sr-only, and
- *  the value proposition lives in the hero copy beside it. Streaming is a single
- *  CSS timeline keyed off `.running`; at rest the whole exchange is printed and
- *  resting on the approval card. */
-function HeroChat({ replayKey, running }: { replayKey: number; running: boolean }) {
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "…"];
-  const accounts = ["Salaries", "Overtime", "Benefits", "Bonus"];
+function BrowserProductPreview() {
+  const rows = ["Salaries", "Overtime", "Benefits", "Bonus"];
   return (
-    <div className={`lp-term lp-chat${running ? " running" : ""}`} key={replayKey} aria-hidden="true">
-      <div className="lp-chat-head">
-        <span className="lp-chat-avatar">EW</span>
-        <span className="lp-chat-name">EPM Wizard</span>
-        <span className="lp-chat-status lp-term-status">
-          <b data-st="local">THINKING</b>
-          <b data-st="work">RENDERING</b>
-          <b data-st="ok">AWAITING YOU</b>
-        </span>
+    <div className="lp-preview" aria-label="Illustration of EPM Wizard driving an Oracle EPM page">
+      <div className="lp-preview-chrome">
+        <span className="lp-window-dots" aria-hidden="true"><i /><i /><i /></span>
+        <span className="lp-address">planning.oraclecloud.com / Forms / Actuals</span>
+        <span className="lp-secure">ACTIVE TAB</span>
       </div>
 
-      <div className="lp-chat-body">
-        <div className="lp-msg user" data-anim style={v({ "--d": "0.2s" })}>
-          <div className="lp-bubble">
-            Create an Actuals form with level-zero descendants of Total Payroll in rows, Jan–Dec in columns.
+      <div className="lp-preview-body">
+        <div className="lp-oracle-ui">
+          <div className="lp-oracle-nav">
+            <span className="lp-oracle-logo">ORACLE EPM</span>
+            <span>Home</span>
+            <span>Forms</span>
+            <span>Rules</span>
+          </div>
+          <div className="lp-form-head">
+            <div>
+              <span className="lp-form-kicker">PLANNING / FORMS</span>
+              <b>Actuals — Payroll Review</b>
+            </div>
+            <span className="lp-env-badge">TEST</span>
+          </div>
+          <div className="lp-grid">
+            <div className="lp-grid-row lp-grid-header">
+              <span>Account</span><span>Jan</span><span>Feb</span><span>Mar</span>
+            </div>
+            {rows.map((row, index) => (
+              <div className={`lp-grid-row${index === 1 ? " selected" : ""}`} key={row}>
+                <span>{row}</span><span>{index === 1 ? "142" : "—"}</span><span>—</span><span>—</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="lp-msg bot">
-          <span className="lp-chat-avatar sm">EW</span>
-          <div className="lp-msg-col">
-            <div className="lp-typing">
-              <i />
-              <i />
-              <i />
+        <aside className="lp-agent-panel">
+          <div className="lp-agent-head">
+            <div>
+              <span className="lp-live-dot" aria-hidden="true" />
+              <b>Browser Agent</b>
             </div>
-            <div className="lp-steps">
-              <div className="lp-step" data-anim style={v({ "--d": "1.7s" })}>
-                <span className="lp-tick">✓</span> Recognizing intent
-              </div>
-              <div className="lp-step" data-anim style={v({ "--d": "2.0s" })}>
-                <span className="lp-tick">✓</span> Retrieving context
-              </div>
-              <div className="lp-step" data-anim style={v({ "--d": "2.3s" })}>
-                <span className="lp-tick">✓</span> Validating against tenant
-              </div>
+            <span className="lp-connected">CONNECTED</span>
+          </div>
+          <div className="lp-goal">
+            <span>GOAL</span>
+            <p>Open Actuals and set Scenario to Forecast</p>
+          </div>
+          <ol className="lp-run-log">
+            <li className="done"><span>01</span><p>Opened the Forms library</p><b>DONE</b></li>
+            <li className="done"><span>02</span><p>Selected “Actuals”</p><b>DONE</b></li>
+            <li className="current"><span>03</span><p>Set Scenario to Forecast</p><b>NOW</b></li>
+          </ol>
+          <div className="lp-approval">
+            <div>
+              <span>APPROVAL REQUIRED</span>
+              <b>Production write detected</b>
             </div>
-            <div className="lp-say" data-anim style={v({ "--d": "2.8s" })}>
-              Here&rsquo;s the form — 24 accounts × 12 months.
-              <span className="lp-cursor" />
-            </div>
-
-            {/* inline form-preview block */}
-            <div className="lp-fp" data-anim style={v({ "--d": "3.3s" })}>
-              <div className="lp-fp-head">
-                <span className="lp-fp-title">Form preview — 25-01 Actuals</span>
-                <span className="lp-fp-valid">● valid</span>
-                <span className="lp-fp-cube">OEP_FS</span>
-              </div>
-              <div className="lp-fp-sub">Vision · Forms / Payroll</div>
-              <div className="lp-fp-chips">
-                <span>Rows · Account: Lvl-0 of Total Payroll (24)</span>
-                <span>Columns · Period: Jan–Dec</span>
-                <span>POV · Entity: Total Entity</span>
-              </div>
-              <div className="lp-fp-grid" style={v({ "--cols": months.length })}>
-                <span className="lp-fp-cell hdr rowh" />
-                {months.map((m) => (
-                  <span className="lp-fp-cell hdr" key={m}>
-                    {m}
-                  </span>
-                ))}
-                {accounts.map((a) => (
-                  <Fragment key={a}>
-                    <span className="lp-fp-cell rowh">{a}</span>
-                    {months.map((m) => (
-                      <span className="lp-fp-cell" key={`${a}-${m}`}>
-                        —
-                      </span>
-                    ))}
-                  </Fragment>
-                ))}
-              </div>
-              <div className="lp-fp-foot">~288 cells · 24 rows × 12 months</div>
-            </div>
-
-            {/* inline approval block */}
-            <div className="lp-gate" data-anim style={v({ "--d": "4.3s" })}>
-              <div className="lp-gate-head">
-                <span className="lp-gate-badge">APPROVAL REQUIRED</span>
-                <span className="lp-gate-meta">deploy · TEST</span>
-              </div>
-              <div className="lp-gate-q">Deploy 25-01 Actuals to Vision (TEST)?</div>
-              <div className="lp-gate-actions">
-                <span className="lp-gate-btn primary">Approve &amp; deploy</span>
-                <span className="lp-gate-btn">Preview package</span>
-                <span className="lp-cursor" />
-              </div>
-              <div className="lp-gate-foot">nothing deploys until you say so</div>
+            <p>The agent is paused. Review the target before it continues.</p>
+            <div className="lp-approval-actions">
+              <span>Approve once</span>
+              <span>Skip</span>
             </div>
           </div>
-        </div>
+        </aside>
+      </div>
+      <div className="lp-preview-caption">
+        <span>Accessibility-tree grounding</span>
+        <span>Step-by-step narration</span>
+        <span>Approval before risk</span>
       </div>
     </div>
   );
 }
 
-/* ---------------------------------------------------- browser-agent side panel */
-
-function AgentPanel() {
+function ResultStack() {
   return (
-    <div className="lp-panel" aria-hidden="true">
-      <div className="lp-panel-head">
-        <span className="lp-panel-dot" />
-        <span className="lp-panel-name">Narrated Browser Agent</span>
-        <span className="lp-panel-ctrls">
-          <i>▶</i>
-          <i>❚❚</i>
-          <i>■</i>
-        </span>
-      </div>
-      <div className="lp-panel-goal">Goal · Open the Actuals form and set Scenario to Forecast</div>
-      <div className="lp-panel-feed">
-        {NARRATION.map((n) => (
-          <div className={`lp-narr${n.state === "run" ? " run" : ""}`} key={n.t}>
-            <span className="lp-narr-t">{n.t}</span>
-            <span className="lp-narr-mark">{n.state === "run" ? "●" : "✓"}</span>
-            <span className="lp-narr-text">
-              {n.text}
-              {n.ref ? <span className="lp-narr-ref"> {n.ref}</span> : null}
-            </span>
-          </div>
-        ))}
-        <div className="lp-held">
-          <div className="lp-held-head">
-            <span className="lp-held-badge">HELD FOR APPROVAL</span>
-            <span className="lp-held-env">PROD</span>
-          </div>
-          <div className="lp-held-detail">target: “Deploy” · context: production tenant (planning-prod…)</div>
-          <div className="lp-held-actions">
-            <span className="lp-gate-btn warn">Approve action</span>
-            <span className="lp-gate-btn">Skip</span>
-          </div>
+    <div className="lp-result-stack" aria-label="Examples of structured EPM Wizard results">
+      <div className="lp-result-card form-card">
+        <div className="lp-result-top">
+          <span>FORM PREVIEW</span>
+          <b>VALID</b>
+        </div>
+        <h3>25-01 Actuals</h3>
+        <div className="lp-axis">
+          <span>Rows</span><b>Account · Lvl-0 Total Payroll</b>
+          <span>Columns</span><b>Period · Jan–Dec</b>
+          <span>POV</span><b>Entity · Total Entity</b>
         </div>
       </div>
-      <div className="lp-panel-foot">accessibility-tree grounding · screenshot fallback · 3 steps</div>
+      <div className="lp-result-card approval-card">
+        <div className="lp-result-top">
+          <span>DEPLOYMENT</span>
+          <b>WAITING FOR YOU</b>
+        </div>
+        <h3>Deploy to Vision / TEST?</h3>
+        <p>4 validation checks passed. Nothing changes until you approve.</p>
+        <div className="lp-inline-actions"><span>Approve &amp; deploy</span><span>Preview package</span></div>
+      </div>
+      <div className="lp-result-card ground-card">
+        <div className="lp-result-top">
+          <span>GROUNDED ON</span>
+          <b>3 SOURCES</b>
+        </div>
+        <div className="lp-source"><span>BR_PAYROLL_COPY</span><b>Calculation Manager rule</b></div>
+        <div className="lp-source"><span>OEP_FS</span><b>Live cube outline</b></div>
+      </div>
     </div>
   );
 }
-
-/* -------------------------------------------------------------------- page */
 
 export function LandingPage() {
-  const rootRef = useScrollReveal<HTMLDivElement>();
-  const reduce = usePrefersReducedMotion();
-  const [replayKey, setReplayKey] = useState(0);
-
-  // Left scroll-progress rail (wide screens, motion only).
-  useEffect(() => {
-    if (reduce) return;
-    const root = rootRef.current;
-    if (!root || typeof requestAnimationFrame === "undefined") return;
-    let raf = 0;
-    const update = () => {
-      raf = 0;
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      const p = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
-      root.style.setProperty("--sp", p.toFixed(4));
-    };
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, [reduce, rootRef]);
-
   return (
-    <div className="lp" ref={rootRef}>
-      <div className="lp-rail" aria-hidden="true">
-        <span className="lp-rail-fill" />
-      </div>
-
-      {/* ---------------------------------------------------------- top nav */}
+    <div className="lp">
       <header className="lp-nav">
         <div className="lp-nav-inner">
-          <Link className="lp-brand" to="/">
-            <img src="/favicon.svg" alt="" width={26} height={26} />
-            <span>EPM&nbsp;Wizard</span>
+          <Link className="lp-brand" to="/" aria-label="EPM Wizard home">
+            <img src="/favicon.svg" alt="" width={28} height={28} />
+            <span>EPM Wizard</span>
+            <small>FOR ORACLE EPM</small>
           </Link>
-          <nav className="lp-nav-links">
-            <a href="#chat">Chat</a>
-            <a href="#agent">Browser Agent</a>
-            <a href="#security">Security</a>
+          <nav className="lp-nav-links" aria-label="Primary navigation">
+            <a href="#how-it-works">How it works</a>
+            <a href="#safety">Safety</a>
             <Link to="/docs">Docs</Link>
           </nav>
-          <SignInButton variant="nav" />
+          <div className="lp-nav-actions">
+            <ExtensionDownload compact />
+            <GoogleSignIn compact />
+          </div>
         </div>
       </header>
 
       <main>
-        {/* -------------------------------------------------------- hero */}
-        <section className="lp-hero" id="chat">
-          <div className="lp-hero-inner">
-            <div className="lp-hero-copy">
-              <p className="lp-eyebrow">
-                <span className="lp-eyebrow-tick" />
-                CHAT · BROWSER AGENT · ORACLE EPM
-              </p>
-              <h1 className="lp-title">
-                Chat with EPM.
-                <br />
-                It drives.
-                <br />
-                You approve.
-              </h1>
-              <p className="lp-sub">
-                A ChatGPT-style workspace for Oracle EPM (Hyperion Planning). Ask in plain language and get back live,
-                typed result blocks — form-preview grids, cube maps, validation, deployment plans — not walls of text. A
-                companion Chrome extension drives Oracle EPM Cloud&rsquo;s real UI for you and narrates each step, with an
-                enforced gate that holds destructive and production actions for your approval.
-              </p>
-              <div className="lp-actions">
-                <SignInButton variant="primary" />
-                <Link className="lp-btn lp-btn-ghost" to="/docs">
-                  Read the docs
-                  <span className="lp-arrow" aria-hidden="true">
-                    →
-                  </span>
-                </Link>
-              </div>
-              <p className="lp-fineprint">Try it in Demo Mode — no Oracle tenant, no API key.</p>
-            </div>
-
-            <div className="lp-hero-term-wrap">
-              <HeroChat replayKey={replayKey} running={!reduce} />
-              <p className="lp-sr-only">
-                Example conversation: a user asks EPM Wizard to create an Actuals form with level-zero descendants of
-                Total Payroll in rows and January to December in columns. The assistant recognizes the intent, retrieves
-                context, validates against the tenant, and renders a form-preview grid, then presents an approval card to
-                deploy to the test environment — nothing is deployed until the user approves.
-              </p>
-              {!reduce && (
-                <button type="button" className="lp-replay" onClick={() => setReplayKey((k) => k + 1)}>
-                  ↺ replay
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="lp-ruler" aria-hidden="true" />
-        </section>
-
-        {/* --------------------------------- what the chat renders (anatomy) */}
-        <section className="lp-section lp-anatomy">
-          <p className="lp-kicker" data-reveal>
-            01 / the chat, and what it renders
-          </p>
-          <h2 className="lp-h2" data-reveal>
-            You ask in plain language. It answers in interfaces.
-          </h2>
-          <div className="lp-anatomy-grid">
-            {ANATOMY.map((row, i) => (
-              <div className="lp-anatomy-row" data-reveal style={v({ "--i": i })} key={row.asked}>
-                <div className="lp-anatomy-said">
-                  <span className="lp-anatomy-label">you asked</span>
-                  <code>{row.asked}</code>
-                </div>
-                <div className="lp-anatomy-ran">
-                  <span className="lp-anatomy-label">the chat rendered</span>
-                  <p>{row.rendered}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ------------------------------------------ inline blocks gallery */}
-        <section className="lp-section lp-blocks-section">
-          <p className="lp-kicker" data-reveal>
-            02 / inline result blocks
-          </p>
-          <h2 className="lp-h2" data-reveal>
-            Typed, interactive results — not walls of text
-          </h2>
-          <div className="lp-blocks">
-            {BLOCKS.map((b, i) => (
-              <div className="lp-block" data-reveal style={v({ "--i": i % 4 })} key={b.no}>
-                <span className="lp-block-no">{b.no}</span>
-                <h3>{b.name}</h3>
-                <p>{b.body}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ------------------------------------------ the loop, 5 stages */}
-        <section className="lp-section lp-loop">
-          <p className="lp-kicker" data-reveal>
-            03 / the working loop
-          </p>
-          <h2 className="lp-h2" data-reveal>
-            From a sentence to a verified change
-          </h2>
-          <ol className="lp-loop-row" data-reveal>
-            {LOOP.map((s, i) => (
-              <li className={`lp-stage${s.gate ? " gate" : ""}`} style={v({ "--i": i })} key={s.no}>
-                <span className="lp-stage-no">{s.no}</span>
-                <span className="lp-stage-name">{s.name}</span>
-                <span className="lp-stage-sub">{s.sub}</span>
-              </li>
-            ))}
-          </ol>
-          <p className="lp-loop-note" data-reveal>
-            The model proposes; deterministic, tested code disposes. Stage three is a hard stop that waits for you — in
-            the chat, and again in the browser agent.
-          </p>
-        </section>
-
-        {/* ------------------------------------------ narrated browser agent */}
-        <section className="lp-section lp-agent" id="agent">
-          <p className="lp-kicker" data-reveal>
-            04 / the narrated browser agent
-          </p>
-          <h2 className="lp-h2" data-reveal>
-            It can take the wheel — and narrate every move.
-          </h2>
-          <div className="lp-agent-grid">
-            <div className="lp-agent-copy">
-              <p className="lp-lede" data-reveal>
-                Install the Chrome extension and EPM Wizard drives Oracle EPM Cloud&rsquo;s actual web UI for you. It reads
-                the page&rsquo;s accessibility tree to target real elements, narrates each step in a side panel, and stops
-                at an enforced safety gate before anything destructive or production-facing runs.
-              </p>
-              <dl className="lp-spec-sheet" data-reveal>
-                {AGENT_CAPS.map(([k, val], i) => (
-                  <div className="lp-spec-row" style={v({ "--i": i })} key={k}>
-                    <dt>{k}</dt>
-                    <dd>{val}</dd>
-                  </div>
-                ))}
-              </dl>
-              <div className="lp-agent-install" data-reveal>
-                <a
-                  className="lp-btn lp-btn-primary"
-                  href={__EXTENSION_ZIP_URL__}
-                  download={__EXTENSION_ZIP_NAME__}
-                >
-                  <span className="lp-download-mark" aria-hidden="true">↓</span>
-                  Download Chrome extension
-                </a>
-                <span className="lp-agent-install-note">
-                  Chrome 116+ · versioned ZIP · unzip, then load unpacked
-                </span>
-              </div>
-            </div>
-            <div className="lp-agent-panel-wrap" data-reveal>
-              <AgentPanel />
-              <p className="lp-sr-only">
-                Illustrative side panel: the agent opens the Forms library, selects Actuals, begins typing a period range,
-                then holds a “Deploy” action on a production tenant for your approval before it runs.
-              </p>
-            </div>
-          </div>
-          <figure className="lp-arch-fig" data-reveal>
-            <BrowserAgentDiagram />
-          </figure>
-          <p className="lp-fineprint lp-agent-honest" data-reveal>
-            The browser agent is a real, loadable extension. Oracle-specific UI hardening is still in progress and it has
-            not been validated against a live tenant — keep the safety gate on and supervise it.
-          </p>
-        </section>
-
-        {/* ------------------------------------ architecture / trust boundary */}
-        <section id="security" className="lp-section lp-arch">
-          <p className="lp-kicker" data-reveal>
-            05 / security
-          </p>
-          <h2 className="lp-h2" data-reveal>
-            Where does my password go? It stops here.
-          </h2>
-          <p className="lp-lede" data-reveal>
-            Local-first by design: your projects and history stay on your machine, and everything that touches a secret
-            stays there too. Only deterministic code crosses the connector boundary to your tenant — carrying metadata
-            and artifacts, never credentials, and never the model. The browser agent runs in your browser, under your own
-            signed-in session.
-          </p>
-          <figure className="lp-arch-fig" data-reveal>
-            <TrustBoundaryDiagram />
-          </figure>
-        </section>
-
-        {/* --------------------------------------- guardrails audit ledger */}
-        <section className="lp-section lp-ledger-section">
-          <p className="lp-kicker" data-reveal>
-            06 / guardrails
-          </p>
-          <h2 className="lp-h2" data-reveal>
-            What is guaranteed, and by what
-          </h2>
-          <div className="lp-ledger">
-            {LEDGER.map((r, i) => (
-              <div className={`lp-log${r.gate ? " gate" : ""}`} data-reveal style={v({ "--i": i })} key={r.claim}>
-                <span className="lp-log-t" aria-hidden="true">
-                  {r.t}
-                </span>
-                <span className={`lp-log-tag tag-${r.tag}`}>{r.tag.toUpperCase()}</span>
-                <div className="lp-log-text">
-                  <b>{r.claim}</b>
-                  <span>{r.how}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* --------------------------------------------- telemetry band */}
-        <section className="lp-section lp-stats-section">
-          <p className="lp-kicker" data-reveal>
-            07 / telemetry
-          </p>
-          <h2 className="lp-sr-only">Telemetry</h2>
-          <div className="lp-stats">
-            {STATS.map((s) => (
-              <Stat key={s.label} to={s.to} suffix={s.suffix} label={s.label} reduce={reduce} />
-            ))}
-          </div>
-        </section>
-
-        {/* ------------------------------------------------ the model */}
-        <section className="lp-section lp-model-section">
-          <p className="lp-kicker" data-reveal>
-            08 / the model layer
-          </p>
-          <h2 className="lp-h2" data-reveal>
-            Bring your own model — or run ours
-          </h2>
-          <p className="lp-lede" data-reveal>
-            EPM Wizard is model-agnostic: connect Anthropic, any OpenAI-compatible endpoint, or Gemini, and the assistant
-            reasons over your own metadata. It also ships a specialist fine-tune — EPM Coder — trained to turn
-            plain-English requests into validated form specifications.
-          </p>
-          <dl className="lp-spec-sheet">
-            {MODEL_SPEC.map(([k, val], i) => (
-              <div className="lp-spec-row" data-reveal style={v({ "--i": i })} key={k}>
-                <dt>{k}</dt>
-                <dd>{val}</dd>
-              </div>
-            ))}
-          </dl>
-          <p className="lp-model-note" data-reveal>
-            EPM Coder v1 is a pipeline-validation checkpoint trained on a synthetic corpus — proof the training loop works
-            end-to-end, not a production-quality benchmark. Until it&rsquo;s measured on real tenants, the assistant
-            defaults to a stock model grounded in your own metadata.
-          </p>
-        </section>
-
-        {/* ------------------------------------------------ get started */}
-        <section className="lp-section lp-cta">
-          <div className="lp-cta-card" data-reveal>
-            <h2>Start in Demo Mode — no key, no tenant.</h2>
-            <p>
-              Sign in and EPM Wizard opens on a fixture Planning application with a deterministic local provider — nothing
-              external is contacted. Bring your own model and tenant when you&rsquo;re ready.
+        <section className="lp-hero">
+          <div className="lp-hero-copy">
+            <p className="lp-eyebrow">
+              <span>NEW</span>
+              CHROME EXTENSION + AI WORKSPACE
             </p>
-            <div className="lp-actions">
-              <SignInButton variant="primary" />
-              <Link className="lp-btn lp-btn-ghost" to="/docs">
-                Read the docs
-                <span className="lp-arrow" aria-hidden="true">
-                  →
-                </span>
-              </Link>
+            <h1>EPM work,<br />without the click maze.</h1>
+            <p className="lp-hero-lede">
+              Install the browser agent, sign in, and tell it what needs to happen in Oracle EPM.
+              It works alongside a structured AI workspace, narrates every browser step, and — with
+              the default safety gate on — pauses before recognized risky changes.
+            </p>
+            <div className="lp-hero-actions">
+              <ExtensionDownload />
+              <GoogleSignIn />
             </div>
+            <div className="lp-install-meta">
+              <span>v{extensionVersion}</span>
+              <span>Chrome 116+</span>
+              <span>Manifest V3</span>
+              <span>ZIP · load unpacked</span>
+            </div>
+            <p className="lp-hero-note">
+              The web workspace has a tenant-free Demo Mode. Starting an extension run requires a
+              website session and a connected Oracle EPM environment.
+            </p>
+            <p className="lp-beta-note">
+              Supervised early access · Oracle-specific UI hardening is in progress · not yet validated on a live tenant
+            </p>
+          </div>
+          <div className="lp-hero-visual">
+            <BrowserProductPreview />
+          </div>
+        </section>
+
+        <section className="lp-proof" aria-label="Product highlights">
+          {PROOF_POINTS.map(([title, body]) => (
+            <div className="lp-proof-item" key={title}>
+              <b>{title}</b>
+              <span>{body}</span>
+            </div>
+          ))}
+        </section>
+
+        <section className="lp-section lp-start" id="how-it-works">
+          <div className="lp-section-heading" data-reveal>
+            <p className="lp-kicker">START HERE</p>
+            <h2>Four steps from download to first run.</h2>
+            <p>The hosted extension and web workspace are designed as one handoff, with no IDs or server URLs to copy.</p>
+          </div>
+          <ol className="lp-start-grid">
+            <li data-reveal>
+              <span className="lp-step-number">01</span>
+              <div className="lp-step-art">
+                <span className="lp-zip">ZIP</span>
+                <i>epm-wizard-extension-{extensionVersion}.zip</i>
+              </div>
+              <h3>Download and load in Chrome</h3>
+              <p>Unzip the download, open <code>chrome://extensions</code>, enable Developer mode, then choose Load unpacked.</p>
+            </li>
+            <li data-reveal>
+              <span className="lp-step-number">02</span>
+              <div className="lp-step-art google-art"><GoogleGlyph /><i>Continue with Google</i></div>
+              <h3>Use one website session</h3>
+              <p>Google sign-in unlocks the hosted workspace and lets the extension verify the same website session.</p>
+            </li>
+            <li data-reveal>
+              <span className="lp-step-number">03</span>
+              <div className="lp-step-art connect-art"><span>●</span><i>Oracle environment connected</i></div>
+              <h3>Connect Oracle EPM</h3>
+              <p>Add a non-demo environment with a password or OCI IAM OAuth client credentials. The extension will not start without it.</p>
+            </li>
+            <li data-reveal>
+              <span className="lp-step-number">04</span>
+              <div className="lp-step-art launch-art"><span>↗</span><i>Launch on current tab</i></div>
+              <h3>Launch from Browser Agent</h3>
+              <p>Open the Agent page, enter a goal, and launch. The project and backend connection are handed off automatically.</p>
+            </li>
+          </ol>
+          <div className="lp-start-actions" data-reveal>
+            <ExtensionDownload />
+            <Link className="lp-text-link" to="/docs#agent">Read the installation guide <ArrowIcon /></Link>
+          </div>
+        </section>
+
+        <section className="lp-section lp-workflows">
+          <div className="lp-section-heading" data-reveal>
+            <p className="lp-kicker">ONE WORKSPACE, THREE MODES</p>
+            <h2>Build it. Understand it. Operate it.</h2>
+            <p>EPM Wizard keeps the request, the real application context, and the browser execution in one reviewable flow.</p>
+          </div>
+          <div className="lp-workflow-grid">
+            {WORKFLOWS.map((workflow) => (
+              <article className="lp-workflow" key={workflow.number} data-reveal>
+                <div className="lp-workflow-meta"><span>{workflow.number}</span><b>{workflow.label}</b></div>
+                <h3>{workflow.title}</h3>
+                <p>{workflow.body}</p>
+                <code>{workflow.example}</code>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="lp-section lp-results">
+          <div className="lp-results-copy" data-reveal>
+            <p className="lp-kicker">RESULTS YOU CAN REVIEW</p>
+            <h2>It answers in interfaces, not walls of text.</h2>
+            <p>
+              Requests come back as form previews, cube maps, validation reports, diffs,
+              runtime prompts, and deployment plans. The model proposes; deterministic code
+              validates and packages the work.
+            </p>
+            <ul>
+              <li><span>01</span>Inspect exact rows, columns, POV, and member resolution.</li>
+              <li><span>02</span>See which real rules and artifacts grounded a draft.</li>
+              <li><span>03</span>Approve a reviewed plan before anything is deployed.</li>
+            </ul>
+            <Link className="lp-text-link" to="/docs#blocks">Explore every result type <ArrowIcon /></Link>
+          </div>
+          <div data-reveal><ResultStack /></div>
+        </section>
+
+        <section className="lp-section lp-safety" id="safety">
+          <div className="lp-safety-copy" data-reveal>
+            <p className="lp-kicker">BUILT TO PAUSE</p>
+            <h2>The most important agent action is stop.</h2>
+            <p>
+              With the safety gate enabled by default, recognized destructive targets and writes on
+              production-looking tabs are held before execution.
+              You see the target, environment, and reason for the hold, then approve once or skip.
+            </p>
+            <p className="lp-honesty">
+              The gate uses accessible names and URL heuristics; it is a meaningful guardrail, not a
+              proof of safety. Keep it enabled and supervise real runs.
+            </p>
+          </div>
+          <div className="lp-safety-console" data-reveal>
+            <div className="lp-console-head"><span>RUN 0042</span><b>PAUSED</b></div>
+            <div className="lp-console-line ok"><span>00:01</span><b>READ</b><p>Opened Forms library</p></div>
+            <div className="lp-console-line ok"><span>00:03</span><b>SELECT</b><p>Located “Actuals”</p></div>
+            <div className="lp-console-line held"><span>00:05</span><b>HELD</b><p>Write target on production tab</p></div>
+            <div className="lp-console-review">
+              <span>REVIEW REQUIRED</span>
+              <h3>Set Scenario to Forecast?</h3>
+              <p>planning-prod.example.com · target ref=42</p>
+              <div><span>Approve once</span><span>Skip action</span></div>
+            </div>
+          </div>
+        </section>
+
+        <section className="lp-section lp-final">
+          <div className="lp-final-card" data-reveal>
+            <p className="lp-kicker">READY WHEN YOU ARE</p>
+            <h2>Put EPM Wizard one click away.</h2>
+            <p>Download the Chrome extension, then open the workspace with Google. Demo Mode is waiting on the other side.</p>
+            <div className="lp-hero-actions">
+              <ExtensionDownload />
+              <GoogleSignIn />
+            </div>
+            <Link className="lp-text-link" to="/docs">Or read the full product docs <ArrowIcon /></Link>
           </div>
         </section>
       </main>
 
-      {/* ----------------------------------------------------------- footer */}
       <footer className="lp-footer">
-        <div className="lp-ruler" aria-hidden="true" />
         <div className="lp-footer-inner">
           <Link className="lp-brand" to="/">
-            <img src="/favicon.svg" alt="" width={22} height={22} />
-            <span>EPM&nbsp;Wizard</span>
+            <img src="/favicon.svg" alt="" width={24} height={24} />
+            <span>EPM Wizard</span>
           </Link>
-          <p className="lp-disclaimer">
-            EPM Wizard is an independent implementation tool. IBM, Oracle, and their respective product names are
-            trademarks of their respective owners. EPM Wizard is not made, endorsed, or sponsored by IBM or Oracle.
+          <p>
+            Independent implementation tooling. Not made, endorsed, or sponsored by IBM or Oracle.
           </p>
+          <div><a href="#how-it-works">Get started</a><Link to="/docs">Docs</Link></div>
         </div>
       </footer>
     </div>

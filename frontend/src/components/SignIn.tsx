@@ -1,7 +1,7 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { WatsonHealthAiResults, Upload } from "@carbon/icons-react";
-import { Button } from "@carbon/react";
+import { Button, ComposedModal } from "@carbon/react";
 import {
   useConnectEnvironment,
   useCreateEnvironment,
@@ -34,12 +34,55 @@ export function SignInGate({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  return (
-    <>
-      {children}
-      {!allowThrough && <SignInScreen projectId={projectId} environments={environments} />}
-    </>
-  );
+  return allowThrough ? <>{children}</> : <SignInScreen projectId={projectId} environments={environments} />;
+}
+
+function useInertAppBackground(modalRef: React.RefObject<HTMLDivElement>) {
+  useEffect(() => {
+    const modal = modalRef.current;
+    const appShell = modal?.closest<HTMLElement>(".app-shell");
+    if (!modal || !appShell) return;
+
+    const background: HTMLElement[] = [];
+    let branch: HTMLElement = modal;
+
+    while (branch !== appShell && branch.parentElement) {
+      const parent = branch.parentElement;
+      for (const sibling of Array.from(parent.children)) {
+        if (sibling !== branch && sibling instanceof HTMLElement) {
+          background.push(sibling);
+        }
+      }
+      branch = parent;
+    }
+
+    const previous = background.map((element) => ({
+      element,
+      ariaHidden: element.getAttribute("aria-hidden"),
+      inert: element.inert,
+      hadInertAttribute: element.hasAttribute("inert"),
+    }));
+
+    for (const element of background) {
+      element.inert = true;
+      element.setAttribute("inert", "");
+      element.setAttribute("aria-hidden", "true");
+    }
+
+    return () => {
+      for (const state of previous) {
+        state.element.inert = state.inert;
+        if (!state.hadInertAttribute) {
+          state.element.removeAttribute("inert");
+        }
+        if (state.ariaHidden === null) {
+          state.element.removeAttribute("aria-hidden");
+        } else {
+          state.element.setAttribute("aria-hidden", state.ariaHidden);
+        }
+      }
+    };
+  }, [modalRef]);
 }
 
 function SignInScreen({
@@ -71,6 +114,9 @@ function SignInScreen({
   const [error, setError] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  useInertAppBackground(modalRef);
 
   const set = (k: keyof typeof form, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -137,6 +183,7 @@ function SignInScreen({
   };
 
   const oauth = authMode === "oauth";
+  const errorId = error ? "signin-error" : undefined;
 
   const signIn = async () => {
     setError("");
@@ -185,19 +232,26 @@ function SignInScreen({
   };
 
   return (
-    <div className="signin-overlay">
-      <div
-        className={`signin-card ${dragActive ? "drag-active" : ""}`}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-      >
+    <ComposedModal
+      ref={modalRef}
+      open
+      size="sm"
+      className="signin-overlay"
+      containerClassName={`signin-card ${dragActive ? "drag-active" : ""}`}
+      aria-labelledby="signin-title"
+      selectorPrimaryFocus="#signin-base-url"
+      preventCloseOnClickOutside
+      onClose={() => false}
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+    >
         <div className="signin-brand">
           <WatsonHealthAiResults size={26} className="spark" />
           <span>EPM&nbsp;Wizard</span>
         </div>
-        <h1 className="signin-title">Sign in to Oracle EPM</h1>
-        <p className="signin-sub">
+        <h1 id="signin-title" className="signin-title text-balance">Sign in to Oracle EPM</h1>
+        <p className="signin-sub text-pretty">
           Connect to your Planning tenant to begin — with your Oracle password or an OAuth 2.0
           client credential. The secret is held in process memory only and never written to chat
           or logs.
@@ -208,6 +262,7 @@ function SignInScreen({
           type="file"
           accept=".txt"
           onChange={handleFileSelect}
+          aria-label="Credentials file"
           style={{ display: "none" }}
         />
 
@@ -227,17 +282,20 @@ function SignInScreen({
           </div>
         )}
 
-        <label className="signin-label">Instance URL</label>
+        <label className="signin-label" htmlFor="signin-base-url">Instance URL</label>
         <input
+          id="signin-base-url"
           className="signin-input"
           placeholder="https://planning-test-yourpod.epm.us.oraclecloud.com"
           value={form.baseUrl}
           onChange={(e) => set("baseUrl", e.target.value)}
+          aria-describedby={errorId}
           autoFocus
         />
 
-        <label className="signin-label">Authentication</label>
+        <label className="signin-label" htmlFor="signin-auth-mode">Authentication</label>
         <select
+          id="signin-auth-mode"
           className="signin-input"
           value={authMode}
           onChange={(e) => {
@@ -258,29 +316,34 @@ function SignInScreen({
 
         {oauth && (
           <>
-            <label className="signin-label">Token URL (identity domain)</label>
+            <label className="signin-label" htmlFor="signin-token-url">Token URL (identity domain)</label>
             <input
+              id="signin-token-url"
               className="signin-input"
               placeholder="https://idcs-….identity.oraclecloud.com/oauth2/v1/token"
               value={form.tokenUrl}
               onChange={(e) => set("tokenUrl", e.target.value)}
+              aria-describedby={errorId}
             />
           </>
         )}
 
         <div className="signin-row">
           <div style={{ flex: 1 }}>
-            <label className="signin-label">{oauth ? "Client ID" : "Username"}</label>
+            <label className="signin-label" htmlFor="signin-user-id">{oauth ? "Client ID" : "Username"}</label>
             <input
+              id="signin-user-id"
               className="signin-input"
               placeholder={oauth ? "confidential application client ID" : "you@example.com"}
               value={oauth ? form.clientId : form.username}
               onChange={(e) => set(oauth ? "clientId" : "username", e.target.value)}
+              aria-describedby={errorId}
             />
           </div>
           <div style={{ width: 150 }}>
-            <label className="signin-label">Application</label>
+            <label className="signin-label" htmlFor="signin-application">Application</label>
             <input
+              id="signin-application"
               className="signin-input"
               placeholder="auto-detect"
               value={form.application}
@@ -291,18 +354,21 @@ function SignInScreen({
 
         <div className="signin-row">
           <div style={{ flex: 1 }}>
-            <label className="signin-label">{oauth ? "Client secret" : "Password"}</label>
+            <label className="signin-label" htmlFor="signin-secret">{oauth ? "Client secret" : "Password"}</label>
             <input
+              id="signin-secret"
               className="signin-input"
               type="password"
               value={oauth ? form.clientSecret : form.password}
               onChange={(e) => set(oauth ? "clientSecret" : "password", e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !busy && signIn()}
+              aria-describedby={errorId}
             />
           </div>
           <div style={{ width: 150 }}>
-            <label className="signin-label">Classification</label>
+            <label className="signin-label" htmlFor="signin-classification">Classification</label>
             <select
+              id="signin-classification"
               className="signin-input"
               value={form.classification}
               onChange={(e) => set("classification", e.target.value)}
@@ -318,8 +384,9 @@ function SignInScreen({
 
         {oauth && (
           <>
-            <label className="signin-label">Scope (optional)</label>
+            <label className="signin-label" htmlFor="signin-scope">Scope (optional)</label>
             <input
+              id="signin-scope"
               className="signin-input"
               placeholder="urn:opc:serviceInstanceID=…urn:opc:resource:consumer::all"
               value={form.scope}
@@ -337,7 +404,7 @@ function SignInScreen({
           Remember {oauth ? "client secret" : "password"} on this machine (encrypted local store)
         </label>
 
-        {error && <div className="signin-error">{error}</div>}
+        {error && <div id="signin-error" className="signin-error" role="alert">{error}</div>}
 
         <Button kind="primary" disabled={busy} onClick={signIn} style={{ width: "100%", maxWidth: "none", marginTop: 8 }}>
           {busy ? "Connecting…" : "Connect"}
@@ -359,7 +426,6 @@ function SignInScreen({
             </button>
           </span>
         </div>
-      </div>
-    </div>
+    </ComposedModal>
   );
 }

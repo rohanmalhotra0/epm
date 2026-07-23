@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Nested form</title>
+    <style>body { padding: 20px; font: 14px Arial, sans-serif; }</style>
+  </head>
+  <body>
+    <button id="refresh" type="button">Refresh nested form</button>
+    <script>
+      document.querySelector("#refresh").addEventListener("click", () => {
+        parent.parent.postMessage({ epmwEvent: "nestedClicked" }, location.origin);
+      });
+    </script>
+  </body>
+</html>

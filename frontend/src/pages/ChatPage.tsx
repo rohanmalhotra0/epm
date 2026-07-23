@@ -165,10 +165,16 @@ export function ChatPage() {
               <p className="sub">EPM Wizard runs entirely on your machine. Try one of these, or type a request below.</p>
               <div className="suggestions">
                 {SUGGESTIONS.map((s) => (
-                  <div key={s.t} className="suggestion" onClick={() => send(s.d)}>
+                  <button
+                    key={s.t}
+                    type="button"
+                    className="suggestion"
+                    onClick={() => send(s.d)}
+                    aria-label={`${s.t}: ${s.d}`}
+                  >
                     <div className="t">{s.t}</div>
                     <div className="d">{s.d}</div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>

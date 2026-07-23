@@ -51,8 +51,17 @@ def build_messages(
 
 
 def _step_summary(step: Step) -> str:
-    return json.dumps({"narration": step.narration, "action": step.action.model_dump(by_alias=True)},
-                      default=str)
+    payload: dict[str, object] = {
+        "narration": step.narration,
+        "action": step.action.model_dump(
+            by_alias=True,
+            exclude_none=True,
+            exclude_defaults=True,
+        ),
+    }
+    if step.result is not None:
+        payload["result"] = step.result.model_dump(by_alias=True, exclude_none=True)
+    return json.dumps(payload, default=str, separators=(",", ":"))
 
 
 def extract_action_json(text: str) -> dict | None:
@@ -136,7 +145,7 @@ async def decide_step(
     workbook_context: WorkbookContext | None = None,
     index: int = 0,
     model: str | None = None,
-    max_tokens: int = 800,
+    max_tokens: int = 256,
 ) -> Step:
     """Produce the next :class:`Step` (non-streaming). Used by tests and callers
     that don't need token-level narration streaming."""
@@ -166,7 +175,7 @@ async def stream_step(
     workbook_context: WorkbookContext | None = None,
     index: int = 0,
     model: str | None = None,
-    max_tokens: int = 800,
+    max_tokens: int = 256,
 ) -> AsyncIterator[StreamChunkOut]:
     """Stream a step: raw model tokens as they arrive (so the panel shows the
     agent 'thinking'), then a single terminal parsed :class:`Step`.

@@ -57,11 +57,14 @@ export function CommandPalette({
   const [sel, setSel] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
   const seqRef = useRef(0);
 
   // Reset on open.
   useEffect(() => {
     if (open) {
+      openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       setQuery("");
       setResults([]);
       setSel(0);
@@ -69,6 +72,9 @@ export function CommandPalette({
       // Focus after the overlay mounts.
       setTimeout(() => inputRef.current?.focus(), 0);
     }
+    return () => {
+      openerRef.current?.focus();
+    };
   }, [open]);
 
   // Debounced search.
@@ -173,6 +179,25 @@ export function CommandPalette({
     }
   };
 
+  const onDialogKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== "Tab") return;
+    const focusable = Array.from(
+      dialogRef.current?.querySelectorAll<HTMLElement>(
+        'input, button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+      ) ?? [],
+    );
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+
   // Group items (in first-seen order) for rendering; selection index stays flat.
   const groups: Array<{ group: string; items: Array<{ item: PaletteItem; flat: number }> }> = [];
   items.forEach((item, flat) => {
@@ -183,7 +208,15 @@ export function CommandPalette({
 
   return (
     <div className="cmdk-overlay" onMouseDown={onClose}>
-      <div className="cmdk" role="dialog" aria-modal="true" aria-label="Command palette" onMouseDown={(e) => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        className="cmdk"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
+        onKeyDown={onDialogKeyDown}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         <div className="cmdk-input-row">
           <Search size={16} />
           <input
@@ -199,21 +232,23 @@ export function CommandPalette({
           />
           {loading && <span className="spinner" aria-label="Searching" />}
         </div>
-        <div className="cmdk-list" ref={listRef}>
+        <div className="cmdk-list" ref={listRef} aria-label="Command palette results">
           {groups.map((g) => (
-            <div key={g.group}>
+            <div key={g.group} role="group" aria-label={GROUP_LABELS[g.group] || g.group}>
               <div className="cmdk-group-label">{GROUP_LABELS[g.group] || g.group}</div>
               {g.items.map(({ item, flat }) => (
-                <div
+                <button
+                  type="button"
                   key={item.key}
                   className={`cmdk-item ${flat === sel ? "active" : ""}`}
+                  aria-current={flat === sel ? "true" : undefined}
                   onMouseEnter={() => setSel(flat)}
                   onClick={() => item.run()}
                 >
                   <span className="ic">{item.icon}</span>
                   <span className="lbl">{item.label}</span>
                   {item.sublabel && <span className="sub">{item.sublabel}</span>}
-                </div>
+                </button>
               ))}
             </div>
           ))}

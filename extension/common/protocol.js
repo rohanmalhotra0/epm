@@ -16,6 +16,7 @@ export const CMD = Object.freeze({
   CLEAR_WORKBOOK_CONTEXT: "clearWorkbookContext",
   CHECK_ACCESS: "checkAccess", // verify website OAuth + connected Oracle EPM environment
   CONNECT_EPM: "connectEpm",   // submit the same Oracle credentials form as the website
+  CONFIRM_ORIGIN: "confirmOrigin", // explicit extension-UI approval for backend origin change
   CONFIRM: "confirm",      // { id, approve } — resolve a held destructive action
   TEST_CONNECTION: "testConnection", // check backend reachability + auth
 });
@@ -32,6 +33,8 @@ export const EVT = Object.freeze({
   CONFIRM: "confirm",   // { id, reason, label, action } destructive action held for approval
   CONN: "conn",         // { ok, mode, owner, message } result of TEST_CONNECTION
   ACCESS: "access",     // { stage:"oauth"|"epm"|"ready"|"error", ... }
+  ORIGIN_CONFIRM: "originConfirm", // { backendUrl, pageOrigin, reason }
+  ORIGIN_UPDATED: "originUpdated", // { ok, backendUrl?, detail? }
 });
 
 // Web page (EPM Wizard site) <-> extension, bridged by content/site-bridge.js

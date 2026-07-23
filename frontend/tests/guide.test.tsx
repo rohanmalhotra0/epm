@@ -156,13 +156,13 @@ describe("legacy documentation URLs", () => {
     );
   }
 
-  it("redirects /how-to to /guide", () => {
+  it("redirects /how-to to /guide", async () => {
     renderAt("/how-to");
-    expect(screen.getByRole("heading", { level: 1, name: /You describe the change/ })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: /You describe the change/ })).toBeInTheDocument();
   });
 
-  it("redirects /how-it-works to /guide", () => {
+  it("redirects /how-it-works to /guide", async () => {
     renderAt("/how-it-works");
-    expect(screen.getByRole("heading", { level: 1, name: /You describe the change/ })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: /You describe the change/ })).toBeInTheDocument();
   });
 });

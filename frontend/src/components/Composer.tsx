@@ -149,6 +149,7 @@ export function Composer({
 
   const ready = pending.filter((p) => p.attachment).map((p) => p.attachment!);
   const uploading = pending.some((p) => p.uploading);
+  const activeSlashId = showMenu && filtered.length ? `slash-command-${menuIdx}` : undefined;
 
   const submit = () => {
     const t = text.trim();
@@ -189,11 +190,14 @@ export function Composer({
     <div className={`composer-wrap ${dragOver ? "drop-active" : ""}`}>
       <div className="composer">
         {showMenu && filtered.length > 0 && (
-          <div className="slash-menu">
+          <div className="slash-menu" id="slash-command-menu" role="listbox" aria-label="Slash commands">
             {filtered.map((s, i) => (
               <div
                 key={s.cmd}
+                id={`slash-command-${i}`}
                 className={`slash-item ${i === menuIdx ? "active" : ""}`}
+                role="option"
+                aria-selected={i === menuIdx}
                 onMouseDown={(e) => {
                   e.preventDefault();
                   setText(s.cmd + " ");
@@ -228,6 +232,7 @@ export function Composer({
         {dragOver && <div className="drop-overlay">Drop {ACCEPTED_EXTENSIONS.join(" / ")} files to attach</div>}
         <textarea
           ref={ref}
+          role="combobox"
           value={text}
           placeholder="Ask EPM Wizard to build, inspect, explain, or run something…"
           onChange={(e) => {
@@ -236,6 +241,10 @@ export function Composer({
           }}
           onKeyDown={onKey}
           aria-label="Message EPM Wizard"
+          aria-autocomplete="list"
+          aria-controls={showMenu && filtered.length ? "slash-command-menu" : undefined}
+          aria-expanded={showMenu && filtered.length > 0}
+          aria-activedescendant={activeSlashId}
         />
         <div className="composer-actions">
           {conversationId && (

@@ -17,6 +17,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
+from ..security.redaction import redact_text
 from ..spreadsheet import WorkbookInspection, inspect_file
 from .deps import get_current_owner
 
@@ -31,7 +32,7 @@ ALLOWED_EXTENSIONS = {".xlsx", ".xlsm", ".xlsb", ".csv"}
 async def run_inspection(file: UploadFile) -> WorkbookInspection:
     """Parse an uploaded workbook (no owner scoping — the caller's route decides
     how to authenticate). Shared by the session-gated and token-gated routes."""
-    filename = file.filename or "workbook.xlsx"
+    filename = Path(file.filename or "workbook.xlsx").name
     ext = Path(filename).suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
         allowed = ", ".join(sorted(ALLOWED_EXTENSIONS))
@@ -47,7 +48,11 @@ async def run_inspection(file: UploadFile) -> WorkbookInspection:
         tmp.write(data)
         tmp.flush()
         try:
-            return inspect_file(Path(tmp.name), filename=filename, size_bytes=len(data))
+            return inspect_file(
+                Path(tmp.name),
+                filename=redact_text(filename)[:255],
+                size_bytes=len(data),
+            )
         except Exception as exc:  # noqa: BLE001 — never leak a stack trace to the client
             raise HTTPException(422, f"could not inspect workbook: {str(exc)[:200]}") from exc
 

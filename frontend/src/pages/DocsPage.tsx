@@ -42,6 +42,19 @@ function GoogleGlyph() {
   );
 }
 
+function ExtensionDownload({ children = "Download extension" }: { children?: string }) {
+  return (
+    <a
+      className="docs-download"
+      href={__EXTENSION_ZIP_URL__}
+      download={__EXTENSION_ZIP_NAME__}
+    >
+      <span aria-hidden="true">↓</span>
+      {children}
+    </a>
+  );
+}
+
 /** A code / example block; keys are lightly accented via the `.k` class. */
 function Code({ children }: { children: React.ReactNode }) {
   return (
@@ -88,6 +101,7 @@ export function DocsPage() {
             <Link className="docs-nav-link" to="/">
               ← Back to site
             </Link>
+            <ExtensionDownload />
             <a className="docs-signin" href={APP_ENTRY}>
               <GoogleGlyph />
               <span>Sign in with Google</span>
@@ -129,8 +143,8 @@ export function DocsPage() {
               EPM Wizard is a ChatGPT-style chat app for Oracle EPM (Hyperion Planning) work — you describe what you want,
               and results come back as live, interactive blocks instead of walls of text. Alongside it, an optional Chrome
               extension, the Narrated Browser Agent, can drive Oracle EPM Cloud's own web UI while narrating each step and
-              holding risky actions for your approval. This page covers what the product is, how to get started, and where
-              its honest limits are.
+              — with its default safety gate enabled — holding recognized risky actions for your approval. This page covers
+              what the product is, how to get started, and where its honest limits are.
             </p>
           </div>
 
@@ -156,7 +170,8 @@ export function DocsPage() {
                 <b>Narrated Browser Agent</b>
                 <span>
                   A Chrome extension that drives Oracle EPM Cloud's real web UI on the tab you point it at, narrating each
-                  step in a side panel and holding destructive or production actions for your approval.
+                  step in a side panel and, with the default gate enabled, holding recognized destructive or production
+                  actions for your approval.
                 </span>
               </div>
               <div className="docs-card">
@@ -174,13 +189,23 @@ export function DocsPage() {
             <h2 data-reveal>Quickstart</h2>
             <ol className="docs-steps">
               <li data-reveal>
-                <b>Sign in with Google.</b> Access is gated by Google sign-in. Approved accounts land directly in the app;
-                others are returned to the landing page.
+                <b>Install the Chrome extension.</b> <ExtensionDownload children="Download the public ZIP" />, unzip it,
+                open <code>chrome://extensions</code>, enable Developer mode, and choose <b>Load unpacked</b>. The current
+                build is a Chrome 116+ Manifest V3 extension and is not yet in the Chrome Web Store.
               </li>
               <li data-reveal>
-                <b>You land in Demo Mode.</b> The app is usable the moment it opens: a fixture <code>MCWPCF</code> Planning
-                application plus a deterministic local provider. No API key, no Oracle tenant, nothing external contacted —
-                so you can explore the whole product before wiring anything up.
+                <b>Open the web workspace.</b> On the hosted deployment, continuing to <code>/app</code> starts the Google
+                sign-in gate. A local or self-hosted deployment may open the app directly instead.
+              </li>
+              <li data-reveal>
+                <b>Connect Oracle before an extension run.</b> Add a non-demo Oracle EPM environment with a username and
+                password or OCI IAM OAuth client credentials. The extension requires both a valid website session and a
+                connected live environment before it enables <b>Start</b>.
+              </li>
+              <li data-reveal>
+                <b>Explore the web workspace in Demo Mode.</b> The app includes a fixture <code>MCWPCF</code> Planning
+                application plus a deterministic provider, so the web workspace itself can be explored without an AI key
+                or Oracle tenant. Demo Mode does not unlock a browser-agent run.
               </li>
               <li data-reveal>
                 <b>Try an example chat message.</b> Type a request in plain language and watch it come back as an
@@ -340,13 +365,15 @@ export function DocsPage() {
             </p>
             <ol className="docs-steps">
               <li data-reveal>
-                <b>Install it.</b> Today you load it unpacked: download the extension <code>.zip</code> from the Browser
-                Agent page at <code>/agent</code> (or point at the repo's <code>extension/</code> folder), unzip it, then
-                open <code>chrome://extensions</code>, turn on Developer mode, and <b>Load unpacked</b> the folder. A Chrome
+                <b>Install it.</b> Today you load it unpacked: <ExtensionDownload children="download the public extension ZIP" />{" "}
+                (or point at the repo's <code>extension/</code> folder), unzip it, then open{" "}
+                <code>chrome://extensions</code>, turn on Developer mode, and <b>Load unpacked</b> the folder. A Chrome
                 Web Store listing will replace this step once it is published.
               </li>
               <li data-reveal>
-                <b>Launch it from the app.</b> The app's Browser Agent page at <code>/agent</code> detects the extension and
+                <b>Connect and launch it from the app.</b> Complete the hosted website sign-in (or use your local/self-hosted
+                session), connect a non-demo Oracle environment, then open the Browser Agent page at <code>/app/agent</code>.
+                It detects the extension and
                 launches it on your current tab, handing it the backend URL, your project, and an optional goal — no manual
                 setup. Open your Oracle EPM tab, then press <b>Start</b> in the panel.
               </li>
@@ -365,8 +392,8 @@ export function DocsPage() {
             </p>
             <h3 data-reveal>The production-safety gate</h3>
             <p data-reveal>
-              The gate is enforced, not advisory: before an action runs, the extension consults it and <b>holds</b> the
-              action for your explicit approval when it fires. Two independent triggers:
+              When enabled, the gate is enforced in extension code rather than left to a model prompt: before an action
+              runs, the extension consults it and <b>holds</b> the action for your explicit approval when it fires.
             </p>
             <ul className="docs-list">
               <li data-reveal>
@@ -377,11 +404,19 @@ export function DocsPage() {
                 <b>Any write on a production tab.</b> When the tab looks like a production tenant, every write — including
                 blind coordinate clicks whose target can't be read — is held.
               </li>
+              <li data-reveal>
+                <b>A coordinate-only write.</b> A click or type whose target cannot be identified is held even outside a
+                detected production environment.
+              </li>
+              <li data-reveal>
+                <b>Cross-origin navigation.</b> Leaving the current origin is held so a run cannot silently jump to a
+                different site.
+              </li>
             </ul>
             <p data-reveal>
-              Read-only actions (scroll, wait, screenshot, navigate) are never gated. The gate is on by default and can be
-              toggled in the panel's settings. It is a heuristic — accessible-name and URL matching — not a proof of
-              safety.
+              Scroll, wait, screenshot, and same-origin navigation can run without a prompt. The gate is on by default and
+              can be toggled in the panel's settings. It is a heuristic — accessible-name and URL matching — not a proof
+              of safety.
             </p>
             <blockquote className="docs-quote" data-reveal>
               Keep the gate on and supervise. It holds risky actions for you; it does not guarantee an action is safe.
@@ -389,9 +424,10 @@ export function DocsPage() {
             <p data-reveal>
               Honest limits, stated plainly: the browser agent has <b>not</b> been validated against a live Oracle tenant.
               The Oracle-specific UI hardening — nested iframes, canvas / JET grids, selector heuristics, and SSO — is in
-              progress. And because the screenshot fallback uses Chrome's <code>debugger</code> permission, Chrome shows its
-              "… is debugging this browser" banner while the agent is attached. Validate against a real Planning UI before
-              trusting any driving behaviour.
+              progress. Screenshots use Chrome's visible-tab capture first; if the optional <code>debugger</code> permission
+              is granted, CDP can provide the fallback capture and coordinate actions, and Chrome shows its
+              "… is debugging this browser" banner while attached. Validate against a real Planning UI before trusting any
+              driving behaviour.
             </p>
           </section>
 
@@ -426,27 +462,31 @@ export function DocsPage() {
           <section id="security" className="docs-section">
             <h2 data-reveal>Security</h2>
             <p data-reveal>
-              Everything that touches a secret stays on your machine. Only deterministic code crosses the connector
-              boundary to your tenant — carrying metadata and artifacts, never credentials, and never the model itself.
+              EPM Wizard is local-first and self-hostable. In a local deployment, projects and secrets stay in your own
+              environment. In a hosted deployment, the configured server stores application data and sends model inputs to
+              the AI provider you select; its hosting and provider policies apply. In both modes, secrets are kept out of
+              model prompts and scrubbed from logs and diagnostics.
             </p>
             <figure className="docs-fig" data-reveal>
               <TrustBoundaryDiagram />
               <figcaption>
-                The trust boundary. The model proposes inside your machine; only typed, allowlisted code reaches Oracle.
+                The trust boundary. Configured credentials stay out of model prompts; typed connector code reaches Oracle.
               </figcaption>
             </figure>
             <ul className="docs-list">
               <li data-reveal>
-                <b>Secrets never reach the model.</b> API keys and passwords live in a Fernet-encrypted local secret store
-                and are scrubbed from logs, tool results, errors, and diagnostics by a centralized redactor.
+                <b>Configured credentials stay out of model prompts.</b> Stored API keys and Oracle credentials live in a
+                Fernet-encrypted secret store and are scrubbed from logs, tool results, errors, and diagnostics. Page
+                observations and screenshots are model context, so do not expose unrelated secrets in a driven tab.
               </li>
               <li data-reveal>
                 <b>No shell, ever.</b> Executable actions are typed, allowlisted functions. External commands run as
                 argument arrays with strict validation — no path traversal, no shell metacharacters — plus timeouts.
               </li>
               <li data-reveal>
-                <b>Your data stays local.</b> Projects, conversations, contexts, artifacts, and deployment history live in
-                one local data directory (SQLite + the encrypted secret store), not a hosted service.
+                <b>Local mode stays local.</b> When you self-host on your machine, projects, conversations, contexts,
+                artifacts, and deployment history live in your local data directory. Hosted deployments use their
+                configured server-side storage.
               </li>
             </ul>
           </section>
@@ -475,8 +515,8 @@ export function DocsPage() {
               </div>
             </div>
             <p data-reveal>
-              Every training label was produced against real tenant metadata and kept only when the deterministic validator
-              reported no blocking errors, so the labels are guaranteed schema-valid.
+              Every training label was produced against the demo application's synthetic fixture metadata and kept only
+              when the deterministic validator reported no blocking errors, so the labels are schema-valid for that fixture.
             </p>
             <blockquote className="docs-quote" data-reveal>
               v1 is a pipeline-validation checkpoint. It was trained on a synthetic, template-derived corpus from a single
@@ -495,7 +535,8 @@ export function DocsPage() {
             <h2 data-reveal>Next steps</h2>
             <div className="docs-next" data-reveal>
               <h3>Ready to try it?</h3>
-              <p>Sign in to open the app in Demo Mode — no key or tenant required to start.</p>
+              <p>Install the extension, or open the web workspace in Demo Mode with no key or tenant.</p>
+              <ExtensionDownload />
               <a className="docs-signin" href={APP_ENTRY}>
                 <GoogleGlyph />
                 <span>Sign in with Google</span>
