@@ -12,6 +12,10 @@ export const CMD = Object.freeze({
   STOP: "stop",
   GET_STATE: "getState",
   SET_CONFIG: "setConfig", // { backendUrl, projectId, apiToken, enforceGuardrails }
+  SET_WORKBOOK_CONTEXT: "setWorkbookContext", // redacted prompt context from inspector
+  CLEAR_WORKBOOK_CONTEXT: "clearWorkbookContext",
+  CHECK_ACCESS: "checkAccess", // verify website OAuth + connected Oracle EPM environment
+  CONNECT_EPM: "connectEpm",   // submit the same Oracle credentials form as the website
   CONFIRM: "confirm",      // { id, approve } — resolve a held destructive action
   TEST_CONNECTION: "testConnection", // check backend reachability + auth
 });
@@ -27,6 +31,7 @@ export const EVT = Object.freeze({
   LOG: "log",           // { line }
   CONFIRM: "confirm",   // { id, reason, label, action } destructive action held for approval
   CONN: "conn",         // { ok, mode, owner, message } result of TEST_CONNECTION
+  ACCESS: "access",     // { stage:"oauth"|"epm"|"ready"|"error", ... }
 });
 
 // Web page (EPM Wizard site) <-> extension, bridged by content/site-bridge.js

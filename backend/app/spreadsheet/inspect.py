@@ -14,6 +14,7 @@ strings and command text are redacted; formulas are never evaluated.
 
 from __future__ import annotations
 
+import json
 import re
 import zipfile
 from pathlib import Path
@@ -44,6 +45,12 @@ _CONN_TYPES = {
 }
 
 _SUPPORTED = {".xlsx", ".xlsm", ".xlsb", ".csv"}
+
+# chrome.storage.session is quota-bounded and the context is replayed on every
+# browser-agent step. VBA extraction itself is capped at 200k characters, so
+# 300k preserves every extracted macro in normal operation while leaving ample
+# room for formulas and workbook structure.
+AI_CONTEXT_MAX_CHARS = 300_000
 
 
 # --- VBA procedure / trigger scanning (pure — unit-tested without oletools) --
@@ -234,7 +241,7 @@ def _ooxml_parts(path: Path) -> tuple[list[PivotTableInfo], list[DataConnection]
             # Best-effort source attribution: exact 1:1 pivot↔cache maps cleanly;
             # otherwise surface the distinct cache sources as a note.
             if pivots and len(cache_sources) == len(pivots):
-                for p, s in zip(pivots, cache_sources):
+                for p, s in zip(pivots, cache_sources, strict=False):
                     p.source = s
             elif cache_sources:
                 uniq = sorted(set(cache_sources))
@@ -279,14 +286,19 @@ def inspect_file(path: Path, filename: str | None = None, size_bytes: int = 0) -
             rows=len(s.sample_rows) if s else 0, cols=len(s.columns) if s else 0,
             formula_count=len(s.formulas) if s else 0, kind=s.kind if s else None,  # type: ignore[arg-type]
         ) if s else None
-        return WorkbookInspection(
+        inspection = WorkbookInspection(
             filename=filename, size_bytes=size_bytes, file_format="csv",
             summary="CSV file · no macros or workbook structure",
             sheet_count=1 if summary else 0, sheets=[summary] if summary else [],
             issues=analysis.sheets[0].issues if analysis.sheets else [],
         )
+        inspection.ai_context, inspection.ai_context_truncated = _build_ai_context(
+            inspection, analysis
+        )
+        return inspection
 
     # xlsx / xlsm / xlsb — reuse the parser for sheets/formulas/VBA, then enrich.
+    analysis = None
     vba_modules: list[VbaModule] = []
     formula_by_sheet: dict[str, int] = {}
     kind_by_sheet: dict[str, object] = {}
@@ -355,6 +367,9 @@ def inspect_file(path: Path, filename: str | None = None, size_bytes: int = 0) -
         charts=charts, connections=connections, issues=issues,
     )
     inspection.summary = _summarize(inspection)
+    inspection.ai_context, inspection.ai_context_truncated = _build_ai_context(
+        inspection, analysis
+    )
     return inspection
 
 
@@ -379,3 +394,106 @@ def _summarize(w: WorkbookInspection) -> str:
         bits.append(f"{len(w.charts)} chart{'s' if len(w.charts) != 1 else ''}")
     lead = "Macro-enabled workbook" if w.macro_enabled else "Workbook"
     return f"{lead} · " + " · ".join(bits)
+
+
+def _build_ai_context(
+    inspection: WorkbookInspection,
+    analysis: object | None,
+) -> tuple[str, bool]:
+    """Build the bounded, prompt-ready context shipped to the browser agent.
+
+    Extracted VBA is placed first so the inspector's complete (already bounded
+    and redacted) macro output is retained before lower-priority sheet samples.
+    Workbook content remains inert text; the agent prompt explicitly treats it
+    as untrusted reference data.
+    """
+    parts: list[str] = []
+    used = 0
+    truncated = False
+    marker = "\n[WORKBOOK CONTEXT TRUNCATED AT SAFE SIZE LIMIT]"
+
+    def add(text: str) -> bool:
+        nonlocal used, truncated
+        separator = "\n\n" if parts else ""
+        available = AI_CONTEXT_MAX_CHARS - used - len(separator)
+        if available <= 0:
+            truncated = True
+            return False
+        if len(text) <= available:
+            parts.append(separator + text)
+            used += len(separator) + len(text)
+            return True
+        keep = max(0, available - len(marker))
+        parts.append(separator + text[:keep] + marker)
+        used += len(separator) + keep + len(marker)
+        truncated = True
+        return False
+
+    add(
+        "WORKBOOK OVERVIEW\n"
+        f"Filename: {inspection.filename}\n"
+        f"Format: {inspection.file_format}\n"
+        f"Summary: {inspection.summary}\n"
+        "Safety: parsed as data only; VBA and formulas were not executed."
+    )
+
+    if inspection.vba_modules:
+        add("VBA MODULES (inert, redacted source)")
+        for module in inspection.vba_modules:
+            if not add(
+                f"--- MODULE {module.name} ({module.line_count} lines) ---\n"
+                f"{module.code}\n"
+                f"--- END MODULE {module.name} ---"
+            ):
+                return "".join(parts), truncated
+
+    structure = inspection.model_dump(
+        by_alias=True,
+        mode="json",
+        exclude={"vba_modules", "ai_context", "ai_context_truncated"},
+    )
+    if not add(
+        "WORKBOOK STRUCTURE\n"
+        + json.dumps(structure, ensure_ascii=False, separators=(",", ":"), default=str)
+    ):
+        return "".join(parts), truncated
+
+    sheets = list(getattr(analysis, "sheets", []) or [])
+    if sheets:
+        add("SHEET CONTENT, FORMULAS, AND PARSED LAYOUT")
+        for sheet in sheets:
+            # Keep formulas and samples ahead of potentially large parsed
+            # hierarchies so actionable workbook logic survives the size cap.
+            payload = {
+                "name": sheet.name,
+                "kind": sheet.kind,
+                "columns": sheet.columns,
+                "formulas": sheet.formulas,
+                "sampleRows": sheet.sample_rows,
+                "layout": sheet.layout,
+                "dataTable": sheet.data_table,
+                "hierarchy": sheet.hierarchy,
+                "issues": sheet.issues,
+            }
+            serializable = {
+                key: (
+                    value.model_dump(by_alias=True, mode="json")
+                    if hasattr(value, "model_dump")
+                    else [
+                        item.model_dump(by_alias=True, mode="json")
+                        if hasattr(item, "model_dump")
+                        else item
+                        for item in value
+                    ]
+                    if isinstance(value, list)
+                    else value
+                )
+                for key, value in payload.items()
+                if value is not None
+            }
+            if not add(
+                json.dumps(serializable, ensure_ascii=False, separators=(",", ":"), default=str)
+            ):
+                break
+
+    return "".join(parts), truncated

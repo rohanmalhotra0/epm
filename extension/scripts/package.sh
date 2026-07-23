@@ -33,5 +33,5 @@ zip -r -q "$out" "${include[@]}" \
   -x '*/.DS_Store' '*/Thumbs.db' '*.map'
 
 echo "Built $out"
-unzip -l "$out" | tail -n +4 | head -n -2 | awk '{print "  " $4}'
+unzip -Z1 "$out" | sed 's/^/  /'
 echo "Size: $(du -h "$out" | cut -f1)"

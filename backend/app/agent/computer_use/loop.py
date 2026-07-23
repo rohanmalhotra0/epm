@@ -18,15 +18,20 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass
 
 from ...ai.base import AIMessage, AIProvider, TextDelta
-from .actions import Action, ActionType, Observation, Step
-from .prompt import SYSTEM_PROMPT, format_goal, format_observation
+from .actions import Action, ActionType, Observation, Step, WorkbookContext
+from .prompt import SYSTEM_PROMPT, format_goal, format_observation, format_workbook_context
 
 # How many prior steps to include as context. Kept small — the loop is
 # observation-driven, not transcript-driven.
 _HISTORY_LIMIT = 12
 
 
-def build_messages(goal: str, observation: Observation, history: list[Step]) -> list[AIMessage]:
+def build_messages(
+    goal: str,
+    observation: Observation,
+    history: list[Step],
+    workbook_context: WorkbookContext | None = None,
+) -> list[AIMessage]:
     """Assemble the provider messages for one step.
 
     A screenshot on the observation is attached via ``AIMessage.images`` so the
@@ -35,6 +40,8 @@ def build_messages(goal: str, observation: Observation, history: list[Step]) -> 
     wire shape.
     """
     messages: list[AIMessage] = [AIMessage(role="user", content=format_goal(goal))]
+    if workbook_context is not None:
+        messages.append(AIMessage(role="user", content=format_workbook_context(workbook_context)))
     for step in history[-_HISTORY_LIMIT:]:
         messages.append(AIMessage(role="assistant", content=_step_summary(step)))
     obs_text = format_observation(observation)
@@ -126,6 +133,7 @@ async def decide_step(
     observation: Observation,
     history: list[Step] | None = None,
     *,
+    workbook_context: WorkbookContext | None = None,
     index: int = 0,
     model: str | None = None,
     max_tokens: int = 800,
@@ -133,7 +141,7 @@ async def decide_step(
     """Produce the next :class:`Step` (non-streaming). Used by tests and callers
     that don't need token-level narration streaming."""
     history = history or []
-    messages = build_messages(goal, observation, history)
+    messages = build_messages(goal, observation, history, workbook_context)
     raw = await provider.complete(messages, system=SYSTEM_PROMPT, model=model,
                                   temperature=0.0, max_tokens=max_tokens)
     return parse_step(raw, index)
@@ -155,6 +163,7 @@ async def stream_step(
     observation: Observation,
     history: list[Step] | None = None,
     *,
+    workbook_context: WorkbookContext | None = None,
     index: int = 0,
     model: str | None = None,
     max_tokens: int = 800,
@@ -168,7 +177,7 @@ async def stream_step(
     a tool-call) for smoother token-level narration.
     """
     history = history or []
-    messages = build_messages(goal, observation, history)
+    messages = build_messages(goal, observation, history, workbook_context)
     parts: list[str] = []
     async for chunk in provider.stream(messages, system=SYSTEM_PROMPT, model=model,
                                        temperature=0.0, max_tokens=max_tokens):

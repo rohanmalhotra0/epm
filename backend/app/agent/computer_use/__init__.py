@@ -6,7 +6,7 @@ narrate loop. See ``docs/OPENCLAW_PLAN.md`` §6 and ``extension/README.md``.
 
 from __future__ import annotations
 
-from .actions import Action, ActionType, AxNode, Observation, Step
+from .actions import Action, ActionType, AxNode, Observation, Step, WorkbookContext
 from .loop import StreamChunkOut, decide_step, extract_action_json, parse_step, stream_step
 from .prompt import SYSTEM_PROMPT, format_observation
 
@@ -16,6 +16,7 @@ __all__ = [
     "AxNode",
     "Observation",
     "Step",
+    "WorkbookContext",
     "StreamChunkOut",
     "decide_step",
     "stream_step",

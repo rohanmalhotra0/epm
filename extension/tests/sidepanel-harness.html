@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EPM Wizard extension test harness</title>
+    <link rel="stylesheet" href="../sidepanel/sidepanel.css" />
+  </head>
+  <body>
+    <script type="module">
+      const source = await fetch("../sidepanel/sidepanel.html").then((response) => response.text());
+      const parsed = new DOMParser().parseFromString(source, "text/html");
+      parsed.querySelectorAll("script").forEach((script) => script.remove());
+      document.body.innerHTML = parsed.body.innerHTML;
+
+      const listeners = [];
+      let stage = "oauth";
+      const showWorkbook = new URLSearchParams(window.location.search).has("workbook");
+      const emit = (type, data) => listeners.forEach((listener) => listener({ type, data }));
+      const state = {
+        status: "idle",
+        goal: "",
+        pendingGoal: "",
+        steps: [],
+        config: {
+          backendUrl: "https://epmw-auth.fly.dev",
+          projectId: "",
+          apiToken: "",
+          enforceGuardrails: true,
+        },
+        workbookContext: showWorkbook ? {
+          filename: "Quarterly_Forecast.xlsm",
+          summary: "4 sheets · 6 macros in 2 modules · 3 named ranges",
+          content: "test-only workbook context",
+          truncated: false,
+          sheetCount: 4,
+          macroCount: 6,
+          moduleCount: 2,
+          formulaCount: 38,
+        } : null,
+      };
+      const access = () => {
+        if (stage === "oauth") {
+          return { stage, message: "Sign in with Google to continue to EPM Wizard." };
+        }
+        if (stage === "epm") {
+          return {
+            stage,
+            owner: "qa@example.com",
+            projectId: "project-test",
+            projectName: "Default",
+            message: "Connect your Oracle EPM environment to unlock the browser agent.",
+          };
+        }
+        return {
+          stage: "ready",
+          owner: "qa@example.com",
+          projectId: "project-test",
+          projectName: "Default",
+          environmentName: "Oracle EPM (qa@example.com)",
+          application: "Vision",
+          message: "Connected to Oracle EPM (qa@example.com).",
+        };
+      };
+      const port = {
+        onMessage: { addListener(listener) { listeners.push(listener); } },
+        onDisconnect: { addListener() {} },
+        postMessage(message) {
+          queueMicrotask(() => {
+            if (message.cmd === "getState") emit("state", state);
+            if (message.cmd === "checkAccess") emit("access", access());
+            if (message.cmd === "connectEpm") {
+              stage = "ready";
+              emit("access", access());
+            }
+            if (message.cmd === "testConnection") {
+              emit("conn", { ok: true, message: "Connected via the website session as qa@example.com." });
+            }
+            if (message.cmd === "clearWorkbookContext") {
+              state.workbookContext = null;
+              emit("state", state);
+            }
+            if (message.cmd === "setWorkbookContext") {
+              state.workbookContext = message.data?.workbookContext || null;
+              emit("state", state);
+            }
+          });
+        },
+      };
+
+      window.chrome = {
+        runtime: { connect: () => port },
+        tabs: {
+          create({ url }) {
+            window.__lastOpenedUrl = url;
+            stage = "epm";
+          },
+        },
+        storage: {
+          local: {
+            async get() { return {}; },
+            async set() {},
+          },
+        },
+      };
+
+      await import("../sidepanel/sidepanel.js");
+    </script>
+  </body>
+</html>

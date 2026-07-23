@@ -7,9 +7,123 @@
     <link rel="stylesheet" href="sidepanel.css" />
   </head>
   <body>
+    <main id="accessView" class="access-view">
+      <section class="auth-shell" aria-label="EPM Wizard extension access">
+        <div class="auth-brand">
+          <img src="../icons/icon32.png" width="28" height="28" alt="" />
+          <span>EPM&nbsp;Wizard</span>
+        </div>
+
+        <ol class="access-progress" aria-label="Extension sign-in progress">
+          <li id="oauthProgress" class="active"><span>1</span> EPM Wizard</li>
+          <li id="epmProgress"><span>2</span> Oracle EPM</li>
+        </ol>
+
+        <section id="oauthStep" class="access-step">
+          <p class="access-kicker">Browser agent access</p>
+          <h1 id="accessTitle">Sign in to EPM Wizard</h1>
+          <p class="access-copy">
+            Use the same Google OAuth sign-in as the website. The browser agent stays locked until
+            your EPM Wizard account is verified.
+          </p>
+          <button id="signInAccess" class="primary google-button" type="button">
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"></path>
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+            </svg>
+            Sign in with Google
+          </button>
+          <button id="checkAccess" class="secondary" type="button">I&rsquo;ve signed in — continue</button>
+          <div id="oauthStatus" class="inline-status hidden" role="status" aria-live="polite"></div>
+          <details class="access-server">
+            <summary>Use a self-hosted or local EPM Wizard</summary>
+            <label class="auth-field">
+              Server URL
+              <input id="accessBackendUrl" type="url" placeholder="http://localhost:3000" autocomplete="url" />
+            </label>
+            <button id="saveAccessServer" class="secondary" type="button">Use this server</button>
+          </details>
+        </section>
+
+        <form id="epmStep" class="access-step hidden" novalidate>
+          <p class="access-kicker">EPM Wizard account verified</p>
+          <h1>Sign in to Oracle EPM</h1>
+          <p class="access-copy">
+            Connect to your Planning tenant with your Oracle password or an OAuth 2.0 client
+            credential. The secret is sent once to EPM Wizard and is never saved by the extension.
+          </p>
+
+          <input id="credentialsFile" type="file" accept=".txt" hidden />
+          <button id="loadCredentials" class="secondary load-credentials" type="button">
+            Load credentials from file
+          </button>
+
+          <label class="auth-field">
+            Instance URL
+            <input id="epmBaseUrl" type="url" placeholder="https://planning-test-yourpod.epm.us.oraclecloud.com" autocomplete="url" />
+          </label>
+
+          <label class="auth-field">
+            Authentication
+            <select id="epmAuthMode">
+              <option value="password">Username &amp; password</option>
+              <option value="oauth">OAuth 2.0 client credentials (OCI IAM)</option>
+            </select>
+          </label>
+
+          <label id="epmTokenUrlWrap" class="auth-field hidden">
+            Token URL (identity domain)
+            <input id="epmTokenUrl" type="url" placeholder="https://idcs-….identity.oraclecloud.com/oauth2/v1/token" autocomplete="url" />
+          </label>
+
+          <div class="auth-row">
+            <label class="auth-field grow">
+              <span id="epmIdentityLabel">Username</span>
+              <input id="epmIdentity" type="text" placeholder="you@example.com" autocomplete="username" />
+            </label>
+            <label class="auth-field compact">
+              Application
+              <input id="epmApplication" type="text" placeholder="auto-detect" />
+            </label>
+          </div>
+
+          <div class="auth-row">
+            <label class="auth-field grow">
+              <span id="epmSecretLabel">Password</span>
+              <input id="epmSecret" type="password" autocomplete="current-password" />
+            </label>
+            <label class="auth-field compact">
+              Classification
+              <select id="epmClassification">
+                <option value="development">development</option>
+                <option value="test">test</option>
+                <option value="production">production</option>
+              </select>
+            </label>
+          </div>
+
+          <label id="epmScopeWrap" class="auth-field hidden">
+            Scope (optional)
+            <input id="epmScope" type="text" placeholder="urn:opc:serviceInstanceID=…urn:opc:resource:consumer::all" />
+          </label>
+
+          <label class="remember-row">
+            <input id="epmRemember" type="checkbox" />
+            <span id="epmRememberLabel">Remember password on this machine (encrypted local store)</span>
+          </label>
+
+          <div id="epmStatus" class="inline-status hidden" role="status" aria-live="polite"></div>
+          <button id="connectEpm" class="primary connect-button" type="submit">Connect</button>
+        </form>
+      </section>
+    </main>
+
+    <div id="workspace" class="workspace hidden">
     <header class="topbar">
       <div class="brand">
-        <svg class="logo" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M16,8a5.9908,5.9908,0,0,0,9.4712,4.8853L28.586,16,30,14.586l-3.115-3.1148A5.997,5.997,0,1,0,16,8Zm2,0a4,4,0,1,1,4,4A4.0045,4.0045,0,0,1,18,8Z"></path><path d="M11 24H21V26H11z"></path><path d="M13 28H19V30H13z"></path><path d="M10.8145,18.1406A7.1851,7.1851,0,0,1,8,12a8.0055,8.0055,0,0,1,6-7.7373L13.6138,2.3A10.0088,10.0088,0,0,0,6,12a9.1793,9.1793,0,0,0,3.46,7.6162C10.4717,20.5508,11,21.0815,11,22h2C13,20.16,11.8892,19.1338,10.8145,18.1406Z"></path><path d="M23.0493,16a9.5991,9.5991,0,0,1-1.8716,2.1426C20.1069,19.1348,19,20.1611,19,22h2c0-.9194.5264-1.45,1.5352-2.3857a10.9664,10.9664,0,0,0,2.3686-2.8331Z"></path></svg>
+        <img class="logo" src="../icons/icon32.png" width="20" height="20" alt="" />
         <strong class="wordmark">EPM Wizard</strong>
         <span class="statuschip">
           <span class="dot" id="statusDot" aria-hidden="true"></span>
@@ -27,11 +141,11 @@
     <section id="settings" class="settings hidden">
       <div class="signin-card">
         <div class="signin-copy">
-          <strong>Connect to EPM Wizard</strong>
-          <span class="field-help">Sign in to your hosted EPM Wizard account — then the agent drives it for you. It connects to the app automatically; there's nothing to set up.</span>
+          <strong>Account &amp; EPM connection</strong>
+          <span id="accountSummary" class="field-help">Google OAuth and Oracle EPM are connected.</span>
         </div>
         <div class="settings-actions">
-          <button id="signIn" class="primary">Sign in to EPM Wizard</button>
+          <button id="signIn" class="primary">Open EPM Wizard</button>
           <button id="testConn" class="secondary">Test connection</button>
         </div>
         <div id="connStatus" class="conn-status hidden"></div>
@@ -80,6 +194,14 @@
     <div id="agentView">
       <section class="goalbar">
         <textarea id="goal" rows="2" placeholder="Goal — e.g. Open the Actuals data form and set Scenario to Forecast"></textarea>
+        <div id="workbookContextBar" class="workbook-context hidden" role="status" aria-live="polite">
+          <div class="workbook-context-copy">
+            <span class="workbook-context-kicker">Workbook context active</span>
+            <strong id="workbookContextName"></strong>
+            <span id="workbookContextDetail"></span>
+          </div>
+          <button id="clearWorkbookContext" class="secondary" type="button">Clear</button>
+        </div>
         <div class="controls">
           <button id="startBtn" class="primary">Start</button>
           <button id="pauseBtn" class="secondary" disabled>Pause</button>
@@ -111,6 +233,7 @@
       </label>
       <div id="inspectStatus" class="inspect-status hidden"></div>
       <div id="inspectResults" class="inspect-results"></div>
+    </div>
     </div>
 
     <script type="module" src="sidepanel.js"></script>

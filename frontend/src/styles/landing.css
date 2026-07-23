@@ -847,6 +847,25 @@ html.landing-doc {
 .lp-agent-copy .lp-lede {
   margin-bottom: 18px;
 }
+.lp-agent-install {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  margin-top: 22px;
+}
+.lp-download-mark {
+  font-family: var(--lp-mono);
+  font-size: 17px;
+  line-height: 1;
+}
+.lp-agent-install-note {
+  color: var(--lp-faint);
+  font-family: var(--lp-mono);
+  font-size: 10.5px;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
 .lp-agent-panel-wrap {
   min-width: 0;
 }

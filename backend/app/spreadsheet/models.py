@@ -196,3 +196,8 @@ class WorkbookInspection(CamelModel):
     charts: list[ChartInfo] = Field(default_factory=list)
     connections: list[DataConnection] = Field(default_factory=list)
     issues: list[str] = Field(default_factory=list)
+    # Prompt-ready, redacted workbook reference used by the browser agent.
+    # This is deliberately bounded by the inspector so it is safe to keep in
+    # chrome.storage.session and send with each agent step.
+    ai_context: str = ""
+    ai_context_truncated: bool = False

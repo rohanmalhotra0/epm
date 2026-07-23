@@ -44,6 +44,9 @@ Workbook inspector
   VBA macro's source, the auto-run hooks that fire on their own, sheets, named
   ranges, tables, pivots, charts and external data connections. Parse-only —
   macros are read, never run.
+• The inspected workbook becomes visible AI context for the browser agent, so
+  it can use the formulas, VBA and sheet structure while working in EPM. The
+  active workbook is always shown and can be cleared with one click.
 
 Built-in safety
 • A production-safety gate is ENFORCED, not advisory: destructive actions
@@ -97,10 +100,12 @@ or a docs page). Required because the extension handles website content.
 
 - **Does the item collect user data?** Yes — website content.
 - **What is collected:** Website content (accessibility snapshots + screenshots
-  of the active tab) and user-typed goals, sent to the user-configured backend.
+  of the active tab), user-typed goals, user-selected workbook content and
+  parsed workbook context, and Oracle EPM credentials submitted during
+  connection, sent to the user-configured backend.
 - **Not collected/used for:** No personally identifiable info beyond page
   content, no health/financial data collection by the extension itself, no
-  location, no authentication credentials read or stored by the extension.
+  location, and no authentication credentials stored in extension storage.
 - **Sold to third parties:** No.
 - **Used for purposes unrelated to core functionality:** No.
 - **Used for creditworthiness / lending:** No.

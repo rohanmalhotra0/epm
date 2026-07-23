@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
 
@@ -135,6 +135,15 @@ class Observation(CamelModel):
     @property
     def has_screenshot(self) -> bool:
         return bool(self.screenshot)
+
+
+class WorkbookContext(CamelModel):
+    """Redacted, parse-only workbook context attached by the Chrome extension."""
+
+    filename: str = Field(min_length=1, max_length=255)
+    summary: str = Field(default="", max_length=1000)
+    content: str = Field(min_length=1, max_length=300_000)
+    truncated: bool = False
 
 
 class Step(CamelModel):

@@ -17,16 +17,18 @@ function el(tag, opts = {}, kids = []) {
   return n;
 }
 
-export function initInspector({ getConfig }) {
+export function initInspector({ getConfig, onWorkbookContext }) {
   const dropZone = $("dropZone");
   const fileInput = $("wbFile");
   const statusEl = $("inspectStatus");
   const results = $("inspectResults");
+  let renderedFilename = "";
 
-  const setStatus = (msg, isErr = false) => {
+  const setStatus = (msg, isErr = false, isOk = false) => {
     statusEl.textContent = msg || "";
     statusEl.classList.toggle("hidden", !msg);
     statusEl.classList.toggle("err", !!isErr);
+    statusEl.classList.toggle("ok", !!isOk && !isErr);
   };
 
   async function inspect(file) {
@@ -66,11 +68,24 @@ export function initInspector({ getConfig }) {
       return;
     }
     const data = await res.json();
-    setStatus("");
     render(data);
+    const context = toWorkbookContext(data);
+    if (context) {
+      onWorkbookContext?.(context);
+      const suffix = context.truncated
+        ? " The safe context limit was reached; extracted VBA was prioritized."
+        : "";
+      setStatus(`Attached ${context.filename} to the AI.${suffix}`, false, true);
+    } else {
+      setStatus(
+        "Workbook inspected, but this backend did not return AI context. Update the backend to attach it.",
+        true,
+      );
+    }
   }
 
   function render(w) {
+    renderedFilename = w.filename || "";
     results.innerHTML = "";
     results.appendChild(summaryCard(w));
 
@@ -92,6 +107,42 @@ export function initInspector({ getConfig }) {
     if ((w.issues || []).length) results.appendChild(section("Notes", listBody(w.issues, "imuted")));
   }
 
+  function toWorkbookContext(w) {
+    if (!w || typeof w.aiContext !== "string" || !w.aiContext) return null;
+    return {
+      filename: w.filename || "workbook",
+      summary: w.summary || "",
+      content: w.aiContext,
+      truncated: !!w.aiContextTruncated,
+      sheetCount: Number(w.sheetCount || 0),
+      macroCount: (w.procedures || []).length,
+      moduleCount: (w.vbaModules || []).length,
+      formulaCount: (w.sheets || []).reduce((n, sheet) => n + Number(sheet.formulaCount || 0), 0),
+    };
+  }
+
+  function showStoredContext(context) {
+    if (!context) {
+      renderedFilename = "";
+      results.innerHTML = "";
+      setStatus("");
+      return;
+    }
+    if (renderedFilename === context.filename) return;
+    renderedFilename = "";
+    results.innerHTML = "";
+    const card = el("div", { class: "wb-summary" }, [
+      el("div", { class: "fname", text: context.filename || "workbook" }),
+      el("div", { class: "sline", text: context.summary || "Workbook context is active." }),
+      el("div", {
+        class: "context-reopen",
+        text: "This workbook is attached to the AI. Re-open the file to view the full inspection.",
+      }),
+    ]);
+    results.appendChild(card);
+    setStatus("Workbook context is active.", false, true);
+  }
+
   // ── section builders ──────────────────────────────────────────────────────
   function summaryCard(w) {
     const card = el("div", { class: "wb-summary" }, [
@@ -105,6 +156,7 @@ export function initInspector({ getConfig }) {
       text: w.hasMacros ? "macros" : (w.macroEnabled ? "macro-enabled, empty" : "no macros"),
     }));
     if ((w.triggers || []).length) badges.appendChild(el("span", { class: "pill macro", text: `${w.triggers.length} auto-run` }));
+    if (w.aiContext) badges.appendChild(el("span", { class: "pill ai", text: "AI context active" }));
     card.appendChild(badges);
     return card;
   }
@@ -206,4 +258,6 @@ export function initInspector({ getConfig }) {
     const f = ev.dataTransfer?.files?.[0];
     if (f) inspect(f);
   });
+
+  return { showStoredContext };
 }

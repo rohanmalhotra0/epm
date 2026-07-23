@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from ..agent.computer_use.actions import Action, AxNode, Observation, Step
+from ..agent.computer_use.actions import Action, AxNode, Observation, Step, WorkbookContext
 from .common import CamelModel
 
 __all__ = [
@@ -20,6 +20,7 @@ __all__ = [
     "AxNode",
     "Observation",
     "Step",
+    "WorkbookContext",
 ]
 
 
@@ -37,6 +38,9 @@ class AgentStepRequest(CamelModel):
     # Optional explicit model override (e.g. pin a vision model for a screenshot
     # step). Normally left unset — the provider routes by role.
     model: str | None = None
+    # Optional Excel context selected in the extension. The content is produced
+    # by the parse-only inspector and is never interpreted or executed here.
+    workbook_context: WorkbookContext | None = None
 
 
 class AgentStepResponse(CamelModel):

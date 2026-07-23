@@ -45,13 +45,286 @@ html, body {
   background: var(--bg); color: var(--text);
   -webkit-font-smoothing: antialiased;
 }
-body { display: flex; flex-direction: column; height: 100vh; }
+body { display: flex; flex-direction: column; height: 100dvh; }
 
 .mono, code, pre, kbd, [class*="mono"] { font-family: "IBM Plex Mono", ui-monospace, monospace; }
 
 /* focus ring — Carbon's 2px inset white/blue */
 :where(button, input, textarea, [tabindex], summary, label.row):focus-visible {
   outline: 2px solid var(--focus); outline-offset: -2px;
+}
+
+/* ── Mandatory access flow ─────────────────────────────────────────────────── */
+.workspace {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100dvh;
+}
+
+.access-view {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 24px 16px calc(24px + env(safe-area-inset-bottom));
+  background: var(--bg);
+}
+
+.auth-shell {
+  width: min(100%, 440px);
+  margin: 0 auto;
+  padding: 22px;
+  background: var(--layer);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--accent);
+}
+
+.auth-shell.drag-active {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.auth-brand img {
+  display: block;
+}
+
+.access-progress {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  margin: 22px 0 24px;
+  padding: 0;
+  list-style: none;
+  background: var(--border);
+}
+
+.access-progress li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 10px;
+  background: var(--bg);
+  color: var(--faint);
+  font-size: 12px;
+}
+
+.access-progress li span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border-strong);
+  color: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.access-progress li.active,
+.access-progress li.complete {
+  color: var(--text);
+}
+
+.access-progress li.active span {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.access-progress li.complete span {
+  border-color: var(--ok);
+  background: var(--ok);
+  color: #161616;
+}
+
+.access-step {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.access-step h1 {
+  margin: 0;
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.access-kicker {
+  margin: 0;
+  color: var(--accent);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.access-copy {
+  margin: -3px 0 4px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.google-button,
+.connect-button {
+  width: 100%;
+  min-height: 42px;
+  justify-content: center;
+}
+
+.google-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.google-button svg {
+  width: 18px;
+  height: 18px;
+  padding: 2px;
+  background: #fff;
+}
+
+.load-credentials {
+  align-self: flex-start;
+  margin-bottom: 2px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.auth-field input,
+.auth-field select {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  border-bottom: 1px solid var(--border-strong);
+  border-radius: 0;
+  padding: 10px;
+  background: var(--field);
+  color: var(--text);
+  font: 13px/1.4 "IBM Plex Sans", system-ui, sans-serif;
+  text-transform: none;
+}
+
+.auth-field input::placeholder {
+  color: var(--faint);
+}
+
+.auth-field input:focus,
+.auth-field select:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.auth-row {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+}
+
+.auth-row .grow {
+  flex: 1 1 auto;
+}
+
+.auth-row .compact {
+  flex: 0 0 132px;
+}
+
+.remember-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.remember-row input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 1px 0 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 2px;
+  background: transparent;
+}
+
+.remember-row input[type="checkbox"]:checked {
+  border-color: var(--text);
+  background: var(--text);
+}
+
+.remember-row input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 4px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--bg);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.inline-status {
+  padding: 9px 10px;
+  border-left: 2px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.inline-status.pending {
+  border-left-color: var(--accent);
+}
+
+.inline-status.ok {
+  border-left-color: var(--ok);
+  color: var(--ok);
+}
+
+.inline-status.err {
+  border-left-color: var(--err);
+  color: var(--err);
+}
+
+.access-server {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.access-server > summary {
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.access-server .auth-field {
+  margin-bottom: 10px;
 }
 
 /* ── Top bar (mirrors .epmw-header) ────────────────────────────────────────── */
@@ -62,7 +335,7 @@ body { display: flex; flex-direction: column; height: 100vh; }
   flex: none;
 }
 .brand { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.brand .logo { width: 20px; height: 20px; color: var(--accent); flex: none; }
+.brand .logo { width: 20px; height: 20px; flex: none; }
 .wordmark { font-weight: 600; letter-spacing: 0.02em; font-size: 15px; white-space: nowrap; }
 .statuschip {
   display: inline-flex; align-items: center; gap: 6px; margin-left: 4px;
@@ -192,6 +465,40 @@ textarea#goal:focus { outline: 2px solid var(--focus); outline-offset: -2px; }
 .controls { display: flex; gap: 1px; }
 .controls button { flex: 1; }
 
+.workbook-context {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-left: 2px solid var(--accent);
+  background: var(--layer);
+}
+.workbook-context-copy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.workbook-context-kicker {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.workbook-context strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.workbook-context-copy > span:last-child {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.workbook-context button { flex: none; padding-inline: 10px; }
+
 /* ── Guardrail confirm banner ──────────────────────────────────────────────── */
 .confirm {
   margin: 0; padding: 12px; background: rgba(241,194,27,.10);
@@ -248,6 +555,7 @@ textarea#goal:focus { outline: 2px solid var(--focus); outline-offset: -2px; }
 .dz-sub { color: var(--muted); font-size: 12px; line-height: 1.5; }
 .inspect-status { margin-top: 10px; font-size: 12px; padding: 8px 10px; border-radius: 2px; background: var(--layer-2); color: var(--muted); }
 .inspect-status.err { color: var(--err); background: rgba(250,77,86,.10); }
+.inspect-status.ok { color: var(--ok); border-left: 2px solid var(--ok); }
 .inspect-results { margin-top: 10px; display: flex; flex-direction: column; gap: 12px; }
 
 .wb-summary { background: var(--layer); border: 1px solid var(--border); border-radius: 2px; padding: 10px 12px; }
@@ -257,6 +565,8 @@ textarea#goal:focus { outline: 2px solid var(--focus); outline-offset: -2px; }
 .pill { font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 2px; background: var(--layer-2); color: var(--muted); }
 .pill.macro { background: rgba(241,194,27,.16); color: var(--warn); }
 .pill.ok { background: rgba(66,190,101,.16); color: var(--ok); }
+.pill.ai { background: rgba(69,137,255,.16); color: var(--accent); }
+.context-reopen { margin-top: 8px; color: var(--muted); font-size: 11px; line-height: 1.45; }
 
 .isec { border: 1px solid var(--border); border-radius: 2px; background: var(--layer); overflow: hidden; }
 .isec > h3 { margin: 0; padding: 9px 12px; font-size: 12px; font-weight: 600; background: var(--layer-2); border-bottom: 1px solid var(--border); }
@@ -283,3 +593,19 @@ textarea#goal:focus { outline: 2px solid var(--focus); outline-offset: -2px; }
 .imuted { color: var(--muted); font-size: 11px; }
 
 .hidden { display: none !important; }
+
+@media (max-width: 390px) {
+  .access-view {
+    padding-inline: 10px;
+  }
+  .auth-shell {
+    padding: 18px 14px;
+  }
+  .auth-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .auth-row .compact {
+    flex-basis: auto;
+  }
+}

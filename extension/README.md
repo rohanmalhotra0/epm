@@ -12,6 +12,18 @@ heuristics are stubbed behind clean seams and marked below.
 
 No build step. Plain ES modules + two classic content scripts. Load it as-is.
 
+**New in 0.5.0**
+
+- **Excel context for the AI agent.** Inspecting a workbook now automatically
+  attaches its redacted, parse-only context to the browser agent. Every agent
+  step can reason over extracted VBA source, auto-run hooks, formulas, sheet
+  structure and samples, named ranges, tables, pivots, charts and connections
+  while it works in EPM. The Agent tab shows the active workbook and provides a
+  one-click **Clear** action.
+- **Prompt-injection boundary.** Cells, formulas, connection text, VBA comments
+  and VBA strings are explicitly treated as untrusted reference data, never as
+  instructions to the agent.
+
 **New in 0.3.0**
 
 - **Workbook inspector.** The panel's **Inspect workbook** tab opens an Excel
@@ -56,13 +68,19 @@ No build step. Plain ES modules + two classic content scripts. Load it as-is.
 3. Open the target page (an Oracle EPM Planning tab, or any web page to try the
    mechanics). Click the extension's toolbar icon to open the **side panel**.
 
-4. In the panel: open **⚙ Settings** and click **Sign in to EPM Wizard**. The
-   extension ships pointed at the hosted app
+4. Complete the panel's two-step access flow:
+   1. **Sign in with Google**. The button opens the protected EPM Wizard app,
+      which runs the same OAuth flow as the website. Return to the panel when
+      the sign-in completes; it verifies the website session automatically.
+   2. **Sign in to Oracle EPM** with the same form as the website (username and
+      password or OCI IAM OAuth client credentials). The extension forwards the
+      secret once to EPM Wizard and never stores it in extension storage.
+      Selecting **Remember** uses EPM Wizard's encrypted local secret store.
+
+   The extension ships pointed at the hosted app
    (`https://epmw-auth.fly.dev`) — nothing to configure. To run against a
-   self-hosted or local backend (`http://localhost:8000`) instead, open
-   **Advanced** and set the **Server URL**; you can also add an EPM Wizard
-   **Project id** (selects that project's active AI provider) there. Optionally
-   tick **Speak narration** for Web-Speech TTS.
+   self-hosted or local app instead, expand **Use a self-hosted or local EPM
+   Wizard** on the first sign-in screen and set the **Server URL**.
 
 5. Type a **goal** (e.g. *"Open the Actuals data form and set Scenario to
    Forecast"*) and press **Start**. Watch/pause/stop the run.
@@ -82,8 +100,9 @@ typing a backend URL or project id.
   `/agent`). It detects whether the extension is installed and offers a one-click
   **Launch agent on the current tab**.
 - On launch, the app hands the extension its **backend URL** (the app's own
-  origin, so the agent authenticates with your existing signed-in session) and
-  your **current project id**, plus an optional **goal** to prefill.
+  origin), your **current project id**, and an optional **goal** to prefill.
+  The extension still verifies both the website OAuth session and a live Oracle
+  EPM connection before unlocking agent controls.
 - The transport is a content script (`content/site-bridge.js`) that runs only on
   the EPM Wizard origins (see `manifest.json` matches) and relays `window`
   CustomEvents to the service worker. The page never needs the extension's
@@ -137,6 +156,15 @@ makes it move?" — without opening Excel, and without running anything.
   (`Workbook_Open`, `Auto_Open`, `Worksheet_Change`, …); a per-sheet table
   (visibility, dimensions, formula/table/chart counts); named ranges; tables;
   pivot tables; charts; and external data connections (redacted).
+- Once inspection finishes, a bounded AI digest is attached automatically.
+  Switch back to **Agent**, enter a goal such as _"Use this workbook to recreate
+  the forecast form in EPM"_, and the agent receives that workbook context on
+  every step. The active filename and extraction counts stay visible until you
+  click **Clear** or inspect a different workbook.
+- The AI digest prioritizes all VBA extracted under the parser's 200,000
+  character safety cap, then includes workbook structure, formulas and sampled
+  rows up to a 300,000 character session limit. If the latter limit is reached,
+  the panel says so rather than silently implying the whole workbook fit.
 - **Why a file, not a live desktop Excel session?** VBA source only exists
   inside the workbook file — no browser API (nor Microsoft's own Office.js
   add-in API) can read a running workbook's macro code. So reading macros
@@ -282,8 +310,9 @@ twin lives at `POST /api/agent/step/once`.
   yet evaluated against a real tenant. Note: destructive/PROD actions are now
   **held by an enforced client-side gate** (`guardrails.js`) — but that gate is
   heuristic (accessible-name + URL matching), not a formal safety proof.
-- **Auth / session.** The extension assumes you're already logged into the EPM
-  tab; it does not handle Oracle SSO, session timeouts, or re-auth prompts.
+- **Driven-tab session.** The extension's access gate connects EPM Wizard's
+  backend connector; it does not perform Oracle SSO inside the tab being driven
+  or automatically resolve Oracle session timeout / re-auth prompts there.
 
 Nothing here has been run against a live Oracle EPM tenant — validate against a
 real Planning UI before trusting any driving behaviour.

@@ -145,6 +145,11 @@ but domain-specific," targeting Oracle EPM Cloud. It runs the full
 - **Enforced production-safety gate.** Destructive actions and any write on a
   production tenant are *held* for explicit human approval before they execute —
   a hard gate, not a prompt hint.
+- **Excel-grounded agent context.** Choose an `.xlsm`, `.xlsx`, `.xlsb` or
+  `.csv` in the extension and the agent can reason over its inert VBA source,
+  formulas, sheets, named ranges, tables, pivots, charts and connections while
+  operating EPM. Workbook content is treated as untrusted reference data and
+  can be cleared at any time.
 - **Store-ready.** Icons, a privacy policy, a listing pack and a packaging script
   are included.
 

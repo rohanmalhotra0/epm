@@ -54,6 +54,7 @@ async def _stream(provider: AIProvider, body: AgentStepRequest) -> AsyncIterator
     yield _sse("start", {"index": index, "goal": body.goal})
     try:
         async for out in stream_step(provider, body.goal, body.observation, body.history,
+                                     workbook_context=body.workbook_context,
                                      index=index, model=body.model):
             if out.kind == "token" and out.text:
                 yield _sse("token", {"text": out.text})
@@ -87,5 +88,6 @@ async def agent_step_once(body: AgentStepRequest,
         authorize_project_id(session, owner, body.project_id)
     _profile, provider = resolve_active_provider(session, body.project_id)
     step = await decide_step(provider, body.goal, body.observation, body.history,
+                             workbook_context=body.workbook_context,
                              index=len(body.history), model=body.model)
     return AgentStepResponse(step=step)

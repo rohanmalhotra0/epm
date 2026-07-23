@@ -558,6 +558,19 @@ export function LandingPage() {
                   </div>
                 ))}
               </dl>
+              <div className="lp-agent-install" data-reveal>
+                <a
+                  className="lp-btn lp-btn-primary"
+                  href={__EXTENSION_ZIP_URL__}
+                  download={__EXTENSION_ZIP_NAME__}
+                >
+                  <span className="lp-download-mark" aria-hidden="true">↓</span>
+                  Download Chrome extension
+                </a>
+                <span className="lp-agent-install-note">
+                  Chrome 116+ · versioned ZIP · unzip, then load unpacked
+                </span>
+              </div>
             </div>
             <div className="lp-agent-panel-wrap" data-reveal>
               <AgentPanel />

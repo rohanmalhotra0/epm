@@ -10,7 +10,7 @@
 // Port re-hydrates the panel on (re)connect. A run that is interrupted by a
 // worker restart lands in PAUSED and can be resumed (history is preserved).
 
-import { streamStep, testConnection } from "./backend.js";
+import { connectEpmEnvironment, getExtensionAccess, streamStep, testConnection } from "./backend.js";
 import * as cdp from "./cdp.js";
 import { assessAction } from "./guardrails.js";
 import { CMD, CS, DEFAULT_CONFIG, EVT, PANEL_PORT, STATUS } from "../common/protocol.js";
@@ -39,7 +39,15 @@ chrome.runtime.onStartup?.addListener(() => {
 
 // ── state persistence ────────────────────────────────────────────────────────
 function freshState() {
-  return { status: STATUS.IDLE, goal: "", pendingGoal: "", steps: [], tabId: null, config: { ...DEFAULT_CONFIG } };
+  return {
+    status: STATUS.IDLE,
+    goal: "",
+    pendingGoal: "",
+    steps: [],
+    tabId: null,
+    workbookContext: null,
+    config: { ...DEFAULT_CONFIG },
+  };
 }
 
 // Durable config lives in storage.local so the API token + backend URL survive a
@@ -59,6 +67,7 @@ async function loadState() {
   if (state) return state;
   const stored = await chrome.storage.session.get(STATE_KEY);
   state = stored[STATE_KEY] || freshState();
+  if (!("workbookContext" in state)) state.workbookContext = null;
   // Overlay durable config (token, backend URL, …) so it persists across
   // browser restarts even though run state is ephemeral session storage.
   const dur = (await chrome.storage.local.get(DURABLE_KEY))[DURABLE_KEY] || {};
@@ -92,7 +101,7 @@ function broadcast(type, data) {
 function sendState() {
   broadcast(EVT.STATE, {
     status: state.status, goal: state.goal, pendingGoal: state.pendingGoal || "",
-    steps: state.steps, config: state.config,
+    steps: state.steps, config: state.config, workbookContext: state.workbookContext || null,
   });
 }
 
@@ -158,6 +167,52 @@ async function handlePanelMessage(msg) {
       await saveState();
       sendState();
       break;
+    case CMD.SET_WORKBOOK_CONTEXT: {
+      const context = msg.data?.workbookContext;
+      if (!context || typeof context.content !== "string" || !context.content) {
+        throw new Error("The workbook inspector did not provide usable AI context.");
+      }
+      if (context.content.length > 300_000) {
+        throw new Error("Workbook AI context exceeds the safe session limit.");
+      }
+      state.workbookContext = context;
+      await saveState();
+      sendState();
+      break;
+    }
+    case CMD.CLEAR_WORKBOOK_CONTEXT:
+      state.workbookContext = null;
+      await saveState();
+      sendState();
+      break;
+    case CMD.CHECK_ACCESS: {
+      const access = await getExtensionAccess(state.config);
+      if (access.projectId && access.projectId !== state.config.projectId) {
+        state.config.projectId = access.projectId;
+        await persistDurable({ projectId: access.projectId });
+        await saveState();
+      }
+      broadcast(EVT.ACCESS, access);
+      break;
+    }
+    case CMD.CONNECT_EPM: {
+      try {
+        const access = await connectEpmEnvironment(state.config, msg.data || {});
+        if (access.projectId && access.projectId !== state.config.projectId) {
+          state.config.projectId = access.projectId;
+          await persistDurable({ projectId: access.projectId });
+          await saveState();
+        }
+        broadcast(EVT.ACCESS, access);
+      } catch (error) {
+        broadcast(EVT.ACCESS, {
+          stage: error?.status === 401 || error?.status === 403 ? "oauth" : "epm",
+          message: error?.message || "Could not connect to Oracle EPM.",
+          error: true,
+        });
+      }
+      break;
+    }
     case CMD.TEST_CONNECTION: {
       const result = await testConnection(state.config);
       broadcast(EVT.CONN, result);
@@ -204,6 +259,19 @@ function resolveConfirm(approve) {
 
 // ── run control ──────────────────────────────────────────────────────────────
 async function startRun(goal) {
+  const access = await getExtensionAccess(state.config);
+  if (access.projectId && access.projectId !== state.config.projectId) {
+    state.config.projectId = access.projectId;
+    await persistDurable({ projectId: access.projectId });
+  }
+  if (access.stage !== "ready") {
+    await saveState();
+    broadcast(EVT.ACCESS, access);
+    broadcast(EVT.ERROR, {
+      message: access.message || "Finish signing in to EPM Wizard and Oracle EPM before starting the agent.",
+    });
+    return;
+  }
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   if (!tab) { broadcast(EVT.ERROR, { message: "No active tab to drive." }); return; }
   state.goal = goal;
@@ -270,6 +338,7 @@ async function runOneStep() {
     observation,
     history: state.steps,
     projectId: state.config.projectId || null,
+    workbookContext: state.workbookContext || null,
   };
 
   abortController = new AbortController();

@@ -77,8 +77,16 @@ def test_inspect_json_uses_camelcase_keys_the_extension_reads():
     finally:
         os.unlink(path)
     for key in ("fileFormat", "macroEnabled", "hasMacros", "sheetCount",
-                "vbaModules", "namedRanges", "pivotTables"):
+                "vbaModules", "namedRanges", "pivotTables", "aiContext",
+                "aiContextTruncated"):
         assert key in payload, key
+
+    # The prompt-ready context is richer than the visual sheet summary: it
+    # includes extracted formulas and sample cell values for the browser agent.
+    assert "SalesTbl" in payload["aiContext"]
+    assert "=B2+C2" in payload["aiContext"]
+    assert "East" in payload["aiContext"]
+    assert payload["aiContextTruncated"] is False
 
 
 def test_scan_vba_detects_procedures_and_auto_run_triggers():
