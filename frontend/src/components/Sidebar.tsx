@@ -37,7 +37,7 @@ const NAV = [
   { to: "/skills", label: "Skills", icon: SkillLevel },
   { to: "/explorer", label: "Explorer", icon: Compass },
   { to: "/data", label: "Data", icon: DataBase },
-  { to: "/agent", label: "Browser Agent", icon: Bot },
+  { to: "/agent", label: "Agent sandbox", icon: Bot },
   { to: "/guide", label: "Guide", icon: Help },
   { to: "/settings", label: "Settings", icon: Settings },
   { to: "/about", label: "About", icon: Information },

@@ -2,11 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
-import { FirstRunTour } from "../src/components/FirstRunTour";
 import { SignInGate } from "../src/components/SignIn";
 import { useUi } from "../src/store/ui";
 
-function renderFirstRun(pathname = "/") {
+function renderSignInGate(pathname = "/") {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -22,14 +21,13 @@ function renderFirstRun(pathname = "/") {
               <main data-testid="app-content">Application content</main>
             </SignInGate>
           </div>
-          <FirstRunTour />
         </div>
       </MemoryRouter>
     </QueryClientProvider>,
   );
 }
 
-describe("SignInGate first-run accessibility", () => {
+describe("SignInGate accessibility", () => {
   beforeEach(() => {
     localStorage.clear();
     useUi.setState({
@@ -52,7 +50,7 @@ describe("SignInGate first-run accessibility", () => {
   });
 
   it("exposes only the labelled sign-in dialog until the user chooses to continue", async () => {
-    renderFirstRun();
+    renderSignInGate();
 
     const signIn = await screen.findByRole("dialog", { name: "Sign in to Oracle EPM" });
     expect(signIn).toHaveAttribute("aria-modal", "true");
@@ -67,8 +65,8 @@ describe("SignInGate first-run accessibility", () => {
     expect(screen.getByLabelText("Classification")).toBeInTheDocument();
   });
 
-  it("makes the entire app-shell background inert and restores it before showing the tour", async () => {
-    renderFirstRun();
+  it("restores the app immediately after the user continues without Oracle", async () => {
+    renderSignInGate();
     await screen.findByRole("dialog", { name: "Sign in to Oracle EPM" });
 
     const header = screen.getByTestId("app-header");
@@ -80,15 +78,17 @@ describe("SignInGate first-run accessibility", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Continue without Oracle/ }));
 
-    expect(await screen.findByRole("dialog", { name: "Welcome to EPM Wizard" })).toBeInTheDocument();
-    expect(screen.getByTestId("app-content")).toBeInTheDocument();
-    expect(screen.queryByRole("dialog", { name: "Sign in to Oracle EPM" })).not.toBeInTheDocument();
-    expect(header).toHaveAttribute("aria-hidden", "true");
-    expect(screen.getByTestId("app-body")).toHaveAttribute("aria-hidden", "true");
+    expect(await screen.findByTestId("app-content")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByText("Welcome to EPM Wizard")).not.toBeInTheDocument();
+    expect(header).not.toHaveAttribute("aria-hidden");
+    expect(sidebar).not.toHaveAttribute("aria-hidden");
+    expect(header).not.toHaveAttribute("inert");
+    expect(sidebar).not.toHaveAttribute("inert");
   });
 
-  it("allows Settings through without layering the tour over it", async () => {
-    renderFirstRun("/settings");
+  it("allows Settings through without layering a modal over it", async () => {
+    renderSignInGate("/settings");
 
     await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
     expect(screen.getByTestId("app-content")).toBeInTheDocument();

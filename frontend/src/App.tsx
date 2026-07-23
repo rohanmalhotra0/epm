@@ -11,7 +11,6 @@ import { SignInGate } from "./components/SignIn";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Toaster } from "./components/Toaster";
 import { CommandPalette } from "./components/CommandPalette";
-import { FirstRunTour } from "./components/FirstRunTour";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import { useConversations, useCreateConversation, useProjects } from "./api/hooks";
 import { useUi } from "./store/ui";
@@ -143,7 +142,6 @@ function AppShell() {
             newChat();
           }}
         />
-        <FirstRunTour />
       </div>
     </Theme>
   );

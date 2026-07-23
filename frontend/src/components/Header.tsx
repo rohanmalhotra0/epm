@@ -93,7 +93,6 @@ export function Header() {
             style={{ width: "auto", padding: 4 }}
             onClick={openRenameProject}
             disabled={!project || renameProject.isPending}
-            title="Rename project"
             aria-label="Rename project"
           >
             <Edit size={14} />
@@ -103,7 +102,6 @@ export function Header() {
             style={{ width: "auto", padding: 4 }}
             onClick={onNewProject}
             disabled={createProject.isPending}
-            title="New project"
             aria-label="New project"
           >
             <Add size={16} />
@@ -119,13 +117,12 @@ export function Header() {
             </>
           )}
           <span style={{ opacity: 0.4 }}>|</span>
-          <span title="Active model">
+          <span>
             {activeProvider ? `${activeProvider.name.split(" ")[0]} · ${activeProvider.defaultModel ?? "model"}` : "no provider"}
           </span>
         </div>
         <button
           className="epmw-tts-toggle"
-          title={theme === "g100" ? "Switch to light theme" : "Switch to dark theme"}
           aria-label={theme === "g100" ? "Switch to light theme" : "Switch to dark theme"}
           onClick={toggleTheme}
         >

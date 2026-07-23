@@ -97,13 +97,14 @@ describe("Sidebar conversation management", () => {
     expect(urls.some((u) => u.includes("include_archived=true"))).toBe(true);
   });
 
-  it("links to every page promised by the first-run tour", async () => {
+  it("links to the primary workspace destinations", async () => {
     renderSidebar();
     await screen.findByText("Alpha");
 
     expect(screen.getByRole("complementary", { name: "Workspace sidebar" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Skills" })).toHaveAttribute("href", "/skills");
     expect(screen.getByRole("link", { name: "Explorer" })).toHaveAttribute("href", "/explorer");
+    expect(screen.getByRole("link", { name: "Agent sandbox" })).toHaveAttribute("href", "/agent");
   });
 
   it("closes the sidebar after mobile navigation", async () => {

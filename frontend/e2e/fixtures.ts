@@ -10,7 +10,6 @@ type Fixtures = {
 };
 
 function stableAppState() {
-  localStorage.setItem("epmw-tour-done", "1");
   localStorage.setItem(
     "epmw-ui",
     JSON.stringify({ state: { oracleGateSkipped: true }, version: 0 }),

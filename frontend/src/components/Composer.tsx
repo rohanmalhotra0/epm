@@ -13,17 +13,17 @@ import { formatBytes } from "../utils/format";
 import { toast } from "../store/toast";
 
 const SLASH = [
-  { cmd: "/forms", desc: "Build, preview, edit and deploy a data form" },
-  { cmd: "/architecture", desc: "Visualize a cube's dimensions" },
-  { cmd: "/rules", desc: "Search, explain and run business rules" },
-  { cmd: "/run-rule", desc: "Run a business rule" },
-  { cmd: "/context", desc: "Learn or refresh the EPM application" },
-  { cmd: "/search", desc: "Find members, forms, rules, variables" },
-  { cmd: "/explain", desc: "Explain a rule or calculation" },
-  { cmd: "/compare", desc: "Compare cubes or context versions" },
-  { cmd: "/deploy", desc: "Deploy / verify an artifact" },
-  { cmd: "/rollback", desc: "Roll back the last deployment" },
-  { cmd: "/help", desc: "What EPM Wizard can do" },
+  "/forms",
+  "/architecture",
+  "/rules",
+  "/run-rule",
+  "/context",
+  "/search",
+  "/explain",
+  "/compare",
+  "/deploy",
+  "/rollback",
+  "/help",
 ];
 
 /** A file being (or done being) uploaded, shown as a chip above the textarea. */
@@ -55,7 +55,7 @@ export function Composer({
   const ref = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const showMenu = text.startsWith("/") && !text.includes(" ");
-  const filtered = SLASH.filter((s) => s.cmd.startsWith(text.toLowerCase()));
+  const filtered = SLASH.filter((command) => command.startsWith(text.toLowerCase()));
 
   // Voice dictation (Web Speech API). Interim results preview in place; final
   // segments accumulate onto whatever was already typed when dictation started.
@@ -176,7 +176,7 @@ export function Composer({
       }
       if (e.key === "Tab" || (e.key === "Enter" && filtered.length)) {
         e.preventDefault();
-        setText(filtered[menuIdx].cmd + " ");
+        setText(filtered[menuIdx] + " ");
         return;
       }
     }
@@ -191,119 +191,126 @@ export function Composer({
       <div className="composer">
         {showMenu && filtered.length > 0 && (
           <div className="slash-menu" id="slash-command-menu" role="listbox" aria-label="Slash commands">
-            {filtered.map((s, i) => (
+            {filtered.map((command, i) => (
               <div
-                key={s.cmd}
+                key={command}
                 id={`slash-command-${i}`}
                 className={`slash-item ${i === menuIdx ? "active" : ""}`}
                 role="option"
                 aria-selected={i === menuIdx}
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  setText(s.cmd + " ");
+                  setText(command + " ");
                   ref.current?.focus();
                 }}
               >
-                <span className="cmd">{s.cmd}</span> <span className="desc">— {s.desc}</span>
+                <span className="cmd">{command}</span>
               </div>
             ))}
           </div>
         )}
-        {pending.length > 0 && (
-          <div className="attach-chips">
-            {pending.map((a) => (
-              <span className="attach-chip" key={a.localId}>
-                {a.uploading ? <div className="spinner" /> : <Document size={14} />}
-                <span className="name mono">{a.filename}</span>
-                <span className="meta">{formatBytes(a.sizeBytes)}</span>
-                {a.attachment && <span className="tag-inline">{attachmentKindLabel(a.attachment.kindGuess)}</span>}
-                <button
-                  className="attach-remove"
-                  aria-label={`Remove ${a.filename}`}
-                  title={`Remove ${a.filename}`}
-                  onClick={() => setPending((p) => p.filter((x) => x.localId !== a.localId))}
+        <div className={`composer-surface ${listening ? "is-listening" : ""}`} aria-busy={uploading || streaming}>
+          {pending.length > 0 && (
+            <div className="attach-chips" role="list" aria-label="Attached files">
+              {pending.map((a) => (
+                <span className="attach-chip" key={a.localId} role="listitem">
+                  {a.uploading ? <div className="spinner" aria-hidden="true" /> : <Document size={14} />}
+                  <span className="name mono">{a.filename}</span>
+                  <span className="meta">{formatBytes(a.sizeBytes)}</span>
+                  {a.attachment && <span className="tag-inline">{attachmentKindLabel(a.attachment.kindGuess)}</span>}
+                  <button
+                    type="button"
+                    className="attach-remove"
+                    aria-label={`Remove ${a.filename}`}
+                    onClick={() => setPending((p) => p.filter((x) => x.localId !== a.localId))}
+                  >
+                    ✕
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          {dragOver && <div className="drop-overlay">Drop files to attach</div>}
+          <textarea
+            ref={ref}
+            role="combobox"
+            value={text}
+            placeholder="Describe what you want EPM Wizard to do"
+            onChange={(e) => {
+              setText(e.target.value);
+              setMenuIdx(0);
+            }}
+            onKeyDown={onKey}
+            aria-label="Message EPM Wizard"
+            aria-autocomplete="list"
+            aria-controls={showMenu && filtered.length ? "slash-command-menu" : undefined}
+            aria-expanded={showMenu && filtered.length > 0}
+            aria-activedescendant={activeSlashId}
+          />
+          <div className="composer-toolbar">
+            <div className="composer-actions">
+              {conversationId && (
+                <>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    multiple
+                    accept={ACCEPTED_EXTENSIONS.join(",")}
+                    style={{ display: "none" }}
+                    aria-label="Attach spreadsheet files"
+                    onChange={(e) => {
+                      if (e.target.files?.length) addFiles(e.target.files);
+                      e.target.value = "";
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    kind="ghost"
+                    aria-label="Attach files"
+                    renderIcon={Attachment}
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    Attach
+                  </Button>
+                </>
+              )}
+              {micSupported && (
+                <Button
+                  size="sm"
+                  kind={listening ? "secondary" : "ghost"}
+                  aria-label={listening ? "Stop dictation" : "Dictate (voice input)"}
+                  renderIcon={listening ? MicrophoneFilled : Microphone}
+                  onClick={toggleMic}
                 >
-                  ✕
-                </button>
-              </span>
-            ))}
+                  {listening ? "Stop voice" : "Voice"}
+                </Button>
+              )}
+            </div>
+            <div className="composer-submit">
+              {(uploading || listening || streaming) && (
+                <span className="composer-status" role="status" aria-live="polite">
+                  {uploading ? "Uploading…" : listening ? "Listening…" : "Working…"}
+                </span>
+              )}
+              {streaming ? (
+                <Button size="sm" kind="secondary" aria-label="Stop" renderIcon={StopFilledAlt} onClick={onStop}>
+                  Stop
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  kind="primary"
+                  aria-label="Send"
+                  renderIcon={SendFilled}
+                  onClick={submit}
+                  disabled={(!text.trim() && ready.length === 0) || uploading}
+                >
+                  Send
+                </Button>
+              )}
+            </div>
           </div>
-        )}
-        {dragOver && <div className="drop-overlay">Drop {ACCEPTED_EXTENSIONS.join(" / ")} files to attach</div>}
-        <textarea
-          ref={ref}
-          role="combobox"
-          value={text}
-          placeholder="Ask EPM Wizard to build, inspect, explain, or run something…"
-          onChange={(e) => {
-            setText(e.target.value);
-            setMenuIdx(0);
-          }}
-          onKeyDown={onKey}
-          aria-label="Message EPM Wizard"
-          aria-autocomplete="list"
-          aria-controls={showMenu && filtered.length ? "slash-command-menu" : undefined}
-          aria-expanded={showMenu && filtered.length > 0}
-          aria-activedescendant={activeSlashId}
-        />
-        <div className="composer-actions">
-          {conversationId && (
-            <>
-              <input
-                ref={fileRef}
-                type="file"
-                multiple
-                accept={ACCEPTED_EXTENSIONS.join(",")}
-                style={{ display: "none" }}
-                aria-label="Attach spreadsheet files"
-                onChange={(e) => {
-                  if (e.target.files?.length) addFiles(e.target.files);
-                  e.target.value = "";
-                }}
-              />
-              <Button
-                size="sm"
-                kind="ghost"
-                hasIconOnly
-                iconDescription="Attach files"
-                renderIcon={Attachment}
-                onClick={() => fileRef.current?.click()}
-              />
-            </>
-          )}
-          {micSupported && (
-            <Button
-              size="sm"
-              kind={listening ? "secondary" : "ghost"}
-              hasIconOnly
-              iconDescription={listening ? "Stop dictation" : "Dictate (voice input)"}
-              renderIcon={listening ? MicrophoneFilled : Microphone}
-              onClick={toggleMic}
-            />
-          )}
-          {streaming ? (
-            <Button size="sm" kind="secondary" hasIconOnly iconDescription="Stop" renderIcon={StopFilledAlt} onClick={onStop} />
-          ) : (
-            <Button
-              size="sm"
-              kind="primary"
-              hasIconOnly
-              iconDescription="Send"
-              renderIcon={SendFilled}
-              onClick={submit}
-              disabled={(!text.trim() && ready.length === 0) || uploading}
-            />
-          )}
         </div>
-      </div>
-      <div className="composer-hint">
-        {listening ? (
-          <span style={{ color: "#fa4d56", display: "flex", alignItems: "center", gap: 6 }}>
-            <span className="conn-dot on" style={{ background: "#fa4d56" }} /> Listening… click the mic to stop
-          </span>
-        ) : (
-          <span>Enter to send · Shift+Enter for newline · / for commands · Ctrl+K palette{micSupported ? " · 🎤 to dictate" : ""}</span>
-        )}
       </div>
     </div>
   );

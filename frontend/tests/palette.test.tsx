@@ -43,7 +43,7 @@ describe("CommandPalette", () => {
   it("shows quick actions when the query is empty", () => {
     renderPalette();
     expect(screen.getByText("Quick actions")).toBeInTheDocument();
-    for (const label of ["New chat", "Contexts", "Artifacts", "Deployments", "Skills", "Explorer", "Data", "Guide", "Settings"]) {
+    for (const label of ["New chat", "Contexts", "Artifacts", "Deployments", "Skills", "Explorer", "Data", "Agent sandbox", "Guide", "Settings"]) {
       expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
     }
     expect(screen.getByText(/Toggle theme/)).toBeInTheDocument();

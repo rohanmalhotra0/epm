@@ -5,6 +5,7 @@ import { useUi } from "../store/ui";
 import { toast } from "../store/toast";
 import { api, ApiError } from "../api/client";
 import { detectExtension, launchAgent, type ExtensionInfo } from "../agent/extensionBridge";
+import { AgentSandbox } from "../components/AgentSandbox";
 import "../styles/feature-pages.css";
 
 interface ExtToken {
@@ -50,17 +51,28 @@ export function AgentPage() {
   const installed = !!ext?.installed;
 
   return (
-    <div className="page">
-      <h2 style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <Bot size={20} /> Browser Agent
+    <div className="page agent-page">
+      <h2 className="agent-page-heading">
+        <Bot size={20} /> Agent workspace
       </h2>
       <div className="page-sub">
-        A Chrome extension that drives Oracle EPM Cloud's web UI for you, narrating each
-        step in a side panel. It reads the page's accessibility tree (falling back to
-        screenshots) and only ever acts on the tab you point it at.
+        Delegate a task to a focused team, observe each workstream, and connect browser
+        control when you are ready to work in Oracle EPM.
       </div>
 
-      <div style={{ maxWidth: 720, marginTop: 20, display: "grid", gap: 20 }}>
+      <div className="agent-page-content">
+        <AgentSandbox />
+
+        <section className="agent-extension-panel" aria-labelledby="browser-control-heading">
+          <div>
+            <h3 id="browser-control-heading" className="agent-extension-heading">
+              Browser control
+            </h3>
+            <p className="agent-extension-description">
+              The Chrome extension drives the Oracle EPM Cloud tab you choose and narrates
+              each step in its side panel.
+            </p>
+          </div>
         {/* status */}
         <div className="action-row" style={{ alignItems: "center", gap: 10 }}>
           {checking ? (
@@ -112,6 +124,7 @@ export function AgentPage() {
           title="Production-safety gate is enforced"
           subtitle="Destructive actions (deploy, delete, clear, run rule…) and any write on a production tenant are held for your explicit approval in the panel before they run — not left to the model's judgement."
         />
+        </section>
       </div>
     </div>
   );

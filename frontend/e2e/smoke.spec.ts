@@ -46,7 +46,6 @@ test("public landing is accessible on desktop and mobile", async ({ page }, test
 });
 
 test("a user can deliberately continue without an Oracle tenant", async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("epmw-tour-done", "1"));
   await page.goto("/app");
 
   await expect(page.getByRole("heading", { name: "Sign in to Oracle EPM" })).toBeVisible();

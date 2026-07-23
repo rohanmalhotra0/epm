@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Add,
   Asleep,
+  Bot,
   Chat,
   Compass,
   DataTable,
@@ -120,6 +121,7 @@ export function CommandPalette({
         { key: "skills", group: "actions", label: "Skills", icon: <SkillLevel size={16} />, run: () => goto("/skills") },
         { key: "explorer", group: "actions", label: "Explorer", icon: <Compass size={16} />, run: () => goto("/explorer") },
         { key: "data", group: "actions", label: "Data", icon: <DataTable size={16} />, run: () => goto("/data") },
+        { key: "agent", group: "actions", label: "Agent sandbox", icon: <Bot size={16} />, run: () => goto("/agent") },
         { key: "guide", group: "actions", label: "Guide", icon: <Help size={16} />, run: () => goto("/guide") },
         { key: "settings", group: "actions", label: "Settings", icon: <Settings size={16} />, run: () => goto("/settings") },
         {

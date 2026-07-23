@@ -46,12 +46,11 @@ async function expectNoHorizontalOverflow(page: Page) {
     .toBeLessThanOrEqual(1);
 }
 
-test("first run presents an accessible sign-in gate, then a focused welcome tour", async ({
+test("first run presents an accessible sign-in gate, then opens the workspace", async ({
   page,
 }, testInfo) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.evaluate(() => {
-    localStorage.removeItem("epmw-tour-done");
     localStorage.removeItem("epmw-ui");
   });
   await page.goto("/app", { waitUntil: "domcontentloaded" });
@@ -71,37 +70,10 @@ test("first run presents an accessible sign-in gate, then a focused welcome tour
 
   await signIn.getByRole("button", { name: /Continue without Oracle/ }).click();
 
-  const tour = page.getByRole("dialog", { name: /Welcome to EPM Wizard/ });
-  await expect(tour).toBeVisible();
-  await expect(page.getByRole("dialog")).toHaveCount(1);
-  await expect(signIn).toHaveCount(0);
-  await expect(tour).toHaveAttribute("aria-modal", "true");
-  await expect
-    .poll(() =>
-      page.evaluate(() => Boolean(document.activeElement?.closest('[role="dialog"]'))),
-    )
-    .toBe(true);
-
-  // Keyboard focus must not escape to the app shell behind the modal.
-  await tour.getByRole("button", { name: "Next" }).focus();
-  await page.keyboard.press("Tab");
-  await expect
-    .poll(() =>
-      page.evaluate(() => Boolean(document.activeElement?.closest('[role="dialog"]'))),
-    )
-    .toBe(true);
-
-  // The tour is an explicit product choice, not an accidentally dismissible overlay.
-  await page.keyboard.press("Escape");
-  await expect(tour).toBeVisible();
-  await expectNoSeriousA11yViolations(page, testInfo, "welcome-tour", '[role="dialog"]');
-
-  await tour.getByRole("button", { name: "Skip tour" }).click();
-  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByLabel("Message EPM Wizard")).toBeVisible();
-  await expect
-    .poll(() => page.evaluate(() => localStorage.getItem("epmw-tour-done")))
-    .toBe("1");
+  await expect(signIn).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByText("Welcome to EPM Wizard", { exact: true })).toHaveCount(0);
 
   await page.reload();
   await expect(page.getByLabel("Message EPM Wizard")).toBeVisible();
