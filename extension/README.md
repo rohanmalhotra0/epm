@@ -56,10 +56,13 @@ No build step. Plain ES modules + two classic content scripts. Load it as-is.
 3. Open the target page (an Oracle EPM Planning tab, or any web page to try the
    mechanics). Click the extension's toolbar icon to open the **side panel**.
 
-4. In the panel: open **⚙ Settings**, set the **Backend URL**
-   (`http://localhost:8000` by default) and optionally an EPM Wizard
-   **Project id** (selects that project's active AI provider). Optionally tick
-   **Speak narration** for Web-Speech TTS.
+4. In the panel: open **⚙ Settings** and click **Sign in to EPM Wizard**. The
+   extension ships pointed at the hosted app
+   (`https://epmw-auth.fly.dev`) — nothing to configure. To run against a
+   self-hosted or local backend (`http://localhost:8000`) instead, open
+   **Advanced** and set the **Server URL**; you can also add an EPM Wizard
+   **Project id** (selects that project's active AI provider) there. Optionally
+   tick **Speak narration** for Web-Speech TTS.
 
 5. Type a **goal** (e.g. *"Open the Actuals data form and set Scenario to
    Forecast"*) and press **Start**. Watch/pause/stop the run.

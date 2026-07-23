@@ -5,7 +5,7 @@
 // Start / Pause / Resume / Stop. Optional voice narration via the browser's
 // SpeechSynthesis API (mirrors the main app's Web Speech TTS — no backend TTS).
 
-import { CMD, EVT, PANEL_PORT, STATUS } from "../common/protocol.js";
+import { CMD, EVT, PANEL_PORT, PROD_BACKEND_URL, STATUS } from "../common/protocol.js";
 import { initInspector } from "./inspector.js";
 
 const $ = (id) => document.getElementById(id);
@@ -268,9 +268,9 @@ els.testConn.addEventListener("click", () => {
 });
 
 // Open the EPM Wizard website so the user can sign in (integrated mode).
+// Defaults to the hosted app, so signing in works with zero configuration.
 els.signIn.addEventListener("click", () => {
-  const url = (els.backendUrl.value.trim() || currentConfig.backendUrl || "").replace(/\/+$/, "");
-  if (!url) { showConn("err", "Set the Backend URL first."); return; }
+  const url = (els.backendUrl.value.trim() || currentConfig.backendUrl || PROD_BACKEND_URL).replace(/\/+$/, "");
   chrome.tabs.create({ url });
 });
 

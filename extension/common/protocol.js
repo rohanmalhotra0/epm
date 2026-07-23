@@ -57,10 +57,17 @@ export const STATUS = Object.freeze({
   ERROR: "error",
 });
 
+// The hosted EPM Wizard app (the oauth2-proxy front door on Fly — the single
+// public entry point that gates the app behind sign-in and proxies /api to the
+// backend). This is the default the extension ships with, so the panel works
+// against the real product out of the box with nothing to configure. Self-host
+// or local dev? Override the Server URL under Settings → Advanced. The EPM
+// Wizard site also overrides this to its own origin via the handshake
+// (SITE.CONFIGURE) whenever you open the panel from a signed-in tab.
+export const PROD_BACKEND_URL = "https://epmw-auth.fly.dev";
+
 export const DEFAULT_CONFIG = Object.freeze({
-  // The FastAPI backend. Same-origin dev default; the EPM Wizard site overrides
-  // this to its own origin automatically via the handshake (SITE.CONFIGURE).
-  backendUrl: "http://localhost:8000",
+  backendUrl: PROD_BACKEND_URL,
   // Optional EPM Wizard project id → selects that project's active provider.
   projectId: "",
   // Optional personal API token (epmw_…) for AUTONOMOUS use — drives the

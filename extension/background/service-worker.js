@@ -62,6 +62,13 @@ async function loadState() {
   // Overlay durable config (token, backend URL, …) so it persists across
   // browser restarts even though run state is ephemeral session storage.
   const dur = (await chrome.storage.local.get(DURABLE_KEY))[DURABLE_KEY] || {};
+  // One-time migration: earlier builds defaulted the backend to a local dev
+  // server. Installs that still carry that stale default (never explicitly
+  // pointed elsewhere) should follow the extension to the hosted app.
+  if (dur.backendUrl === "http://localhost:8000") {
+    delete dur.backendUrl;
+    await persistDurable({ backendUrl: DEFAULT_CONFIG.backendUrl });
+  }
   state.config = { ...state.config, ...dur };
   // A run interrupted by a worker restart resumes from PAUSED, never RUNNING —
   // and never stuck mid-confirmation (the held promise died with the worker).

@@ -137,6 +137,31 @@ button.danger-solid:hover { background: var(--err-hover); border-color: var(--er
 .settings .hint { color: var(--faint); font-weight: 400; }
 .settings .field-help { color: var(--faint); font-size: 11px; line-height: 1.45; }
 .settings-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Sign-in card — the primary "connect to EPM Wizard" action, front and center */
+.signin-card {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 12px; background: var(--bg);
+  border: 1px solid var(--border); border-left: 2px solid var(--accent); border-radius: 2px;
+}
+.signin-copy { display: flex; flex-direction: column; gap: 4px; }
+.signin-copy strong { color: var(--text); font-size: 13px; }
+.signin-card .primary { align-self: flex-start; }
+
+/* Advanced disclosure — server URL / token / project, hidden by default */
+details.advanced {
+  border-top: 1px solid var(--border); padding-top: 12px;
+  display: flex; flex-direction: column;
+}
+details.advanced > summary {
+  cursor: pointer; color: var(--muted); font-size: 12px; list-style: none;
+  user-select: none; padding: 2px 0;
+}
+details.advanced > summary::-webkit-details-marker { display: none; }
+details.advanced > summary::before { content: "▸ "; color: var(--faint); }
+details.advanced[open] > summary::before { content: "▾ "; }
+details.advanced[open] { gap: 14px; }
+.settings-save { align-self: flex-start; }
 .conn-status { font-size: 12px; padding: 8px 10px; border-radius: 2px; line-height: 1.45; }
 .conn-status.pending { background: var(--layer-2); color: var(--muted); }
 .conn-status.ok { background: rgba(66,190,101,.12); color: var(--ok); border-left: 2px solid var(--ok); }
