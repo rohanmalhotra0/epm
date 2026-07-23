@@ -19,8 +19,8 @@ and the local mock's action sequence are stateful within each test.
 
 Playwright cannot click Chrome's own toolbar to create an `activeTab` grant. The
 fixture therefore loads a temporary copy of the unpacked extension with only the
-isolated fixture origin and optional debugger capability pre-granted. This is
-the deterministic equivalent of approving the extension's host/canvas prompts.
-The checked-in manifest is never modified, and the agent content script is still
+isolated fixture origin pre-granted. The checked-in manifest's required
+`debugger` permission is left unchanged, and canvas control is enabled through
+the same side-panel toggle as production. The agent content script is still
 absent until the test sends the same user-triggered Start command as the side
 panel.

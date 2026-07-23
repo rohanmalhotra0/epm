@@ -55,7 +55,7 @@ test("first run presents an accessible sign-in gate, then opens the workspace", 
   });
   await page.goto("/app", { waitUntil: "domcontentloaded" });
 
-  const signIn = page.getByRole("dialog", { name: "Sign in to Oracle EPM" });
+  const signIn = page.getByRole("dialog", { name: "Connect your Oracle EPM instance" });
   await expect(signIn).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(1);
   await expect(page.getByRole("dialog", { name: /Welcome to EPM Wizard/ })).toHaveCount(0);
@@ -68,7 +68,7 @@ test("first run presents an accessible sign-in gate, then opens the workspace", 
   ).toHaveAttribute("type", "password");
   await expectNoSeriousA11yViolations(page, testInfo, "oracle-sign-in", '[role="dialog"]');
 
-  await signIn.getByRole("button", { name: /Continue without Oracle/ }).click();
+  await signIn.getByRole("button", { name: "Not now" }).click();
 
   await expect(page.getByLabel("Message EPM Wizard")).toBeVisible();
   await expect(signIn).toHaveCount(0);

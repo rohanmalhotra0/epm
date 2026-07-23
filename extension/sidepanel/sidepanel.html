@@ -162,7 +162,7 @@
       <div class="permission-card">
         <div>
           <strong>Oracle page access</strong>
-          <span class="field-help">Grant only the current Oracle origin. Needed when the panel was not opened from the toolbar on that tab.</span>
+          <span class="field-help">Grant only the current HTTPS Oracle origin. If Chrome cannot expose the page yet, approve the site-access request it shows in the address bar.</span>
         </div>
         <button id="sitePermission" class="secondary" type="button">Grant current site</button>
         <div id="sitePermissionStatus" class="conn-status hidden" role="status" aria-live="polite"></div>
@@ -170,7 +170,7 @@
       <div class="permission-card">
         <div>
           <strong>Trusted canvas input</strong>
-          <span class="field-help">Optional. Enables real mouse and keyboard input for Oracle canvas grids. Chrome displays its debugger notice while active.</span>
+          <span class="field-help">Optional in EPM Wizard and off by default. The required browser permission is accepted when the extension is installed; turning this on allows real canvas mouse and keyboard input. Chrome displays its debugger notice only while attached.</span>
         </div>
         <button id="canvasPermission" class="secondary" type="button">Enable canvas control</button>
         <div id="canvasPermissionStatus" class="conn-status hidden" role="status" aria-live="polite"></div>

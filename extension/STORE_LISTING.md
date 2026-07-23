@@ -5,7 +5,7 @@ Chrome Web Store. Copy the fields below into the Developer Dashboard listing;
 follow the checklist at the bottom before hitting **Submit for review**.
 
 > Reality check before you publish: this extension can request optional broad
-> host access and the optional `debugger` permission, and it drives a real
+> host access and the install-time `debugger` permission, and it drives a real
 > application's UI. Reviewers scrutinise both. The justifications below are
 > written to pass review, but the
 > single biggest thing that gets an extension like this **removed** post-launch
@@ -77,7 +77,7 @@ or a docs page). Required because the extension handles website content.
 
 ## Permission justifications (paste into the review form)
 
-- **Optional `debugger`** — Captures a screenshot of the active tab
+- **Install-time `debugger`, feature off by default** — Captures a screenshot of the active tab
   (`Page.captureScreenshot`) as fallback grounding when a view has no
   accessibility information, and dispatches coordinate mouse clicks
   (`Input.dispatchMouseEvent`) on those same views. Not used to read network

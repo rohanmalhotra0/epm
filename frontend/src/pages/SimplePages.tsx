@@ -1,6 +1,11 @@
-import { useState, useEffect, useRef } from "react";
-import { Button, FileUploaderButton } from "@carbon/react";
-import { ZoomIn, ZoomOut } from "@carbon/icons-react";
+import { useState, useEffect } from "react";
+import {
+  Button,
+  FileUploaderButton,
+  Select,
+  SelectItem,
+  SkeletonText,
+} from "@carbon/react";
 import { api } from "../api/client";
 import {
   useArchitecture,
@@ -19,6 +24,7 @@ import { toast } from "../store/toast";
 import { diffSpecs, formatValue, type DiffRow } from "../utils/specDiff";
 import type { ArtifactOut, ContextVersionOut, CubeArchitecture } from "../schemas/types";
 import "../styles/feature-pages.css";
+import "../styles/context-architecture.css";
 
 function usePid() {
   return useUi((s) => s.currentProjectId) ?? undefined;
@@ -26,7 +32,13 @@ function usePid() {
 
 export function ContextsPage() {
   const pid = usePid();
-  const { data: contexts = [] } = useContexts(pid);
+  const {
+    data: contexts = [],
+    isLoading: contextsLoading,
+    isError: contextsError,
+    error: contextsErrorDetail,
+    refetch: refetchContexts,
+  } = useContexts(pid);
   const build = useBuildContext(pid);
   const importSnapshot = useImportContextSnapshot(pid);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -34,10 +46,10 @@ export function ContextsPage() {
   const activeVersion = contexts.find((c) => c.active);
   return (
     <div className="page">
-      <h2>Contexts</h2>
-      <div className="page-sub">Learn the connected EPM application. Contexts are stored locally and reused automatically.</div>
+      <h2 className="text-balance">Contexts</h2>
+      <div className="page-sub text-pretty">Learn the connected EPM application. Contexts are stored locally and reused automatically.</div>
       <div className="action-row" style={{ marginBottom: 16 }}>
-        <Button size="sm" kind="primary" disabled={build.isPending} onClick={() => build.mutate("quick")}>
+        <Button size="sm" kind="primary" disabled={build.isPending || !pid} onClick={() => build.mutate("quick")}>
           {build.isPending ? "Building context…" : "Build context"}
         </Button>
         <FileUploaderButton
@@ -55,51 +67,76 @@ export function ContextsPage() {
           }}
         />
       </div>
-      <table className="data-table">
-        <thead><tr><th style={{ width: 80 }}></th><th>Version</th><th>Mode</th><th>Members</th><th>Forms</th><th>Rules</th><th>Active</th><th>Export</th></tr></thead>
-        <tbody>
-          {contexts.map((c) => {
-            const isOpen = !!expanded[c.id];
-            return [
-              <tr key={c.id}>
-                <td>
-                  <Button
-                    size="sm"
-                    kind="ghost"
-                    aria-expanded={isOpen}
-                    aria-label={`${isOpen ? "Hide" : "Show"} details for ${c.label}`}
-                    onClick={() => toggleExpanded(c.id)}
-                  >
-                    {isOpen ? "Hide" : "Details"}
-                  </Button>
-                </td>
-                <td className="mono">{c.label}</td>
-                <td>{c.mode}</td>
-                <td>{String(c.counts?.members ?? "—")}</td>
-                <td>{String(c.counts?.forms ?? "—")}</td>
-                <td>{String(c.counts?.rules ?? "—")}</td>
-                <td>{c.active ? <span className="tag-inline">active</span> : ""}</td>
-                <td style={{ whiteSpace: "nowrap" }}>
-                  <a href={`/api/contexts/${c.id}/export.docx`} title="Download as Word document">Word</a>
-                  {" · "}
-                  <a href={`/api/contexts/${c.id}/export.pdf`} title="Download as PDF with diagrams">PDF</a>
-                  {" · "}
-                  <a href={`/api/contexts/${c.id}/export.md`} title="Download as Markdown with Mermaid diagrams">Markdown</a>
-                </td>
-              </tr>,
-              isOpen ? (
-                <tr key={`${c.id}-detail`}>
-                  <td colSpan={8} style={{ padding: "10px 12px", background: "var(--cds-layer,#1f1f1f)" }}>
-                    <ContextVersionDetail version={c} activeVersion={activeVersion} />
+      {contextsLoading && (
+        <div className="context-version-skeleton" role="status" aria-live="polite" aria-busy="true">
+          <SkeletonText paragraph lineCount={3} />
+          <span className="cds--visually-hidden">Loading context versions…</span>
+        </div>
+      )}
+      {contextsError && (
+        <div className="context-inline-state" role="alert">
+          <div>
+            <strong>Context versions could not be loaded</strong>
+            <span>{contextsErrorDetail instanceof Error ? contextsErrorDetail.message : "Try the request again."}</span>
+          </div>
+          <Button size="sm" kind="tertiary" onClick={() => refetchContexts()}>Retry</Button>
+        </div>
+      )}
+      {!contextsLoading && !contextsError && (
+        <div className="context-version-table-wrap" role="region" aria-label="Context versions" tabIndex={0}>
+          <table className="data-table">
+            <thead><tr><th style={{ width: 80 }}>Details</th><th>Version</th><th>Mode</th><th>Members</th><th>Forms</th><th>Rules</th><th>Active</th><th>Export</th></tr></thead>
+            <tbody>
+              {contexts.map((c) => {
+                const isOpen = !!expanded[c.id];
+                return [
+                  <tr key={c.id}>
+                    <td>
+                      <Button
+                        size="sm"
+                        kind="ghost"
+                        aria-expanded={isOpen}
+                        aria-label={`${isOpen ? "Hide" : "Show"} details for ${c.label}`}
+                        onClick={() => toggleExpanded(c.id)}
+                      >
+                        {isOpen ? "Hide" : "Details"}
+                      </Button>
+                    </td>
+                    <td className="mono">{c.label}</td>
+                    <td>{c.mode}</td>
+                    <td className="tabular-nums">{String(c.counts?.members ?? "—")}</td>
+                    <td className="tabular-nums">{String(c.counts?.forms ?? "—")}</td>
+                    <td className="tabular-nums">{String(c.counts?.rules ?? "—")}</td>
+                    <td>{c.active ? <span className="tag-inline">active</span> : ""}</td>
+                    <td style={{ whiteSpace: "nowrap" }}>
+                      <a href={`/api/contexts/${c.id}/export.docx`} aria-label={`Download ${c.label} as Word document`}>Word</a>
+                      {" · "}
+                      <a href={`/api/contexts/${c.id}/export.pdf`} aria-label={`Download ${c.label} as PDF`}>PDF</a>
+                      {" · "}
+                      <a href={`/api/contexts/${c.id}/export.md`} aria-label={`Download ${c.label} as Markdown`}>Markdown</a>
+                    </td>
+                  </tr>,
+                  isOpen ? (
+                    <tr key={`${c.id}-detail`}>
+                      <td colSpan={8} style={{ padding: "10px 12px", background: "var(--cds-layer,#1f1f1f)" }}>
+                        <ContextVersionDetail version={c} activeVersion={activeVersion} />
+                      </td>
+                    </tr>
+                  ) : null,
+                ];
+              })}
+              {contexts.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="context-empty-cell">
+                    No context yet. Build one to explore cube architecture and dimensions.
                   </td>
                 </tr>
-              ) : null,
-            ];
-          })}
-          {contexts.length === 0 && <tr><td colSpan={8} style={{ color: "#8d8d8d" }}>No context yet — build one above.</td></tr>}
-        </tbody>
-      </table>
-      <ArchitectureViewer projectId={pid} />
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <ArchitectureViewer key={pid} projectId={pid} />
     </div>
   );
 }
@@ -277,367 +314,224 @@ function ContextDetailedDiff({
   );
 }
 
-/** Combined overview showing all cubes in one visualization */
-function CubeOverview({ projectId, cubes }: { projectId: string; cubes: string[] }) {
+/** Fast, responsive overview of every cube in the active context. */
+function CubeOverview({
+  projectId,
+  cubes,
+  onSelectCube,
+}: {
+  projectId: string;
+  cubes: string[];
+  onSelectCube: (cube: string) => void;
+}) {
   const [architectures, setArchitectures] = useState<Record<string, CubeArchitecture>>({});
+  const [failedCubes, setFailedCubes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0, panX: 0, panY: 0 });
-  const svgRef = useRef<SVGSVGElement>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadAllCubes = async () => {
       setLoading(true);
-      const results: Record<string, CubeArchitecture> = {};
-
-      for (const cube of cubes) {
-        try {
+      setFailedCubes([]);
+      const settled = await Promise.allSettled(
+        cubes.map(async (cube) => {
           const response = await api<{ cubes: string[]; cube: string; architecture: CubeArchitecture }>(
             `/api/projects/${projectId}/architecture?cube=${encodeURIComponent(cube)}`
           );
-          results[cube] = response.architecture;
-        } catch (err) {
-          console.error(`Failed to load cube ${cube}:`, err);
-        }
-      }
+          return [cube, response.architecture] as const;
+        }),
+      );
+      if (cancelled) return;
 
+      const results: Record<string, CubeArchitecture> = {};
+      const failures: string[] = [];
+      settled.forEach((result, index) => {
+        if (result.status === "fulfilled") results[result.value[0]] = result.value[1];
+        else failures.push(cubes[index]);
+      });
       setArchitectures(results);
+      setFailedCubes(failures);
       setLoading(false);
     };
 
     loadAllCubes();
-  }, [projectId, cubes]);
-
-  // Keyboard controls
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Leave typing alone — otherwise "-", "+", "0" and the arrow keys are
-      // swallowed by the diagram while the user edits an input or the chat.
-      const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
-
-      const panStep = 20;
-      const zoomStep = 0.2;
-
-      switch (e.key) {
-        case "ArrowUp":
-          e.preventDefault();
-          setPan(prev => ({ ...prev, y: prev.y + panStep }));
-          break;
-        case "ArrowDown":
-          e.preventDefault();
-          setPan(prev => ({ ...prev, y: prev.y - panStep }));
-          break;
-        case "ArrowLeft":
-          e.preventDefault();
-          setPan(prev => ({ ...prev, x: prev.x + panStep }));
-          break;
-        case "ArrowRight":
-          e.preventDefault();
-          setPan(prev => ({ ...prev, x: prev.x - panStep }));
-          break;
-        case "+":
-        case "=":
-          e.preventDefault();
-          setZoom(prev => Math.min(3, prev + zoomStep));
-          break;
-        case "-":
-        case "_":
-          e.preventDefault();
-          setZoom(prev => Math.max(0.5, prev - zoomStep));
-          break;
-        case "0":
-          e.preventDefault();
-          setZoom(1);
-          setPan({ x: 0, y: 0 });
-          break;
-      }
+    return () => {
+      cancelled = true;
     };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  // Pan is applied in viewBox user units, but the mouse moves in screen
-  // pixels — convert the drag delta or the content lags the cursor.
-  const screenToUser = (totalWidth: number, totalHeight: number) => {
-    const rect = svgRef.current?.getBoundingClientRect();
-    if (!rect || rect.width === 0 || rect.height === 0) return 1;
-    return 1 / Math.min(rect.width / totalWidth, rect.height / totalHeight);
-  };
-
-  const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (e.button !== 0) return;
-    setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y });
-  };
-
-  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!isDragging) return;
-    const k = screenToUser(totalWidth, totalHeight);
-    setPan({
-      x: dragStart.panX + (e.clientX - dragStart.x) * k,
-      y: dragStart.panY + (e.clientY - dragStart.y) * k
-    });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
+  }, [projectId, cubes, retryKey]);
 
   if (loading) {
-    return <div style={{ color: "#8d8d8d", fontSize: 13, padding: 20 }}>Loading all cubes…</div>;
+    return (
+      <div className="context-cube-grid" role="status" aria-live="polite" aria-busy="true">
+        {[0, 1, 2, 3].map((item) => (
+          <div className="context-cube-skeleton" key={item}>
+            <SkeletonText heading />
+            <SkeletonText paragraph lineCount={3} />
+          </div>
+        ))}
+        <span className="cds--visually-hidden">Loading cube overview…</span>
+      </div>
+    );
   }
 
-  const cubesList = Object.entries(architectures);
-  const cols = Math.ceil(Math.sqrt(cubesList.length));
-  const rows = Math.ceil(cubesList.length / cols);
-  const cubeSize = 200;
-  const spacing = 80;
-  const totalWidth = cols * (cubeSize + spacing) + spacing;
-  const totalHeight = rows * (cubeSize + spacing) + spacing;
+  const cubeEntries = cubes.flatMap((cube) => architectures[cube] ? [[cube, architectures[cube]] as const] : []);
+  const totalDimensions = cubeEntries.reduce((sum, [, architecture]) => sum + architecture.dimensions.length, 0);
+  const totalMembers = cubeEntries.reduce(
+    (sum, [, architecture]) => sum + architecture.dimensions.reduce(
+      (cubeSum, dimension) => cubeSum + (dimension.memberCount ?? 0),
+      0,
+    ),
+    0,
+  );
 
   return (
-    <div style={{ marginBottom: 12 }}>
-      {/* Controls */}
-      <div style={{
-        display: "flex",
-        gap: 12,
-        marginBottom: 12,
-        padding: "8px 12px",
-        background: "#262626",
-        borderRadius: 4,
-        alignItems: "center"
-      }}>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <button
-            onClick={() => setZoom(Math.max(0.5, zoom - 0.2))}
-            style={{
-              padding: 6,
-              background: "#1f1f1f",
-              border: "1px solid #393939",
-              borderRadius: 3,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center"
-            }}
-            title="Zoom out"
-          >
-            <ZoomOut size={16} color="#f4f4f4" />
-          </button>
-          <span style={{ fontSize: 12, color: "#a8a8a8", minWidth: 45, textAlign: "center" }}>
-            {Math.round(zoom * 100)}%
-          </span>
-          <button
-            onClick={() => setZoom(Math.min(3, zoom + 0.2))}
-            style={{
-              padding: 6,
-              background: "#1f1f1f",
-              border: "1px solid #393939",
-              borderRadius: 3,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center"
-            }}
-            title="Zoom in"
-          >
-            <ZoomIn size={16} color="#f4f4f4" />
-          </button>
-          <button
-            onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}
-            style={{
-              padding: "6px 12px",
-              background: "#1f1f1f",
-              border: "1px solid #393939",
-              borderRadius: 3,
-              cursor: "pointer",
-              fontSize: 12,
-              color: "#f4f4f4"
-            }}
-          >
-            Reset
-          </button>
+    <section className="context-overview" aria-label="Application cube overview">
+      <div className="context-overview-summary">
+        <span><strong className="tabular-nums">{cubeEntries.length}</strong> cubes loaded</span>
+        <span><strong className="tabular-nums">{totalDimensions}</strong> dimensions</span>
+        <span><strong className="tabular-nums">{totalMembers.toLocaleString()}</strong> known members</span>
+      </div>
+      {failedCubes.length > 0 && (
+        <div className="context-inline-state context-inline-state-warning" role="status">
+          <div>
+            <strong>{failedCubes.length === cubes.length ? "Cube overview could not be loaded" : "Some cubes could not be loaded"}</strong>
+            <span>{failedCubes.join(", ")}</span>
+          </div>
+          <Button size="sm" kind="tertiary" onClick={() => setRetryKey((value) => value + 1)}>Retry</Button>
         </div>
-        <div style={{ fontSize: 11, color: "#8d8d8d", marginLeft: "auto" }}>
-          Arrow keys: pan • +/−: zoom • 0: reset
+      )}
+      {cubeEntries.length > 0 ? (
+        <div className="context-cube-grid">
+          {cubeEntries.map(([cubeName, architecture], index) => {
+            const preview = architecture.dimensions.slice(0, 4);
+            const remaining = architecture.dimensions.length - preview.length;
+            const memberCount = architecture.dimensions.reduce(
+              (sum, dimension) => sum + (dimension.memberCount ?? 0),
+              0,
+            );
+            return (
+              <button
+                type="button"
+                className="context-cube-card"
+                key={cubeName}
+                style={{ animationDelay: `${Math.min(index * 28, 140)}ms` }}
+                aria-label={`Explore ${cubeName}, ${architecture.dimensions.length} dimensions`}
+                onClick={() => onSelectCube(cubeName)}
+              >
+                <span className="context-cube-card-kicker">{architecture.cubeType || "Planning cube"}</span>
+                <strong>{cubeName}</strong>
+                <span className="context-cube-card-metric">
+                  <b className="tabular-nums">{architecture.dimensions.length}</b> dimensions
+                  <span aria-hidden="true"> · </span>
+                  <b className="tabular-nums">{memberCount.toLocaleString()}</b> members
+                </span>
+                <span className="context-cube-dimensions">
+                  {preview.map((dimension) => dimension.name).join(" · ")}
+                  {remaining > 0 ? ` · +${remaining}` : ""}
+                </span>
+                <span className="context-cube-card-action">Explore architecture <span aria-hidden="true">→</span></span>
+              </button>
+            );
+          })}
         </div>
-      </div>
-
-      {/* Overview visualization */}
-      <div style={{ position: "relative", overflow: "hidden", background: "#0f0f0f", borderRadius: 4 }}>
-        <svg
-          ref={svgRef}
-          viewBox={`0 0 ${totalWidth} ${totalHeight}`}
-          width="100%"
-          style={{
-            maxHeight: 600,
-            cursor: isDragging ? "grabbing" : "grab"
-          }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-        >
-          {/* CSS transform (not the SVG attribute) so the zoom transition
-              actually animates; px units are viewBox user units here. */}
-          <g style={{
-            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-            transition: isDragging ? "none" : "transform 0.1s ease-out"
-          }}>
-            {cubesList.map(([cubeName, arch], idx) => {
-              const col = idx % cols;
-              const row = Math.floor(idx / cols);
-              const x = spacing + col * (cubeSize + spacing);
-              const y = spacing + row * (cubeSize + spacing);
-              const dimCount = arch.dimensions.length;
-
-              return (
-                <g key={cubeName} transform={`translate(${x}, ${y})`}>
-                  {/* Cube representation */}
-                  <rect
-                    width={cubeSize}
-                    height={cubeSize}
-                    rx={4}
-                    fill="#1f1f1f"
-                    stroke="#4589ff"
-                    strokeWidth={2}
-                  />
-
-                  {/* Cube name */}
-                  <text
-                    x={cubeSize / 2}
-                    y={30}
-                    fill="#f4f4f4"
-                    fontSize={16}
-                    fontWeight={600}
-                    textAnchor="middle"
-                  >
-                    {cubeName.length > 18 ? cubeName.slice(0, 17) + "…" : cubeName}
-                  </text>
-
-                  {/* Application name */}
-                  <text
-                    x={cubeSize / 2}
-                    y={50}
-                    fill="#8d8d8d"
-                    fontSize={11}
-                    textAnchor="middle"
-                  >
-                    {arch.application}
-                  </text>
-
-                  {/* Dimension count */}
-                  <text
-                    x={cubeSize / 2}
-                    y={98}
-                    fill="#a8a8a8"
-                    fontSize={32}
-                    fontWeight={700}
-                    textAnchor="middle"
-                  >
-                    {dimCount}
-                  </text>
-
-                  <text
-                    x={cubeSize / 2}
-                    y={118}
-                    fill="#8d8d8d"
-                    fontSize={12}
-                    textAnchor="middle"
-                  >
-                    dimensions
-                  </text>
-
-                  {/* Dimension names: 4 rows + "+N more" fit the space below
-                      the count without rows landing on top of each other. */}
-                  {arch.dimensions.slice(0, dimCount > 5 ? 4 : 5).map((dim, i) => (
-                    <text
-                      key={i}
-                      x={cubeSize / 2}
-                      y={134 + i * 12}
-                      fill="#6f6f6f"
-                      fontSize={9}
-                      textAnchor="middle"
-                    >
-                      {dim.name.length > 20 ? dim.name.slice(0, 19) + "…" : dim.name}
-                    </text>
-                  ))}
-
-                  {dimCount > 5 && (
-                    <text
-                      x={cubeSize / 2}
-                      y={cubeSize - 10}
-                      fill="#6f6f6f"
-                      fontSize={9}
-                      textAnchor="middle"
-                    >
-                      +{dimCount - 4} more
-                    </text>
-                  )}
-                </g>
-              );
-            })}
-          </g>
-        </svg>
-      </div>
-
-      <div style={{ marginTop: 12, fontSize: 12, color: "#8d8d8d" }}>
-        Showing {cubesList.length} cube{cubesList.length !== 1 ? "s" : ""} from the active context
-      </div>
-    </div>
+      ) : (
+        <div className="context-overview-empty">
+          <strong>No cube architecture is available</strong>
+          <p className="text-pretty">Retry the overview or rebuild the active context.</p>
+        </div>
+      )}
+    </section>
   );
 }
 
 /** Cube Architecture & Dimensionality visualizer for the active context. */
 function ArchitectureViewer({ projectId }: { projectId: string | undefined }) {
   const [cube, setCube] = useState<string | undefined>(undefined);
-  const [showOverview, setShowOverview] = useState(false);
-  const { data, isLoading, isError } = useArchitecture(projectId, cube);
+  const [view, setView] = useState<"overview" | "detail">("overview");
+  const [knownCubes, setKnownCubes] = useState<string[]>([]);
+  const { data, isLoading, isFetching, isError, error, refetch } = useArchitecture(projectId, cube);
+
+  useEffect(() => {
+    if (data?.cubes.length) setKnownCubes(data.cubes);
+  }, [data?.cubes]);
 
   if (!projectId) return null;
+
+  const selectedCube = cube ?? data?.cube ?? knownCubes[0] ?? "";
+  const selectCube = (nextCube: string) => {
+    setCube(nextCube);
+    setView("detail");
+  };
+
   return (
-    <div style={{ marginTop: 32 }}>
-      <h3 style={{ fontSize: 16, marginBottom: 4 }}>Cube architecture</h3>
-      <div className="page-sub">
-        How dimensions form each cube in the active context. Select a cube to visualize it.
+    <section className="context-architecture-section" aria-labelledby="context-architecture-title">
+      <div className="context-architecture-heading">
+        <div>
+          <h3 id="context-architecture-title" className="text-balance">Cube architecture</h3>
+          <p className="text-pretty">
+            Explore every cube, then select a dimension to inspect its placement and member coverage.
+          </p>
+        </div>
+        {isFetching && !isLoading && <span className="context-fetching" role="status">Updating…</span>}
       </div>
-      {isLoading && <div style={{ color: "#8d8d8d", fontSize: 13 }}>Loading architecture…</div>}
+
+      {(data || knownCubes.length > 0) && (
+        <div className="context-architecture-controls" aria-label="Architecture view controls">
+          <Button
+            type="button"
+            size="sm"
+            kind={view === "overview" ? "primary" : "ghost"}
+            aria-pressed={view === "overview"}
+            onClick={() => setView("overview")}
+          >
+            All cubes
+          </Button>
+          <Select
+            id="context-cube-select"
+            size="sm"
+            labelText="Cube"
+            value={selectedCube}
+            onChange={(event) => selectCube(event.target.value)}
+          >
+            {(data?.cubes ?? knownCubes).map((cubeName) => (
+              <SelectItem key={cubeName} value={cubeName} text={cubeName} />
+            ))}
+          </Select>
+        </div>
+      )}
+      {isLoading && knownCubes.length === 0 && (
+        <div className="context-architecture-loading" role="status" aria-live="polite" aria-busy="true">
+          <SkeletonText heading />
+          <SkeletonText paragraph lineCount={4} />
+          <span className="cds--visually-hidden">Loading cube architecture…</span>
+        </div>
+      )}
       {isError && (
-        <div style={{ color: "#8d8d8d", fontSize: 13 }}>
-          No active context to visualize yet — build one above, then it appears here.
+        <div className="context-inline-state" role="alert">
+          <div>
+            <strong>Architecture is not available yet</strong>
+            <span>{error instanceof Error ? error.message : "Build or refresh the active context, then try again."}</span>
+          </div>
+          <Button size="sm" kind="tertiary" onClick={() => refetch()}>Retry</Button>
         </div>
       )}
       {data && (
         <>
-          <div className="action-row" style={{ margin: "12px 0" }}>
-            <Button
-              size="sm"
-              kind={showOverview ? "primary" : "ghost"}
-              onClick={() => setShowOverview(true)}
-            >
-              Overview
-            </Button>
-            {data.cubes.map((c) => (
-              <Button
-                key={c}
-                size="sm"
-                kind={!showOverview && c === data.cube ? "primary" : "ghost"}
-                onClick={() => { setCube(c); setShowOverview(false); }}
-              >
-                {c}
-              </Button>
-            ))}
-          </div>
-          {showOverview ? (
-            <CubeOverview projectId={projectId} cubes={data.cubes} />
+          {view === "overview" ? (
+            <CubeOverview projectId={projectId} cubes={data.cubes} onSelectCube={selectCube} />
           ) : (
-            <CubeArchitectureBlock data={data.architecture} onAction={() => {}} />
+            <CubeArchitectureBlock
+              key={data.architecture.cube}
+              data={data.architecture}
+              onAction={() => {}}
+              showHeader={false}
+            />
           )}
         </>
       )}
-    </div>
+    </section>
   );
 }
 

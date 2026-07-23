@@ -48,7 +48,7 @@ backend changes that destination.
 
 ## Permissions and how they are used
 
-- **Optional `debugger`** — when you grant trusted canvas input, this can
+- **Install-time `debugger`, user-controlled canvas mode** — when you enable trusted canvas input, this can
   capture a CDP screenshot (`Page.captureScreenshot`) and dispatch coordinate
   mouse clicks (`Input.dispatchMouseEvent`) on views that lack accessibility
   information. Chrome shows a "debugging this browser" banner while active.

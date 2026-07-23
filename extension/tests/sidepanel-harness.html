@@ -84,6 +84,10 @@
               state.workbookContext = message.data?.workbookContext || null;
               emit("state", state);
             }
+            if (message.cmd === "setCanvasControl") {
+              state.config.canvasControlEnabled = message.data?.enabled === true;
+              emit("state", state);
+            }
           });
         },
       };
@@ -91,10 +95,22 @@
       window.chrome = {
         runtime: { connect: () => port },
         tabs: {
+          async query() {
+            return [{ id: 7, url: "https://planning-test.example.oraclecloud.com/HyperionPlanning" }];
+          },
           create({ url }) {
             window.__lastOpenedUrl = url;
             stage = "epm";
           },
+        },
+        permissions: {
+          async contains(value) {
+            return value?.permissions?.includes("debugger") === true;
+          },
+          async request() {
+            return true;
+          },
+          async addHostAccessRequest() {},
         },
         storage: {
           local: {

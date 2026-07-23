@@ -1,12 +1,19 @@
-import { useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { WatsonHealthAiResults, Upload } from "@carbon/icons-react";
-import { Button, ComposedModal } from "@carbon/react";
+import {
+  Button,
+  ComposedModal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
+} from "@carbon/react";
 import {
   useConnectEnvironment,
   useCreateEnvironment,
   useEnvironments,
 } from "../api/hooks";
+import { useInertAppBackground } from "../hooks/useInertAppBackground";
 import { useUi } from "../store/ui";
 import type { EnvironmentOut } from "../schemas/types";
 
@@ -14,9 +21,9 @@ const CLASSIFICATIONS = ["development", "test", "production"];
 const OAUTH_METHOD = "oauthClientCredentials";
 
 /**
- * Blocks the app behind an Oracle EPM sign-in until a live environment is
- * connected. Demo mode is only offered when enabled in Settings. Settings stays
- * reachable while gated so the user can turn demo on.
+ * Keeps the workspace mounted while prompting for the first Oracle EPM
+ * connection. The user lands directly in chat, with this modal owning focus
+ * until they connect or deliberately continue without an instance.
  */
 export function SignInGate({ children }: { children: React.ReactNode }) {
   const projectId = useUi((s) => s.currentProjectId) ?? undefined;
@@ -34,55 +41,12 @@ export function SignInGate({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  return allowThrough ? <>{children}</> : <SignInScreen projectId={projectId} environments={environments} />;
-}
-
-function useInertAppBackground(modalRef: React.RefObject<HTMLDivElement>) {
-  useEffect(() => {
-    const modal = modalRef.current;
-    const appShell = modal?.closest<HTMLElement>(".app-shell");
-    if (!modal || !appShell) return;
-
-    const background: HTMLElement[] = [];
-    let branch: HTMLElement = modal;
-
-    while (branch !== appShell && branch.parentElement) {
-      const parent = branch.parentElement;
-      for (const sibling of Array.from(parent.children)) {
-        if (sibling !== branch && sibling instanceof HTMLElement) {
-          background.push(sibling);
-        }
-      }
-      branch = parent;
-    }
-
-    const previous = background.map((element) => ({
-      element,
-      ariaHidden: element.getAttribute("aria-hidden"),
-      inert: element.inert,
-      hadInertAttribute: element.hasAttribute("inert"),
-    }));
-
-    for (const element of background) {
-      element.inert = true;
-      element.setAttribute("inert", "");
-      element.setAttribute("aria-hidden", "true");
-    }
-
-    return () => {
-      for (const state of previous) {
-        state.element.inert = state.inert;
-        if (!state.hadInertAttribute) {
-          state.element.removeAttribute("inert");
-        }
-        if (state.ariaHidden === null) {
-          state.element.removeAttribute("aria-hidden");
-        } else {
-          state.element.setAttribute("aria-hidden", state.ariaHidden);
-        }
-      }
-    };
-  }, [modalRef]);
+  return (
+    <>
+      {children}
+      {!allowThrough && <SignInScreen projectId={projectId} environments={environments} />}
+    </>
+  );
 }
 
 function SignInScreen({
@@ -92,7 +56,6 @@ function SignInScreen({
   projectId: string;
   environments: EnvironmentOut[];
 }) {
-  const nav = useNavigate();
   const skipGate = useUi((s) => s.skipOracleGate);
   const createEnv = useCreateEnvironment(projectId);
   const connect = useConnectEnvironment(projectId);
@@ -119,6 +82,15 @@ function SignInScreen({
   useInertAppBackground(modalRef);
 
   const set = (k: keyof typeof form, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
+  const focusChat = () => {
+    const focus = () =>
+      document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message EPM Wizard"]')?.focus();
+    window.setTimeout(focus, 0);
+  };
+  const connectLater = () => {
+    skipGate();
+    focusChat();
+  };
 
   const parseCredentialsFile = (text: string) => {
     const lines = text.split("\n").map((l) => l.trim());
@@ -223,6 +195,8 @@ function SignInScreen({
       });
       if (result && result.connected === false) {
         setError(result.detail || result.message || "Could not connect. Check your credentials.");
+      } else {
+        focusChat();
       }
     } catch (e: any) {
       setError(e?.message || "Sign-in failed.");
@@ -241,40 +215,30 @@ function SignInScreen({
       aria-labelledby="signin-title"
       selectorPrimaryFocus="#signin-base-url"
       preventCloseOnClickOutside
-      onClose={() => false}
+      onClose={() => {
+        connectLater();
+        return true;
+      }}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
     >
-        <div className="signin-brand">
-          <WatsonHealthAiResults size={26} className="spark" />
-          <span>EPM&nbsp;Wizard</span>
-        </div>
-        <h1 id="signin-title" className="signin-title text-balance">Sign in to Oracle EPM</h1>
+      <ModalHeader
+        label={(
+          <span className="signin-brand">
+            <WatsonHealthAiResults size={20} className="spark" aria-hidden="true" />
+            EPM Wizard setup
+          </span>
+        )}
+        title={<span id="signin-title" className="text-balance">Connect your Oracle EPM instance</span>}
+        closeModal={connectLater}
+        iconDescription="Connect later"
+      />
+      <ModalBody hasScrollingContent aria-label="Oracle EPM connection settings">
         <p className="signin-sub text-pretty">
-          Connect to your Planning tenant to begin — with your Oracle password or an OAuth 2.0
-          client credential. The secret is held in process memory only and never written to chat
-          or logs.
+          Your chat is ready behind this window. Connect a Planning instance now, or continue and
+          add one later from Settings.
         </p>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".txt"
-          onChange={handleFileSelect}
-          aria-label="Credentials file"
-          style={{ display: "none" }}
-        />
-
-        <Button
-          kind="tertiary"
-          size="sm"
-          renderIcon={Upload}
-          onClick={() => fileInputRef.current?.click()}
-          style={{ marginBottom: 16, alignSelf: "flex-start" }}
-        >
-          Load credentials from file
-        </Button>
 
         {dragActive && (
           <div className="drop-overlay">
@@ -299,9 +263,6 @@ function SignInScreen({
           className="signin-input"
           value={authMode}
           onChange={(e) => {
-            // Clear any stale field-validation error: switching modes changes
-            // which fields are required, so a prior "…required" message no
-            // longer applies until the next submit.
             setError("");
             setAuthMode(e.target.value as "password" | "oauth");
           }}
@@ -310,13 +271,13 @@ function SignInScreen({
             Username &amp; password
           </option>
           <option value="oauth" style={{ color: "#000" }}>
-            OAuth 2.0 client credentials (OCI IAM)
+            OAuth 2.0 client credentials
           </option>
         </select>
 
         {oauth && (
           <>
-            <label className="signin-label" htmlFor="signin-token-url">Token URL (identity domain)</label>
+            <label className="signin-label" htmlFor="signin-token-url">Token URL</label>
             <input
               id="signin-token-url"
               className="signin-input"
@@ -328,104 +289,113 @@ function SignInScreen({
           </>
         )}
 
-        <div className="signin-row">
-          <div style={{ flex: 1 }}>
-            <label className="signin-label" htmlFor="signin-user-id">{oauth ? "Client ID" : "Username"}</label>
-            <input
-              id="signin-user-id"
-              className="signin-input"
-              placeholder={oauth ? "confidential application client ID" : "you@example.com"}
-              value={oauth ? form.clientId : form.username}
-              onChange={(e) => set(oauth ? "clientId" : "username", e.target.value)}
-              aria-describedby={errorId}
-            />
-          </div>
-          <div style={{ width: 150 }}>
-            <label className="signin-label" htmlFor="signin-application">Application</label>
-            <input
-              id="signin-application"
-              className="signin-input"
-              placeholder="auto-detect"
-              value={form.application}
-              onChange={(e) => set("application", e.target.value)}
-            />
-          </div>
-        </div>
+        <label className="signin-label" htmlFor="signin-user-id">{oauth ? "Client ID" : "Username"}</label>
+        <input
+          id="signin-user-id"
+          className="signin-input"
+          placeholder={oauth ? "Confidential application client ID" : "you@example.com"}
+          value={oauth ? form.clientId : form.username}
+          onChange={(e) => set(oauth ? "clientId" : "username", e.target.value)}
+          aria-describedby={errorId}
+        />
 
-        <div className="signin-row">
-          <div style={{ flex: 1 }}>
-            <label className="signin-label" htmlFor="signin-secret">{oauth ? "Client secret" : "Password"}</label>
+        <label className="signin-label" htmlFor="signin-secret">{oauth ? "Client secret" : "Password"}</label>
+        <input
+          id="signin-secret"
+          className="signin-input"
+          type="password"
+          value={oauth ? form.clientSecret : form.password}
+          onChange={(e) => set(oauth ? "clientSecret" : "password", e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && !busy && signIn()}
+          aria-describedby={errorId}
+        />
+
+        <details className="signin-advanced">
+          <summary>Advanced connection options</summary>
+          <div className="signin-advanced-body">
             <input
-              id="signin-secret"
-              className="signin-input"
-              type="password"
-              value={oauth ? form.clientSecret : form.password}
-              onChange={(e) => set(oauth ? "clientSecret" : "password", e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !busy && signIn()}
-              aria-describedby={errorId}
+              ref={fileInputRef}
+              type="file"
+              accept=".txt"
+              onChange={handleFileSelect}
+              aria-label="Credentials file"
+              style={{ display: "none" }}
             />
-          </div>
-          <div style={{ width: 150 }}>
-            <label className="signin-label" htmlFor="signin-classification">Classification</label>
-            <select
-              id="signin-classification"
-              className="signin-input"
-              value={form.classification}
-              onChange={(e) => set("classification", e.target.value)}
+            <Button
+              kind="tertiary"
+              size="sm"
+              renderIcon={Upload}
+              onClick={() => fileInputRef.current?.click()}
             >
-              {CLASSIFICATIONS.map((c) => (
-                <option key={c} value={c} style={{ color: "#000" }}>
-                  {c}
-                </option>
-              ))}
-            </select>
+              Load credentials file
+            </Button>
+
+            <div className="signin-row">
+              <div>
+                <label className="signin-label" htmlFor="signin-application">Application</label>
+                <input
+                  id="signin-application"
+                  className="signin-input"
+                  placeholder="Auto-detect"
+                  value={form.application}
+                  onChange={(e) => set("application", e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="signin-label" htmlFor="signin-classification">Classification</label>
+                <select
+                  id="signin-classification"
+                  className="signin-input"
+                  value={form.classification}
+                  onChange={(e) => set("classification", e.target.value)}
+                >
+                  {CLASSIFICATIONS.map((c) => (
+                    <option key={c} value={c} style={{ color: "#000" }}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {oauth && (
+              <>
+                <label className="signin-label" htmlFor="signin-scope">Scope</label>
+                <input
+                  id="signin-scope"
+                  className="signin-input"
+                  placeholder="Optional OCI IAM scope"
+                  value={form.scope}
+                  onChange={(e) => set("scope", e.target.value)}
+                />
+              </>
+            )}
+
+            <label className="signin-check">
+              <input
+                type="checkbox"
+                checked={form.remember}
+                onChange={(e) => set("remember", e.target.checked)}
+              />
+              Remember {oauth ? "client secret" : "password"} in the encrypted local store
+            </label>
           </div>
-        </div>
-
-        {oauth && (
-          <>
-            <label className="signin-label" htmlFor="signin-scope">Scope (optional)</label>
-            <input
-              id="signin-scope"
-              className="signin-input"
-              placeholder="urn:opc:serviceInstanceID=…urn:opc:resource:consumer::all"
-              value={form.scope}
-              onChange={(e) => set("scope", e.target.value)}
-            />
-          </>
-        )}
-
-        <label className="signin-check">
-          <input
-            type="checkbox"
-            checked={form.remember}
-            onChange={(e) => set("remember", e.target.checked)}
-          />
-          Remember {oauth ? "client secret" : "password"} on this machine (encrypted local store)
-        </label>
+        </details>
 
         {error && <div id="signin-error" className="signin-error" role="alert">{error}</div>}
-
-        <Button kind="primary" disabled={busy} onClick={signIn} style={{ width: "100%", maxWidth: "none", marginTop: 8 }}>
-          {busy ? "Connecting…" : "Connect"}
-        </Button>
-
-        <Button
-          kind="ghost"
-          onClick={skipGate}
-          style={{ width: "100%", maxWidth: "none", marginTop: 8 }}
-        >
-          Continue without Oracle →
-        </Button>
-
-        <div className="signin-footer">
-          <span className="signin-muted">
-            Oracle is optional — chat and AI features work without a tenant.{" "}
-            <button className="signin-link" onClick={() => nav("/settings")}>
-              Open Settings
-            </button>
-          </span>
-        </div>
+        <p className="signin-security text-pretty">
+          Credentials are kept out of chat messages, model prompts, and application logs.
+        </p>
+      </ModalBody>
+      <ModalFooter
+        primaryButtonText={busy ? "Connecting…" : "Connect instance"}
+        primaryButtonDisabled={busy}
+        secondaryButtonText="Not now"
+        onRequestSubmit={signIn}
+        onRequestClose={connectLater}
+      >
+        {null}
+      </ModalFooter>
     </ComposedModal>
   );
 }

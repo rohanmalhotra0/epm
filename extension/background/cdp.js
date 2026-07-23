@@ -7,6 +7,7 @@ const PROTOCOL_VERSION = "1.3";
 const DEFAULT_MAX_DIMENSION = 1280;
 const DEFAULT_JPEG_QUALITY = 72;
 const screenshotHashes = new Map();
+const attachedTabIds = new Set();
 
 function sendCommand(target, method, params) {
   return new Promise((resolve, reject) => {
@@ -31,11 +32,13 @@ export async function attach(tabId) {
   } catch (error) {
     throw new Error(`CDP attach failed: ${error.message}`);
   }
+  attachedTabIds.add(tabId);
   return target;
 }
 
 export async function detach(tabId) {
   screenshotHashes.delete(tabId);
+  attachedTabIds.delete(tabId);
   return new Promise((resolve) => {
     chrome.debugger.detach({ tabId }, () => {
       void chrome.runtime.lastError;
@@ -43,6 +46,21 @@ export async function detach(tabId) {
     });
   });
 }
+
+export async function detachAll() {
+  await Promise.all([...attachedTabIds].map((tabId) => detach(tabId)));
+}
+
+export function hasAttachedTab(tabId) {
+  return attachedTabIds.has(tabId);
+}
+
+globalThis.chrome?.debugger?.onDetach?.addListener((source) => {
+  if (source?.tabId != null) {
+    attachedTabIds.delete(source.tabId);
+    screenshotHashes.delete(source.tabId);
+  }
+});
 
 export function hashImageData(data) {
   // Fast FNV-1a over the base64 payload. This is not a security primitive; it

@@ -244,7 +244,19 @@ p { text-wrap: pretty; }
 }
 .attach-chip .name { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; }
 .attach-chip .meta { color: var(--cds-text-secondary, #8d8d8d); font-size: 10.5px; }
-.attach-remove { background: none; border: none; color: var(--cds-text-secondary, #8d8d8d); cursor: pointer; font-size: 11px; padding: 0 2px; line-height: 1; }
+.attach-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: -6px -6px -6px 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--cds-text-secondary, #8d8d8d);
+  cursor: pointer;
+}
 .attach-remove:hover { color: var(--cds-text-primary, #f4f4f4); }
 .attach-remove:focus-visible { outline: 2px solid var(--epmw-accent); outline-offset: 2px; }
 .composer-wrap.drop-active .composer-surface { outline: 2px dashed var(--epmw-accent); outline-offset: -2px; border-color: transparent; }
@@ -355,40 +367,48 @@ p { text-wrap: pretty; }
 .signin-overlay {
   position: fixed; inset: 0; z-index: 1000;
   display: flex; align-items: center; justify-content: center; padding: 24px;
-  background: var(--cds-background, #161616);
-  background-image: radial-gradient(1200px 600px at 70% -10%, #4589ff1f, transparent 60%);
+  background: rgb(0 0 0 / 72%);
 }
 .signin-card {
-  width: 100%; max-width: 460px;
+  width: 100%; max-width: 520px;
   border: 1px solid var(--cds-border-subtle, #393939);
   background: var(--cds-layer, #1f1f1f);
-  padding: 32px; box-shadow: 0 12px 40px #0007;
+  box-shadow: 0 12px 40px #0007;
   position: relative;
-  transition: border-color 0.2s ease;
 }
 .signin-card.drag-active {
   border-color: var(--epmw-accent);
-  box-shadow: 0 0 0 2px var(--epmw-accent), 0 12px 40px #0007;
+  outline: 2px solid var(--epmw-accent);
+  outline-offset: -2px;
 }
-.signin-brand { display: flex; align-items: center; gap: 8px; font-weight: 600; letter-spacing: 0.01em; }
+.signin-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
 .signin-brand .spark { color: var(--epmw-accent); }
-.signin-title { font-size: 22px; font-weight: 400; margin: 20px 0 6px; }
-.signin-sub { font-size: 12.5px; color: var(--cds-text-secondary, #a8a8a8); line-height: 1.5; margin-bottom: 20px; }
-.signin-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--cds-text-secondary, #a8a8a8); margin: 12px 0 4px; }
+.signin-sub { font-size: 13px; color: var(--cds-text-secondary, #a8a8a8); line-height: 1.55; margin: 0 0 20px; }
+.signin-label { display: block; font-size: 12px; color: var(--cds-text-secondary, #c6c6c6); margin: 14px 0 6px; }
 .signin-input {
-  width: 100%; box-sizing: border-box; padding: 9px 11px; font-family: inherit; font-size: 13px;
+  width: 100%; min-height: 40px; box-sizing: border-box; padding: 9px 11px; font-family: inherit; font-size: 13px;
   color: inherit; background: var(--cds-field, #262626);
   border: none; border-bottom: 1px solid var(--cds-border-strong, #6f6f6f);
 }
 .signin-input:focus { outline: none; border-bottom-color: var(--epmw-accent); }
 .signin-row { display: flex; gap: 12px; }
+.signin-row > div { flex: 1; min-width: 0; }
 .signin-check { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--cds-text-secondary, #c6c6c6); margin: 16px 0 4px; cursor: pointer; }
 .signin-error { font-size: 12.5px; color: #ff8389; background: #da1e2822; border: 1px solid #da1e2855; padding: 8px 10px; margin: 12px 0 4px; }
-.signin-footer { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--cds-border-subtle, #393939); font-size: 12.5px; text-align: center; }
-.signin-muted { color: var(--cds-text-secondary, #a8a8a8); }
-.signin-link { background: none; border: none; color: var(--epmw-accent); cursor: pointer; font: inherit; font-size: 12.5px; padding: 0; }
-.signin-link:hover { color: var(--epmw-accent-hover); text-decoration: underline; }
-.signin-link:disabled { opacity: 0.5; cursor: default; text-decoration: none; }
+.signin-security { margin: 16px 0 0; color: var(--cds-text-secondary, #8d8d8d); font-size: 11.5px; }
+.signin-advanced {
+  margin-top: 20px;
+  border-top: 1px solid var(--cds-border-subtle, #393939);
+  border-bottom: 1px solid var(--cds-border-subtle, #393939);
+}
+.signin-advanced summary {
+  padding: 14px 0;
+  color: var(--cds-text-primary, #f4f4f4);
+  font-size: 13px;
+  cursor: pointer;
+}
+.signin-advanced summary:focus-visible { outline: 2px solid var(--epmw-accent); outline-offset: 2px; }
+.signin-advanced-body { padding: 0 0 18px; }
 .drop-overlay {
   position: absolute;
   inset: 0;
@@ -499,9 +519,17 @@ p { text-wrap: pretty; }
   }
   .composer-toolbar {
     align-items: flex-end;
+    flex-wrap: wrap;
+  }
+  .composer-actions {
+    flex: 1 1 auto;
+  }
+  .composer-submit {
+    flex: 0 1 auto;
+    margin-left: auto;
   }
   .composer-status {
-    max-width: 92px;
+    max-width: 120px;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -525,9 +553,6 @@ p { text-wrap: pretty; }
   .signin-overlay {
     align-items: flex-start;
     overflow-y: auto;
-  }
-  .signin-card {
-    padding: 20px;
   }
   .signin-row {
     flex-direction: column;

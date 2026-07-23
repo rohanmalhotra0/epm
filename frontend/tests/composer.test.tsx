@@ -46,6 +46,17 @@ describe("Composer", () => {
     expect(screen.queryByText(/Build, preview, edit and deploy/)).not.toBeInTheDocument();
   });
 
+  it("dismisses slash commands with Escape without clearing the draft", () => {
+    render(<Composer onSend={vi.fn()} streaming={false} onStop={() => {}} />);
+    const ta = screen.getByLabelText("Message EPM Wizard") as HTMLTextAreaElement;
+    fireEvent.change(ta, { target: { value: "/for" } });
+    fireEvent.keyDown(ta, { key: "Escape" });
+
+    expect(screen.queryByRole("listbox", { name: "Slash commands" })).not.toBeInTheDocument();
+    expect(ta.value).toBe("/for");
+    expect(ta).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("shows a stop button while streaming", () => {
     const onStop = vi.fn();
     render(<Composer onSend={vi.fn()} streaming={true} onStop={onStop} />);

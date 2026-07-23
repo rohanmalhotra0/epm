@@ -12,6 +12,7 @@ export const CMD = Object.freeze({
   STOP: "stop",
   GET_STATE: "getState",
   SET_CONFIG: "setConfig", // { backendUrl, projectId, apiToken, enforceGuardrails }
+  SET_CANVAS_CONTROL: "setCanvasControl", // { enabled } — user preference; debugger is install-time
   SET_WORKBOOK_CONTEXT: "setWorkbookContext", // redacted prompt context from inspector
   CLEAR_WORKBOOK_CONTEXT: "clearWorkbookContext",
   CHECK_ACCESS: "checkAccess", // verify website OAuth + connected Oracle EPM environment
@@ -92,6 +93,9 @@ export const DEFAULT_CONFIG = Object.freeze({
   // clear, run-rule, …) and any write while on a PROD tenant for explicit human
   // approval before they execute. This is a hard gate, not a prompt hint.
   enforceGuardrails: true,
+  // The debugger permission must be accepted when Chrome installs the
+  // extension, but trusted coordinate input remains off until the user opts in.
+  canvasControlEnabled: false,
 });
 
 // Origins the EPM Wizard web app is served from — the site-bridge content

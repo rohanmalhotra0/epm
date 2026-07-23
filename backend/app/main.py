@@ -48,8 +48,13 @@ async def lifespan(app: FastAPI):
     else:
         log.info("startup_backup_skipped", reason="managed database — backups are the database service's job")
     log.info("startup", app=settings.app_name, version=settings.version, data_dir=str(settings.data_dir))
-    yield
-    log.info("shutdown")
+    try:
+        yield
+    finally:
+        from .agent.team_sessions import team_sessions
+
+        await team_sessions.shutdown()
+        log.info("shutdown")
 
 
 def create_app() -> FastAPI:

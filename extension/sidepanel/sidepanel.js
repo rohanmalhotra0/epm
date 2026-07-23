@@ -7,6 +7,7 @@
 
 import { CMD, EVT, PANEL_PORT, PROD_BACKEND_URL, STATUS } from "../common/protocol.js";
 import { initInspector } from "./inspector.js";
+import { requestCurrentSiteAccess } from "./permissions.js";
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -116,6 +117,7 @@ function applyState(state) {
     els.projectId.value = state.config.projectId || "";
     els.apiToken.value = state.config.apiToken || "";
     els.guardToggle.checked = state.config.enforceGuardrails !== false;
+    renderCanvasControl(state.config);
   }
   // Re-render the persisted steps (e.g. after a worker restart / panel reopen).
   if (Array.isArray(state.steps)) {
@@ -677,40 +679,73 @@ els.voiceToggle.addEventListener("change", () => {
 });
 chrome.storage.local.get(VOICE_KEY).then((v) => { els.voiceToggle.checked = !!v[VOICE_KEY]; });
 
-// Optional permissions are requested only from these direct user gestures.
+function renderCanvasControl(config = currentConfig) {
+  const enabled = config?.canvasControlEnabled === true;
+  els.canvasPermission.disabled = false;
+  els.canvasPermission.textContent = enabled ? "Disable canvas control" : "Enable canvas control";
+  els.canvasPermission.setAttribute("aria-pressed", String(enabled));
+  showInlineStatus(
+    els.canvasPermissionStatus,
+    enabled ? "ok" : "pending",
+    enabled
+      ? "Canvas control is on. Chrome shows its debugger notice only while EPM Wizard is attached to a page."
+      : "Canvas control is off. No debugger session is attached.",
+  );
+}
+
+// The only runtime permission prompt is an exact current-origin host grant.
 els.sitePermission.addEventListener("click", async () => {
   try {
-    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-    const parsed = new URL(tab?.url || "");
-    if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("Open the Oracle tab first.");
-    const origin = `${parsed.origin}/*`;
-    const granted = await chrome.permissions.request({ origins: [origin] });
+    els.sitePermission.disabled = true;
+    showInlineStatus(els.sitePermissionStatus, "pending", "Checking the current Oracle page…");
+    const result = await requestCurrentSiteAccess(chrome);
+    if (result.pendingBrowserApproval) {
+      showInlineStatus(
+        els.sitePermissionStatus,
+        "pending",
+        "Chrome is showing a site-access request in the address bar. Approve it there, then click this button again to verify access.",
+      );
+      return;
+    }
     showInlineStatus(
       els.sitePermissionStatus,
-      granted ? "ok" : "err",
-      granted ? `Access granted for ${parsed.origin}.` : "Site access was not granted.",
+      result.granted ? "ok" : "err",
+      result.granted
+        ? `Access granted only for ${result.origin}.`
+        : `Chrome did not grant access to ${result.origin}. No page access was added.`,
     );
   } catch (error) {
     showInlineStatus(els.sitePermissionStatus, "err", error.message || "Could not request site access.");
+  } finally {
+    els.sitePermission.disabled = false;
   }
 });
 
 els.canvasPermission.addEventListener("click", async () => {
   try {
-    const granted = await chrome.permissions.request({ permissions: ["debugger"] });
+    const enabled = currentConfig.canvasControlEnabled !== true;
+    if (enabled && !(await chrome.permissions.contains({ permissions: ["debugger"] }))) {
+      throw new Error("Chrome has not granted the debugger permission required for trusted canvas input.");
+    }
+    els.canvasPermission.disabled = true;
     showInlineStatus(
       els.canvasPermissionStatus,
-      granted ? "ok" : "err",
-      granted ? "Trusted canvas mouse and keyboard input enabled." : "Canvas control was not enabled.",
+      "pending",
+      enabled ? "Enabling trusted canvas input…" : "Disabling canvas input and detaching…",
     );
-    if (granted) els.canvasPermission.disabled = true;
+    send(CMD.SET_CANVAS_CONTROL, { enabled });
   } catch (error) {
+    els.canvasPermission.disabled = false;
     showInlineStatus(els.canvasPermissionStatus, "err", error.message || "Could not enable canvas control.");
   }
 });
 
 chrome.permissions.contains({ permissions: ["debugger"] }).then((granted) => {
-  if (!granted) return;
+  if (granted) return;
   els.canvasPermission.disabled = true;
-  showInlineStatus(els.canvasPermissionStatus, "ok", "Trusted canvas input is enabled.");
+  showInlineStatus(
+    els.canvasPermissionStatus,
+    "err",
+    "Chrome has not granted the debugger permission. Re-enable the extension and accept its requested permissions.",
+  );
 });

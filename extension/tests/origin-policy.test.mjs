@@ -43,14 +43,15 @@ test("trusted bridge origins match the manifest's narrow product origins", () =>
   ]);
 });
 
-test("manifest keeps broad page access and debugger optional", () => {
+test("manifest keeps host access optional and declares debugger at install time", () => {
   assert.deepEqual(manifest.permissions, [
     "activeTab",
+    "debugger",
     "scripting",
     "sidePanel",
     "storage",
   ]);
-  assert.deepEqual(manifest.optional_permissions, ["debugger"]);
+  assert.equal("optional_permissions" in manifest, false);
   assert.deepEqual(manifest.optional_host_permissions, [
     "https://*/*",
     "http://localhost/*",

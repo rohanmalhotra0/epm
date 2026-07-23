@@ -15,12 +15,23 @@ No build step. Plain ES modules + two classic content scripts. Load it as-is,
 or download the packaged ZIP from the public EPM Wizard landing page at
 `/epm-wizard-extension.zip`.
 
+**New in 0.6.1**
+
+- **Correct Chrome permission flow.** Exact current-origin host grants now
+  validate hidden, malformed, and restricted tab URLs before constructing a
+  match pattern, with Chrome's address-bar host request used when the URL is not
+  yet exposed.
+- **Reliable canvas control.** Chrome's non-optional `debugger` permission is
+  declared correctly at install time, while trusted input remains off by
+  default and detaches on disable, pause, stop, completion, and worker unload.
+
 **New in 0.6.0**
 
-- **Minimum-by-default permissions.** Only the EPM Wizard bridge origins are
-  pre-granted. Target-site access is requested for the current site after a
-  direct user gesture; Chrome Debugger access for canvas coordinate input is a
-  separate optional grant.
+- **Minimum-by-default host access.** Only the EPM Wizard bridge origins are
+  pre-granted. Target-site access is requested for the exact current origin
+  after a direct user gesture. Chrome does not permit `debugger` as an optional
+  permission, so it is declared at install time; trusted canvas control remains
+  off in EPM Wizard until the user enables it.
 - **Secure origin binding.** Bridge messages are checked against Chrome's
   sender document, hosted sites may select only bound backend origins silently,
   and self-hosted origin changes require confirmation in extension-owned UI.
@@ -112,10 +123,11 @@ or download the packaged ZIP from the public EPM Wizard landing page at
 
 > **Permissions note:** normal screenshots use `chrome.tabs.captureVisibleTab`.
 > Access to the current HTTPS target site and any custom backend origin is
-> requested from the direct Grant/Save/Approve click that needs it; `debugger`
-> is a separate optional permission. Plain HTTP access is limited to loopback
-> development. If `debugger` is enabled for CDP capture or coordinate input,
-> Chrome shows a *"… is debugging this browser"* banner while attached.
+> requested from the direct Grant/Save/Approve click that needs it. Plain HTTP
+> access is limited to loopback development. Chrome requires `debugger` to be
+> accepted at install time, but EPM Wizard's trusted canvas control is off by
+> default and detaches when disabled, paused, stopped, or unloaded. Chrome shows
+> a *"… is debugging this browser"* banner only while attached.
 
 ---
 
@@ -262,13 +274,13 @@ in `OPENCLAW_PLAN.md` §6:
 - **`background/service-worker.js`** — owns the agent session and the run loop
   (`plan→act→observe→narrate`), routes messages between panel and content
   script, holds the backend connection, aggregates frame snapshots, and uses
-  optional CDP input only for coordinate-grounded controls. Session state is
+  opt-in CDP input only for coordinate-grounded controls. Session state is
   persisted to
   `chrome.storage.session` after every step, so an MV3 worker restart lands the
   run in **PAUSED** (history preserved) rather than losing it.
   - `background/backend.js` — hand-rolled SSE reader over `fetch` (EventSource
     isn't available in a service worker).
-  - `background/cdp.js` — optional `chrome.debugger` attachment,
+  - `background/cdp.js` — user-controlled `chrome.debugger` attachment,
     `Page.captureScreenshot`, `Input.dispatchMouseEvent`, keyboard events, and
     Unicode text insertion.
 - **`content/content-script.js`** — builds the **accessibility-tree / DOM
@@ -333,8 +345,9 @@ twin lives at `POST /api/agent/step/once`.
   blind coordinate writes, and cross-origin navigation are held before
   executing (`background/guardrails.js`).
 - **Minimum permissions + origin binding** — no always-on target-site content
-  script, per-site optional access, optional debugger, verified bridge sender,
-  confirmation for unbound backend origins, and credential clearing on change.
+  script, per-site optional access, install-time debugger with canvas control
+  off by default, verified bridge sender, confirmation for unbound backend
+  origins, and credential clearing on change.
 - **Zero-setup site integration** — the EPM Wizard web app configures and
   launches the agent (`content/site-bridge.js` ↔ `frontend/src/agent/`).
 - **Installed-extension E2E** — persistent Chromium verifies injection,
@@ -370,5 +383,5 @@ npm run e2e:extension
 The extension E2E command launches a clean persistent Chromium profile, installs
 the extension, and runs a local fixture/backend. Because automation cannot click
 Chrome's own permission prompts, the generated **test-only manifest copy**
-pre-grants the fixture origin and debugger; the production manifest remains
+pre-grants only the fixture origin; the production manifest remains
 minimum-by-default.

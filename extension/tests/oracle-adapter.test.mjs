@@ -5,7 +5,9 @@ import vm from "node:vm";
 
 import {
   captureScreenshot,
+  detachAll,
   hashImageData,
+  hasAttachedTab,
   imageDimensions,
   normalizeCoordinates,
   typeAt,
@@ -246,6 +248,7 @@ test("CDP screenshot is bounded JPEG with repeat-image metadata", async () => {
   assert.equal(first.metadata.duplicate, false);
   assert.equal(second.metadata.duplicate, true);
   assert.equal(second.dataUrl, null);
+  assert.equal(hasAttachedTab(91), true);
   assert.equal(
     commands.find((command) => command.method === "Page.captureScreenshot").params.quality,
     72,
@@ -275,4 +278,17 @@ test("coordinate typing focuses the normalized canvas point then inserts text", 
     commands.find((command) => command.method === "Input.insertText").params,
     { text: "42" },
   );
+});
+
+test("disabling canvas control detaches every tab with an active CDP session", async () => {
+  const detached = [];
+  globalThis.chrome.debugger.detach = (target, callback) => {
+    detached.push(target.tabId);
+    callback();
+  };
+
+  await detachAll();
+
+  assert.deepEqual(detached, [91]);
+  assert.equal(hasAttachedTab(91), false);
 });

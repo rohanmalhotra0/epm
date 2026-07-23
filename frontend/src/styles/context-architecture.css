@@ -1,0 +1,256 @@
+/* Context page architecture and version-browser layout. Kept local to
+   SimplePages so chat and other shared surfaces do not inherit page chrome. */
+
+.context-version-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.context-version-table-wrap:focus-visible {
+  outline: 2px solid var(--cds-focus, #0f62fe);
+  outline-offset: 2px;
+}
+
+.context-version-table-wrap .data-table {
+  min-width: 760px;
+}
+
+.context-empty-cell {
+  padding: 18px 12px !important;
+  color: var(--cds-text-secondary, #6f6f6f);
+  text-align: center !important;
+}
+
+.context-version-skeleton,
+.context-architecture-loading {
+  padding: 20px;
+  border: 1px solid var(--cds-border-subtle, #c6c6c6);
+}
+
+.context-inline-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px;
+  border-inline-start: 3px solid var(--cds-support-error, #da1e28);
+  background: var(--cds-notification-background-error, var(--cds-layer, #ffffff));
+}
+
+.context-inline-state > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.context-inline-state strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.context-inline-state span {
+  overflow-wrap: anywhere;
+  color: var(--cds-text-secondary, #6f6f6f);
+  font-size: 12px;
+}
+
+.context-inline-state-warning {
+  margin-bottom: 12px;
+  border-inline-start-color: var(--cds-support-warning, #f1c21b);
+  background: var(--cds-notification-background-warning, var(--cds-layer, #ffffff));
+}
+
+.context-architecture-section {
+  min-width: 0;
+  margin-top: 36px;
+}
+
+.context-architecture-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.context-architecture-heading h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.context-architecture-heading p {
+  max-width: 680px;
+  margin: 4px 0 0;
+  color: var(--cds-text-secondary, #6f6f6f);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.context-fetching {
+  flex: 0 0 auto;
+  color: var(--cds-text-secondary, #6f6f6f);
+  font-size: 12px;
+}
+
+.context-architecture-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.context-architecture-controls .cds--form-item {
+  width: min(320px, 100%);
+}
+
+.context-overview-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin-bottom: 14px;
+  color: var(--cds-text-secondary, #6f6f6f);
+  font-size: 12px;
+}
+
+.context-overview-summary strong {
+  color: var(--cds-text-primary, #161616);
+  font-weight: 500;
+}
+
+.context-cube-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.context-cube-card,
+.context-cube-skeleton {
+  min-width: 0;
+  min-height: 196px;
+  padding: 16px;
+  border: 1px solid var(--cds-border-subtle, #c6c6c6);
+  background: var(--cds-layer, #ffffff);
+}
+
+.context-cube-card {
+  display: flex;
+  flex-direction: column;
+  color: var(--cds-text-primary, #161616);
+  cursor: pointer;
+  font: inherit;
+  text-align: start;
+  transform: translateY(0);
+  animation: context-cube-card-in 160ms ease-out both;
+  transition: transform 140ms ease-out;
+}
+
+.context-cube-card:hover {
+  transform: translateY(-2px);
+}
+
+.context-cube-card:focus-visible {
+  outline: 2px solid var(--cds-focus, #0f62fe);
+  outline-offset: 2px;
+}
+
+.context-cube-card-kicker {
+  color: var(--cds-text-secondary, #6f6f6f);
+  font-size: 11px;
+}
+
+.context-cube-card > strong {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 18px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.context-cube-card-metric {
+  margin-top: 16px;
+  color: var(--cds-text-secondary, #6f6f6f);
+  font-size: 12px;
+}
+
+.context-cube-card-metric b {
+  color: var(--cds-text-primary, #161616);
+  font-weight: 500;
+}
+
+.context-cube-dimensions {
+  display: -webkit-box;
+  margin-top: 8px;
+  overflow: hidden;
+  color: var(--cds-text-secondary, #6f6f6f);
+  font-size: 11px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.context-cube-card-action {
+  margin-top: auto;
+  padding-top: 16px;
+  color: var(--cds-link-primary, #0f62fe);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.context-overview-empty {
+  padding: 32px 16px;
+  border: 1px solid var(--cds-border-subtle, #c6c6c6);
+  text-align: center;
+}
+
+.context-overview-empty strong {
+  font-weight: 500;
+}
+
+.context-overview-empty p {
+  margin: 6px 0 0;
+  color: var(--cds-text-secondary, #6f6f6f);
+  font-size: 12px;
+}
+
+@keyframes context-cube-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 42rem) {
+  .context-inline-state {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .context-architecture-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .context-architecture-controls > .cds--btn,
+  .context-architecture-controls .cds--form-item {
+    width: 100%;
+    max-width: none;
+  }
+
+  .context-cube-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .context-cube-card {
+    animation: none;
+    transition: none;
+  }
+}

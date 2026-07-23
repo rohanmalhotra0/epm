@@ -61,6 +61,11 @@ test("an installed MV3 extension injects only on Start and drives Oracle-like su
     })
     .toBe(true);
 
+  await controlPage.evaluate(() => {
+    document.querySelector<HTMLButtonElement>("#canvasPermission")?.click();
+  });
+  await expect(controlPage.locator("#canvasPermissionStatus")).toContainText("Canvas control is on");
+  await oraclePage.bringToFront();
   await startRun(controlPage, "Exercise nested frame, shadow, JET, virtual grid, and canvas");
 
   await expect.poll(() => canPingAgent(extensionWorker, tabId)).toBe(true);
@@ -124,6 +129,16 @@ test("an installed MV3 extension injects only on Start and drives Oracle-like su
   await expect(eventLog).toHaveAttribute("data-jet-clicked", "true");
   await expect(eventLog).toHaveAttribute("data-virtual-row-clicked", "true");
   await expect(eventLog).toHaveAttribute("data-canvas-clicked", "true");
+  const completedStatus = [...await panelMessages(controlPage)]
+    .reverse()
+    .find((message) => (
+      message.type === "status"
+      && (message.data as { status?: string } | undefined)?.status === "done"
+    ));
+  expect(completedStatus?.data).toMatchObject({
+    status: "done",
+    canvasAttached: false,
+  });
 
   await fetch(`${fixtureOrigin}/__reset`, { method: "POST" });
   const messageOffset = (await panelMessages(controlPage)).length;
@@ -144,6 +159,65 @@ test("an installed MV3 extension injects only on Start and drives Oracle-like su
     ok: false,
     detail: expect.stringMatching(/stale|not found/i),
   });
+});
+
+test("the loaded extension grants one origin and toggles trusted canvas control", async ({
+  controlPage,
+  extensionWorker,
+  oraclePage,
+}) => {
+  const manifestAndPermission = await extensionWorker.evaluate(async () => {
+    const chromeApi = (
+      globalThis as unknown as {
+        chrome: {
+          runtime: {
+            getManifest(): {
+              permissions?: string[];
+              optional_permissions?: string[];
+              optional_host_permissions?: string[];
+            };
+          };
+          permissions: {
+            contains(value: { permissions: string[] }): Promise<boolean>;
+            getAll(): Promise<{ origins?: string[] }>;
+          };
+        };
+      }
+    ).chrome;
+    return {
+      manifest: chromeApi.runtime.getManifest(),
+      debuggerGranted: await chromeApi.permissions.contains({ permissions: ["debugger"] }),
+      granted: await chromeApi.permissions.getAll(),
+    };
+  });
+  expect(manifestAndPermission.manifest.permissions).toContain("debugger");
+  expect(manifestAndPermission.manifest.optional_permissions).toBeUndefined();
+  expect(manifestAndPermission.manifest.optional_host_permissions).toContain("https://*/*");
+  expect(manifestAndPermission.debuggerGranted).toBe(true);
+  expect(manifestAndPermission.granted.origins).toContain(`${fixtureOrigin}/*`);
+  expect(manifestAndPermission.granted.origins).not.toContain("https://*/*");
+
+  await oraclePage.bringToFront();
+  await controlPage.evaluate(() => {
+    document.querySelector<HTMLButtonElement>("#sitePermission")?.click();
+  });
+  await expect(controlPage.locator("#sitePermissionStatus")).toHaveText(
+    `Access granted only for ${fixtureOrigin}.`,
+  );
+
+  await controlPage.evaluate(() => {
+    document.querySelector<HTMLButtonElement>("#canvasPermission")?.click();
+  });
+  await expect(controlPage.locator("#canvasPermission")).toHaveText("Disable canvas control");
+  await expect(controlPage.locator("#canvasPermissionStatus")).toContainText("Canvas control is on");
+
+  await controlPage.evaluate(() => {
+    document.querySelector<HTMLButtonElement>("#canvasPermission")?.click();
+  });
+  await expect(controlPage.locator("#canvasPermission")).toHaveText("Enable canvas control");
+  await expect(controlPage.locator("#canvasPermissionStatus")).toContainText(
+    "No debugger session is attached",
+  );
 });
 
 test("an untrusted page cannot replace the bound backend origin", async ({

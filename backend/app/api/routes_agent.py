@@ -16,15 +16,28 @@ from __future__ import annotations
 import json
 from collections.abc import AsyncIterator
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from ..agent.computer_use import decide_step, stream_step
+from ..agent.team_sessions import (
+    TeamSessionCapacityError,
+    TeamSessionConflict,
+    TeamSessionNotFound,
+    TeamSessionOwnerCapacityError,
+    team_sessions,
+)
 from ..ai.base import AIProvider, ProviderError
 from ..ai.registry import resolve_active_provider
 from ..db.base import get_sessionmaker
-from ..schemas.agent import AgentStepRequest, AgentStepResponse
+from ..db.models import Project
+from ..schemas.agent import (
+    AgentStepRequest,
+    AgentStepResponse,
+    AgentTeamSessionRequest,
+    AgentTeamSessionResponse,
+)
 from .deps import authorize_project_id, get_current_owner, get_db
 
 router = APIRouter(tags=["agent"])
@@ -47,6 +60,27 @@ def _resolve_provider_for(owner: str, project_id: str | None) -> AIProvider:
         return provider
     finally:
         session.close()
+
+
+def _team_session_or_404(session_id: str, owner: str) -> AgentTeamSessionResponse:
+    try:
+        return team_sessions.get(session_id, owner)
+    except TeamSessionNotFound as exc:
+        raise HTTPException(status_code=404, detail="agent session not found") from exc
+
+
+def _team_action(
+    action: str,
+    session_id: str,
+    owner: str,
+) -> AgentTeamSessionResponse:
+    try:
+        handler = getattr(team_sessions, action)
+        return handler(session_id, owner)
+    except TeamSessionNotFound as exc:
+        raise HTTPException(status_code=404, detail="agent session not found") from exc
+    except TeamSessionConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 async def _stream(provider: AIProvider, body: AgentStepRequest) -> AsyncIterator[str]:
@@ -91,3 +125,87 @@ async def agent_step_once(body: AgentStepRequest,
                              workbook_context=body.workbook_context,
                              index=len(body.history), model=body.model)
     return AgentStepResponse(step=step)
+
+
+@router.post(
+    "/api/agent/sessions",
+    response_model=AgentTeamSessionResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_agent_session(
+    body: AgentTeamSessionRequest,
+    session: Session = Depends(get_db),
+    owner: str = Depends(get_current_owner),
+) -> AgentTeamSessionResponse:
+    """Start a bounded team of independent, role-specific provider requests."""
+    if body.project_id:
+        project = session.get(Project, body.project_id)
+        if project is None:
+            raise HTTPException(status_code=404, detail="project not found")
+        try:
+            authorize_project_id(session, owner, body.project_id)
+        except HTTPException as exc:
+            if exc.status_code == status.HTTP_404_NOT_FOUND:
+                raise HTTPException(
+                    status_code=404,
+                    detail="project not found",
+                ) from exc
+            raise
+    _profile, provider = resolve_active_provider(session, body.project_id)
+    try:
+        return await team_sessions.start(
+            owner=owner,
+            goal=body.goal,
+            project_id=body.project_id,
+            agent_count=body.agent_count,
+            provider=provider,
+        )
+    except TeamSessionCapacityError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except TeamSessionOwnerCapacityError as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+
+
+@router.get(
+    "/api/agent/sessions/{session_id}",
+    response_model=AgentTeamSessionResponse,
+)
+async def get_agent_session(
+    session_id: str,
+    owner: str = Depends(get_current_owner),
+) -> AgentTeamSessionResponse:
+    """Return a point-in-time activity snapshot for the owning user."""
+    return _team_session_or_404(session_id, owner)
+
+
+@router.post(
+    "/api/agent/sessions/{session_id}/pause",
+    response_model=AgentTeamSessionResponse,
+)
+async def pause_agent_session(
+    session_id: str,
+    owner: str = Depends(get_current_owner),
+) -> AgentTeamSessionResponse:
+    return _team_action("pause", session_id, owner)
+
+
+@router.post(
+    "/api/agent/sessions/{session_id}/resume",
+    response_model=AgentTeamSessionResponse,
+)
+async def resume_agent_session(
+    session_id: str,
+    owner: str = Depends(get_current_owner),
+) -> AgentTeamSessionResponse:
+    return _team_action("resume", session_id, owner)
+
+
+@router.post(
+    "/api/agent/sessions/{session_id}/cancel",
+    response_model=AgentTeamSessionResponse,
+)
+async def cancel_agent_session(
+    session_id: str,
+    owner: str = Depends(get_current_owner),
+) -> AgentTeamSessionResponse:
+    return _team_action("cancel", session_id, owner)

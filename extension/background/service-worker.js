@@ -76,7 +76,12 @@ function freshState() {
 // Non-secret config lives in storage.local across browser restarts. API tokens
 // stay only inside the session state and are cleared when the browser exits.
 const DURABLE_KEY = "epmw.durable";
-const DURABLE_FIELDS = ["backendUrl", "projectId", "enforceGuardrails"];
+const DURABLE_FIELDS = [
+  "backendUrl",
+  "projectId",
+  "enforceGuardrails",
+  "canvasControlEnabled",
+];
 
 async function persistDurable(patch) {
   const keep = {};
@@ -249,6 +254,18 @@ async function handlePanelMessage(msg) {
       await saveState();
       sendState();
       break;
+    case CMD.SET_CANVAS_CONTROL: {
+      const enabled = msg.data?.enabled === true;
+      if (enabled && !(await hasDebuggerPermission())) {
+        throw new Error("Chrome has not granted the required debugger permission.");
+      }
+      state.config.canvasControlEnabled = enabled;
+      await persistDurable({ canvasControlEnabled: enabled });
+      if (!enabled) await cdp.detachAll();
+      await saveState();
+      sendState();
+      break;
+    }
     case CMD.CONFIRM_ORIGIN: {
       const pending = state.pendingOriginChange;
       state.pendingOriginChange = null;
@@ -328,6 +345,7 @@ async function handlePanelMessage(msg) {
       state.status = STATUS.PAUSED;
       abortController?.abort();
       resolveConfirm(false);   // release any held action; it will not execute
+      await cdp.detachAll();
       await saveState();
       broadcast(EVT.STATUS, { status: state.status });
       break;
@@ -338,6 +356,7 @@ async function handlePanelMessage(msg) {
       state.status = STATUS.IDLE;
       abortController?.abort();
       resolveConfirm(false);   // release any held action; it will not execute
+      await cdp.detachAll();
       await saveState();
       broadcast(EVT.STATUS, { status: state.status });
       break;
@@ -453,8 +472,12 @@ async function runLoop() {
     broadcast(EVT.ERROR, { message: String(err) });
   } finally {
     looping = false;
+    await cdp.detachAll();
     await saveState();
-    broadcast(EVT.STATUS, { status: state.status });
+    broadcast(EVT.STATUS, {
+      status: state.status,
+      canvasAttached: state.tabId != null && cdp.hasAttachedTab(state.tabId),
+    });
   }
 }
 
@@ -596,9 +619,9 @@ async function executeAction(action) {
       await waitForPageStable(state.tabId, { quietMs: 180, timeoutMs: 2500 });
       return { ok: true, detail: `navigated to ${action.url}` };
     }
-    // Coordinate actions use trusted CDP input only when the optional debugger
-    // permission was granted explicitly. Otherwise the frame adapter attempts
-    // a best-effort DOM/pointer dispatch and reports that limitation.
+    // Coordinate actions use trusted CDP input only after the user enables the
+    // feature. Chrome grants the non-optional debugger permission at install;
+    // the in-product switch controls whether we ever attach.
     if (action.ref == null && action.x != null && action.y != null) {
       const point = cdp.normalizeCoordinates(action.x, action.y, {
         coordinateSpace: action.coordinateSpace || "css",
@@ -613,7 +636,7 @@ async function executeAction(action) {
             y: point.y - coordinateTarget.offsetY,
           }
         : cssAction;
-      if (await hasDebuggerPermission()) {
+      if (await canUseCanvasControl()) {
         if (type === "click") {
           return await cdp.clickAt(state.tabId, point.x, point.y);
         }
@@ -826,7 +849,7 @@ async function captureVisibleScreenshot(tabId, viewport) {
       viewport,
     });
   } catch (error) {
-    if (!(await hasDebuggerPermission())) throw error;
+    if (!(await canUseCanvasControl())) throw error;
     const shot = await cdp.captureScreenshot(tabId, {
       format: "jpeg",
       quality: 68,
@@ -905,6 +928,10 @@ async function hasDebuggerPermission() {
   return chrome.permissions.contains({ permissions: ["debugger"] });
 }
 
+async function canUseCanvasControl() {
+  return state?.config?.canvasControlEnabled === true && await hasDebuggerPermission();
+}
+
 function applyAccessToState(access) {
   if (access?.stage !== "ready") return;
   state.environment = {
@@ -925,3 +952,6 @@ function originOf(url) {
 
 // Clean up the CDP attachment when the driven tab closes.
 chrome.tabs.onRemoved.addListener((tabId) => { cdp.detach(tabId).catch(() => {}); });
+// Best-effort cleanup before Chrome suspends or unloads the MV3 worker. Chrome
+// also detaches automatically when the extension is disabled/unloaded.
+chrome.runtime.onSuspend?.addListener(() => { cdp.detachAll().catch(() => {}); });

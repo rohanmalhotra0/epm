@@ -62,6 +62,29 @@ class MockProvider(AIProvider):
         last_user = next((m.content for m in reversed(messages) if m.role == "user"), "")
         if system and system.startswith("COMPOSE:"):
             return system[len("COMPOSE:"):].strip()
+        if system and system.startswith("EPM_TEAM_ROLE:"):
+            role = system.splitlines()[0].partition(":")[2].strip() or "Specialist"
+            assignment = next(
+                (
+                    line.partition(":")[2].strip()
+                    for line in system.splitlines()
+                    if line.startswith("Assignment:")
+                ),
+                "Analyze the task from this role's perspective.",
+            )
+            return (
+                f"{role} analysis\n\n"
+                f"Focus: {assignment}\n\n"
+                f"For “{last_user.strip()[:240]}”, start by confirming the project scope, "
+                "target application and cube, environment classification, relevant metadata, "
+                "and the expected business outcome. Treat tenant-specific details as assumptions "
+                "until they are verified against project context.\n\n"
+                "Recommended next steps:\n"
+                "1. Record the inputs, dependencies, and acceptance criteria for this workstream.\n"
+                "2. Validate the proposal with read-only metadata and reconciliation checks.\n"
+                "3. Document exceptions, required approvals, and a rollback or recovery path.\n\n"
+                "No live tenant, browser, or screen was accessed, and no EPM changes were made."
+            )
         text = last_user.strip()
         return (
             "I'm the EPM Wizard local assistant (deterministic demo provider). "

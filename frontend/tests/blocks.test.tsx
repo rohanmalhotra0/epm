@@ -65,7 +65,86 @@ describe("inline blocks", () => {
       ],
     });
     expect(screen.getAllByText("OEP_DCSH").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Show dimension table" }));
     expect(screen.getByText("Custom dimension")).toBeInTheDocument();
+  });
+
+  it("scopes architecture keyboard shortcuts to the focused canvas", () => {
+    renderBlock("cubeArchitecture", {
+      application: "MCWPCF",
+      cube: "OEP_DCSH",
+      dimensionCount: 1,
+      dimensions: [
+        { name: "Account", type: "account", group: "financial", memberCount: 21, rootMembers: [] },
+      ],
+    });
+
+    expect(screen.getByText("100%")).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "+" });
+    expect(screen.getByText("100%")).toBeInTheDocument();
+
+    const canvas = screen.getByRole("group", { name: /Interactive architecture for OEP_DCSH/ });
+    canvas.focus();
+    fireEvent.keyDown(canvas, { key: "+" });
+    expect(screen.getByText("115%")).toBeInTheDocument();
+    fireEvent.keyDown(canvas, { key: "0" });
+    expect(screen.getByText("100%")).toBeInTheDocument();
+  });
+
+  it("selects semantic dimension buttons and exposes persistent details", () => {
+    renderBlock("cubeArchitecture", {
+      application: "MCWPCF",
+      cube: "OEP_DCSH",
+      dimensionCount: 2,
+      dimensions: [
+        {
+          name: "Account",
+          type: "account",
+          group: "financial",
+          memberCount: 21,
+          rootMembers: ["Account Root"],
+          usedOnAxis: "rows",
+          status: "selected",
+          selectionSummary: "Level 0 descendants",
+        },
+        { name: "Bank", type: "custom", group: "custom", memberCount: 4, rootMembers: [] },
+      ],
+    });
+
+    const account = screen.getByRole("button", { name: /^Account, Account, 21 members$/ });
+    expect(account).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(account);
+    expect(account).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("complementary", { name: "Account details" })).toHaveTextContent("Level 0 descendants");
+    expect(screen.getByRole("complementary", { name: "Account details" })).toHaveTextContent("Account Root");
+  });
+
+  it("uses one search state for the graph, result count, and table", () => {
+    renderBlock("cubeArchitecture", {
+      application: "MCWPCF",
+      cube: "OEP_DCSH",
+      dimensionCount: 2,
+      dimensions: [
+        { name: "Account", type: "account", group: "financial", memberCount: 21, rootMembers: [] },
+        { name: "Bank", type: "custom", group: "custom", memberCount: 4, rootMembers: [] },
+      ],
+    });
+
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search dimensions" }), {
+      target: { value: "custom" },
+    });
+    expect(screen.getByText("1 of 2")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Bank, Custom, 4 members$/ })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByText("Select a dimension")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Show dimension table" }));
+    expect(screen.getByRole("region", { name: "Dimension table" })).toHaveTextContent("Bank");
+    expect(screen.getByRole("region", { name: "Dimension table" })).not.toHaveTextContent("Account");
+
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search dimensions" }), {
+      target: { value: "does-not-exist" },
+    });
+    expect(screen.getByText("No dimensions found")).toBeInTheDocument();
+    expect(screen.getByText("0 of 2")).toBeInTheDocument();
   });
 
   it("runtime prompt form submits a /run-rule command", () => {

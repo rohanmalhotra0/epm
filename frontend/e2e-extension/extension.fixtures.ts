@@ -58,13 +58,6 @@ export const test = base.extend<ExtensionFixtures>({
       ...(manifest.host_permissions || []),
       `${fixtureOrigin}/*`,
     ].filter((value, index, values) => values.indexOf(value) === index);
-    // The real UI requests debugger only when a user chooses canvas control.
-    // Browser-chrome permission prompts are likewise inaccessible to
-    // Playwright, so pre-grant it in this temporary copy to exercise the CDP
-    // screenshot and coordinate path.
-    manifest.permissions = [...(manifest.permissions || []), "debugger"].filter(
-      (value, index, values) => values.indexOf(value) === index,
-    );
     fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
     const context = await chromium.launchPersistentContext(userDataDir, {
       channel: "chromium",

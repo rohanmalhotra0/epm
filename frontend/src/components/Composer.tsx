@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@carbon/react";
-import { Attachment, Document, Microphone, MicrophoneFilled, SendFilled, StopFilledAlt } from "@carbon/icons-react";
+import {
+  Attachment,
+  Close,
+  Document,
+  Microphone,
+  MicrophoneFilled,
+  SendFilled,
+  StopFilledAlt,
+} from "@carbon/icons-react";
 import { useSpeechRecognition } from "../stt/stt";
 import {
   ACCEPTED_EXTENSIONS,
@@ -49,12 +57,13 @@ export function Composer({
 }) {
   const [text, setText] = useState("");
   const [menuIdx, setMenuIdx] = useState(0);
+  const [slashMenuOpen, setSlashMenuOpen] = useState(true);
   const [pending, setPending] = useState<PendingAttachment[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const dragDepth = useRef(0);
   const ref = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const showMenu = text.startsWith("/") && !text.includes(" ");
+  const showMenu = slashMenuOpen && text.startsWith("/") && !text.includes(" ");
   const filtered = SLASH.filter((command) => command.startsWith(text.toLowerCase()));
 
   // Voice dictation (Web Speech API). Interim results preview in place; final
@@ -177,6 +186,12 @@ export function Composer({
       if (e.key === "Tab" || (e.key === "Enter" && filtered.length)) {
         e.preventDefault();
         setText(filtered[menuIdx] + " ");
+        setSlashMenuOpen(false);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setSlashMenuOpen(false);
         return;
       }
     }
@@ -201,6 +216,7 @@ export function Composer({
                 onMouseDown={(e) => {
                   e.preventDefault();
                   setText(command + " ");
+                  setSlashMenuOpen(false);
                   ref.current?.focus();
                 }}
               >
@@ -209,7 +225,7 @@ export function Composer({
             ))}
           </div>
         )}
-        <div className={`composer-surface ${listening ? "is-listening" : ""}`} aria-busy={uploading || streaming}>
+        <div className={`composer-surface ${listening ? "is-listening" : ""}`}>
           {pending.length > 0 && (
             <div className="attach-chips" role="list" aria-label="Attached files">
               {pending.map((a) => (
@@ -224,7 +240,7 @@ export function Composer({
                     aria-label={`Remove ${a.filename}`}
                     onClick={() => setPending((p) => p.filter((x) => x.localId !== a.localId))}
                   >
-                    ✕
+                    <Close size={16} aria-hidden="true" />
                   </button>
                 </span>
               ))}
@@ -239,6 +255,7 @@ export function Composer({
             onChange={(e) => {
               setText(e.target.value);
               setMenuIdx(0);
+              setSlashMenuOpen(true);
             }}
             onKeyDown={onKey}
             aria-label="Message EPM Wizard"

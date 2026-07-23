@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "EPM Wizard — Narrated Browser Agent",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Narrated Oracle EPM browser agent with a safety gate and AI-grounded Excel context for macros, formulas, and workbook structure.",
   "minimum_chrome_version": "116",
   "icons": {
@@ -12,6 +12,7 @@
   },
   "permissions": [
     "activeTab",
+    "debugger",
     "scripting",
     "sidePanel",
     "storage"
@@ -23,9 +24,6 @@
     "http://localhost:8000/*",
     "http://127.0.0.1:3000/*",
     "http://127.0.0.1:8000/*"
-  ],
-  "optional_permissions": [
-    "debugger"
   ],
   "optional_host_permissions": [
     "https://*/*",

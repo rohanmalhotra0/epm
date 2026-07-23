@@ -5,10 +5,10 @@ import { useScrollReveal } from "../hooks/useScrollReveal";
 import { TrustBoundaryDiagram } from "./marketingDiagrams";
 
 /**
- * Public product documentation — served at /docs WITHOUT the Google auth gate
+ * Public product documentation, served at /docs WITHOUT the Google auth gate
  * (see main.tsx's public router and deploy/fly/auth.fly.toml). It shares the
  * landing page's Carbon shell so the two read as one product: same dark
- * surfaces, hairline borders, IBM Plex, sharp corners. Static content — no
+ * surfaces, hairline borders, IBM Plex, sharp corners. Static content, no
  * backend calls. Motion is functional only (a gentle scroll-reveal and the
  * self-drawing trust-boundary diagram) and fully reduced-motion compliant.
  *
@@ -69,7 +69,7 @@ export function DocsPage() {
   const [active, setActive] = useState<string>(NAV[0].id);
 
   // Scrollspy for the sticky table of contents. Independent of motion
-  // preferences — it is a navigation aid, not an animation.
+  // preferences because it is a navigation aid, not an animation.
   useEffect(() => {
     if (typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver(
@@ -95,7 +95,7 @@ export function DocsPage() {
             <img src="/favicon.svg" alt="" width={24} height={24} />
             <span>EPM&nbsp;Wizard</span>
             <span className="docs-brand-sep">/</span>
-            <span className="docs-brand-docs">Docs</span>
+            <span className="docs-brand-docs">Documentation</span>
           </Link>
           <div className="docs-nav-right">
             <Link className="docs-nav-link" to="/">
@@ -140,10 +140,10 @@ export function DocsPage() {
             </p>
             <h1 data-reveal>The AI workspace for Oracle EPM implementation</h1>
             <p className="docs-lede" data-reveal>
-              EPM Wizard is a ChatGPT-style chat app for Oracle EPM (Hyperion Planning) work — you describe what you want,
+              EPM Wizard is a ChatGPT-style chat app for Oracle EPM (Hyperion Planning) work. You describe what you want,
               and results come back as live, interactive blocks instead of walls of text. Alongside it, an optional Chrome
               extension, the Narrated Browser Agent, can drive Oracle EPM Cloud's own web UI while narrating each step and
-              — with its default safety gate enabled — holding recognized risky actions for your approval. This page covers
+              hold recognized risky actions for your approval when its default safety gate is enabled. This page covers
               what the product is, how to get started, and where its honest limits are.
             </p>
           </div>
@@ -153,8 +153,8 @@ export function DocsPage() {
             <h2 data-reveal>Overview</h2>
             <p data-reveal>
               EPM Wizard has two surfaces. Most work happens in the <em>chat web app</em>: it is the primary interface, and
-              what it returns is structured and interactive — a form preview you can read like a grid, a cube map, a
-              validation report, a deployment plan — not paragraphs you have to decode. When a task means clicking through
+              what it returns is structured and interactive: a form preview you can read like a grid, a cube map, a
+              validation report, or a deployment plan. You do not have to decode paragraphs. When a task means clicking through
               Oracle's own screens, the <em>Narrated Browser Agent</em> extension can take the wheel in your browser and
               talk you through every move.
             </p>
@@ -189,30 +189,48 @@ export function DocsPage() {
             <h2 data-reveal>Quickstart</h2>
             <ol className="docs-steps">
               <li data-reveal>
-                <b>Install the Chrome extension.</b> <ExtensionDownload children="Download the public ZIP" />, unzip it,
-                open <code>chrome://extensions</code>, enable Developer mode, and choose <b>Load unpacked</b>. The current
-                build is a Chrome 116+ Manifest V3 extension and is not yet in the Chrome Web Store.
+                <div className="docs-step-header">
+                  <b>Install the Chrome extension</b>
+                  <span>Chrome 116+</span>
+                </div>
+                <p>
+                  Download and unzip the extension. Open <code>chrome://extensions</code>, enable Developer mode, then
+                  choose <b>Load unpacked</b>. Select the unzipped folder.
+                </p>
+                <div className="docs-step-actions">
+                  <ExtensionDownload children="Download extension ZIP" />
+                  <small>Manifest V3 · Chrome Web Store release coming later</small>
+                </div>
               </li>
               <li data-reveal>
-                <b>Open the web workspace.</b> On the hosted deployment, continuing to <code>/app</code> starts the Google
-                sign-in gate. A local or self-hosted deployment may open the app directly instead.
+                <div className="docs-step-header"><b>Open the web workspace</b><span>Website</span></div>
+                <p>
+                  On the hosted deployment, continuing to <code>/app</code> starts Google sign-in. A local or self-hosted
+                  deployment may open the app directly.
+                </p>
               </li>
               <li data-reveal>
-                <b>Connect Oracle before an extension run.</b> Add a non-demo Oracle EPM environment with a username and
-                password or OCI IAM OAuth client credentials. The extension requires both a valid website session and a
-                connected live environment before it enables <b>Start</b>.
+                <div className="docs-step-header"><b>Connect Oracle EPM</b><span>Environment</span></div>
+                <p>
+                  Add a non-demo environment with a username and password or OCI IAM OAuth client credentials. A valid
+                  website session and connected live environment enable <b>Start</b>.
+                </p>
               </li>
               <li data-reveal>
-                <b>Explore the web workspace in Demo Mode.</b> The app includes a fixture <code>MCWPCF</code> Planning
-                application plus a deterministic provider, so the web workspace itself can be explored without an AI key
-                or Oracle tenant. Demo Mode does not unlock a browser-agent run.
+                <div className="docs-step-header"><b>Explore Demo Mode</b><span>No tenant required</span></div>
+                <p>
+                  The included <code>MCWPCF</code> Planning fixture and deterministic provider let you explore the web
+                  workspace without an AI key or Oracle tenant. Demo Mode does not unlock a browser-agent run.
+                </p>
               </li>
               <li data-reveal>
-                <b>Try an example chat message.</b> Type a request in plain language and watch it come back as an
-                interactive block:
+                <div className="docs-step-header"><b>Try an example request</b><span>Chat</span></div>
+                <p>Type a request in plain language and review the interactive result:</p>
                 <Code>Create an Actuals form with level-zero descendants of Total Payroll in rows</Code>
-                Then refine it conversationally — <em>move Entity to POV</em>, <em>hide March</em>, <em>use aliases</em> —
-                or ask <code>/help</code> to see what the assistant can do.
+                <p>
+                  Refine it conversationally with <em>move Entity to POV</em>, <em>hide March</em>, or <em>use aliases</em>.
+                  Ask <code>/help</code> to see what else the assistant can do.
+                </p>
               </li>
             </ol>
           </section>
@@ -255,7 +273,7 @@ export function DocsPage() {
               You can attach files with the paperclip: an LCM Artifact Snapshot <code>.zip</code> to teach it full rule
               bodies, hierarchies, and variables, or an <code>.xlsx</code> / <code>.csv</code> spreadsheet to work from
               existing layouts. And where your browser supports the Web Speech API, you can dictate a message by voice and
-              have narration read back to you — this is browser-dependent and may be unavailable.
+              have narration read back to you. This is browser-dependent and may be unavailable.
             </p>
           </section>
 
@@ -263,13 +281,13 @@ export function DocsPage() {
           <section id="blocks" className="docs-section">
             <h2 data-reveal>Reading the results</h2>
             <p data-reveal>
-              Answers render <em>inline</em> as typed, interactive blocks — the thing itself, not a description of it. Each
+              Answers render <em>inline</em> as typed, interactive blocks: the thing itself, not a description of it. Each
               block knows its own shape, so a form preview reads like an EPM grid and a cube map draws as a diagram.
             </p>
             <div className="docs-cards" data-reveal>
               <div className="docs-card">
                 <b>Form preview grid</b>
-                <span>An EPM-style grid with a POV / Pages bar, rows, and columns — read the form before it exists.</span>
+                <span>An EPM-style grid with a POV / Pages bar, rows, and columns. Read the form before it exists.</span>
               </div>
               <div className="docs-card">
                 <b>Cube map</b>
@@ -277,7 +295,7 @@ export function DocsPage() {
               </div>
               <div className="docs-card">
                 <b>Validation report</b>
-                <span>What passed, what failed, and why — checked against tenant metadata before anything ships.</span>
+                <span>What passed, what failed, and why, checked against tenant metadata before anything ships.</span>
               </div>
               <div className="docs-card">
                 <b>Deployment plan · progress · result</b>
@@ -289,7 +307,7 @@ export function DocsPage() {
               </div>
               <div className="docs-card">
                 <b>Grounded on</b>
-                <span>The real rules, templates, and naming a draft was built from — retrieval made visible.</span>
+                <span>The real rules, templates, and naming a draft was built from, with retrieval made visible.</span>
               </div>
               <div className="docs-card">
                 <b>Runtime-prompt form</b>
@@ -306,7 +324,7 @@ export function DocsPage() {
             </div>
             <p data-reveal>
               For forms and reports there is also an opt-in <em>Artifacts side panel</em>. It opens on request and shows a
-              structural preview of the artifact, and lets you edit it with natural-language prompts — for the whole
+              structural preview of the artifact, and lets you edit it with natural-language prompts for the whole
               artifact, a table, or a single cell. It is a preview-and-prompt surface, not a full spreadsheet editor.
             </p>
           </section>
@@ -332,7 +350,7 @@ export function DocsPage() {
               <li className="gate">
                 <span>03</span>
                 <b>Approve</b>
-                <em>you, explicitly — it stops here</em>
+                <em>you, explicitly; it stops here</em>
               </li>
               <li>
                 <span>04</span>
@@ -361,33 +379,45 @@ export function DocsPage() {
               The Narrated Browser Agent is a Manifest V3 Chrome extension that drives Oracle EPM Cloud's real web UI on the
               tab you point it at, and narrates every step in a side panel so you can watch exactly what it does. It acts
               only on the tab you choose, and you can <b>Start</b>, <b>Pause</b>, <b>Resume</b>, or <b>Stop</b> it at any
-              time — with optional spoken narration where your browser supports the Web Speech API.
+              time. Optional spoken narration is available where your browser supports the Web Speech API.
             </p>
             <ol className="docs-steps">
               <li data-reveal>
-                <b>Install it.</b> Today you load it unpacked: <ExtensionDownload children="download the public extension ZIP" />{" "}
-                (or point at the repo's <code>extension/</code> folder), unzip it, then open{" "}
-                <code>chrome://extensions</code>, turn on Developer mode, and <b>Load unpacked</b> the folder. A Chrome
-                Web Store listing will replace this step once it is published.
+                <div className="docs-step-header">
+                  <b>Install the extension</b>
+                  <span>Unpacked</span>
+                </div>
+                <p>
+                  Download and unzip the public build. Open <code>chrome://extensions</code>, turn on Developer mode,
+                  choose <b>Load unpacked</b>, and select the extension folder.
+                </p>
+                <div className="docs-step-actions">
+                  <ExtensionDownload children="Download extension ZIP" />
+                  <small>You can also use the repository's <code>extension/</code> folder.</small>
+                </div>
               </li>
               <li data-reveal>
-                <b>Connect and launch it from the app.</b> Complete the hosted website sign-in (or use your local/self-hosted
-                session), connect a non-demo Oracle environment, then open the Browser Agent page at <code>/app/agent</code>.
-                It detects the extension and
-                launches it on your current tab, handing it the backend URL, your project, and an optional goal — no manual
-                setup. Open your Oracle EPM tab, then press <b>Start</b> in the panel.
+                <div className="docs-step-header"><b>Connect and launch</b><span>Browser Agent</span></div>
+                <p>
+                  Sign in, connect a non-demo Oracle environment, then open <code>/app/agent</code>. The app detects the
+                  extension and hands off the backend URL, project, and optional goal. Open your Oracle EPM tab, then
+                  press <b>Start</b>.
+                </p>
               </li>
               <li data-reveal>
-                <b>Watch it work.</b> The side panel streams a plain-language narration of each step, shows the current
-                action, and counts the steps taken. Read-only actions run on their own; risky ones stop for you (below).
+                <div className="docs-step-header"><b>Watch the run</b><span>Live narration</span></div>
+                <p>
+                  The side panel narrates each step, shows the current action, and counts progress while the browser agent
+                  works on the selected tab.
+                </p>
               </li>
             </ol>
             <h3 data-reveal>How it grounds itself</h3>
             <p data-reveal>
               The agent targets elements semantically, not by pixel coordinates. It reads the page's <em>accessibility
-              tree</em> — roles, names, and values — and assigns each interactive element a stable reference id, so it acts
-              on <code>ref=42</code> rather than a location on screen. When a view carries no accessibility information —
-              canvas and JET data grids are the hard case — it falls back to a screenshot plus a vision model to decide
+              tree</em>, including roles, names, and values, and assigns each interactive element a stable reference id, so it acts
+              on <code>ref=42</code> rather than a location on screen. When a view carries no accessibility information,
+              as can happen with canvas and JET data grids, it falls back to a screenshot plus a vision model to decide
               where to act.
             </p>
             <h3 data-reveal>The production-safety gate</h3>
@@ -398,11 +428,11 @@ export function DocsPage() {
             <ul className="docs-list">
               <li data-reveal>
                 <b>A destructive target.</b> The element about to be clicked or typed has an accessible name matching a
-                destructive verb — deploy, delete, clear, run-rule, refresh database, promote, publish. Held everywhere.
+                destructive verb such as deploy, delete, clear, run-rule, refresh database, promote, or publish. Held everywhere.
               </li>
               <li data-reveal>
-                <b>Any write on a production tab.</b> When the tab looks like a production tenant, every write — including
-                blind coordinate clicks whose target can't be read — is held.
+                <b>Any write on a production tab.</b> When the tab looks like a production tenant, every write is held,
+                including blind coordinate clicks whose target cannot be read.
               </li>
               <li data-reveal>
                 <b>A coordinate-only write.</b> A click or type whose target cannot be identified is held even outside a
@@ -415,7 +445,7 @@ export function DocsPage() {
             </ul>
             <p data-reveal>
               Scroll, wait, screenshot, and same-origin navigation can run without a prompt. The gate is on by default and
-              can be toggled in the panel's settings. It is a heuristic — accessible-name and URL matching — not a proof
+              can be toggled in the panel's settings. It is a heuristic based on accessible-name and URL matching, not a proof
               of safety.
             </p>
             <blockquote className="docs-quote" data-reveal>
@@ -423,11 +453,12 @@ export function DocsPage() {
             </blockquote>
             <p data-reveal>
               Honest limits, stated plainly: the browser agent has <b>not</b> been validated against a live Oracle tenant.
-              The Oracle-specific UI hardening — nested iframes, canvas / JET grids, selector heuristics, and SSO — is in
-              progress. Screenshots use Chrome's visible-tab capture first; if the optional <code>debugger</code> permission
-              is granted, CDP can provide the fallback capture and coordinate actions, and Chrome shows its
-              "… is debugging this browser" banner while attached. Validate against a real Planning UI before trusting any
-              driving behaviour.
+              The Oracle-specific UI hardening for nested iframes, canvas / JET grids, selector heuristics, and SSO is in
+              progress. Screenshots use Chrome&apos;s visible-tab capture first. Chrome requires the <code>debugger</code>
+              permission at install time, while trusted canvas control stays off in EPM Wizard until you enable it. CDP can
+              then provide fallback capture and coordinate actions, and Chrome shows its &quot;… is debugging this
+              browser&quot; banner only while attached. Validate against a real Planning UI before trusting any driving
+              behaviour.
             </p>
           </section>
 
@@ -435,7 +466,7 @@ export function DocsPage() {
           <section id="connect" className="docs-section">
             <h2 data-reveal>Connect your tenant &amp; model</h2>
             <p data-reveal>
-              Demo Mode needs nothing external. To use a real model or a real environment, open <em>Settings</em> — no file
+              Demo Mode needs nothing external. To use a real model or a real environment, open <em>Settings</em>. No file
               editing required.
             </p>
             <ul className="docs-list">
@@ -454,7 +485,7 @@ export function DocsPage() {
               What the connection is used for, stated plainly: read-only metadata and rule execution use the documented
               Oracle Planning REST API. Automated form <em>deployment</em> to a live tenant is <b>not</b> claimed until the
               documented migration workflow is validated against a development tenant. EPM Automate is installed locally, on
-              your own machine — it is not redistributed with EPM Wizard.
+              your own machine. It is not redistributed with EPM Wizard.
             </p>
           </section>
 
@@ -467,7 +498,7 @@ export function DocsPage() {
               the AI provider you select; its hosting and provider policies apply. In both modes, secrets are kept out of
               model prompts and scrubbed from logs and diagnostics.
             </p>
-            <figure className="docs-fig" data-reveal>
+            <figure className="docs-fig" data-reveal tabIndex={0}>
               <TrustBoundaryDiagram />
               <figcaption>
                 The trust boundary. Configured credentials stay out of model prompts; typed connector code reaches Oracle.
@@ -481,7 +512,7 @@ export function DocsPage() {
               </li>
               <li data-reveal>
                 <b>No shell, ever.</b> Executable actions are typed, allowlisted functions. External commands run as
-                argument arrays with strict validation — no path traversal, no shell metacharacters — plus timeouts.
+                argument arrays with strict validation, no path traversal or shell metacharacters, plus timeouts.
               </li>
               <li data-reveal>
                 <b>Local mode stays local.</b> When you self-host on your machine, projects, conversations, contexts,
@@ -496,7 +527,7 @@ export function DocsPage() {
             <h2 data-reveal>The model</h2>
             <p data-reveal>
               EPM Wizard runs on any provider you configure (Anthropic, any OpenAI-compatible endpoint, or Gemini), and it
-              also ships its own fine-tuned <em>coder</em> — a LoRA fine-tune of Qwen2.5-32B-Instruct specialized for one
+              also ships its own fine-tuned <em>coder</em>, a LoRA fine-tune of Qwen2.5-32B-Instruct specialized for one
               job: turning a plain-English request into a schema-valid <code>FormSpecification</code>, and applying
               natural-language edits to an existing spec.
             </p>
@@ -511,7 +542,7 @@ export function DocsPage() {
               </div>
               <div className="docs-card">
                 <b>Result</b>
-                <span>Converged cleanly — eval loss 0.011 → 0.0038</span>
+                <span>Converged cleanly: eval loss 0.011 → 0.0038</span>
               </div>
             </div>
             <p data-reveal>
@@ -520,7 +551,7 @@ export function DocsPage() {
             </p>
             <blockquote className="docs-quote" data-reveal>
               v1 is a pipeline-validation checkpoint. It was trained on a synthetic, template-derived corpus from a single
-              demo application, so the low loss reflects the regularity of that data — not a measure of real-world quality,
+              demo application, so the low loss reflects the regularity of that data, not a measure of real-world quality,
               which has not yet been evaluated.
             </blockquote>
             <p data-reveal>
@@ -534,15 +565,37 @@ export function DocsPage() {
           <section id="next" className="docs-section">
             <h2 data-reveal>Next steps</h2>
             <div className="docs-next" data-reveal>
-              <h3>Ready to try it?</h3>
-              <p>Install the extension, or open the web workspace in Demo Mode with no key or tenant.</p>
-              <ExtensionDownload />
-              <a className="docs-signin" href={APP_ENTRY}>
-                <GoogleGlyph />
-                <span>Sign in with Google</span>
-              </a>
-              <p style={{ marginTop: 16 }}>
-                Or head <Link to="/">back to the landing page</Link> for the overview.
+              <div className="docs-next-intro">
+                <p className="docs-next-kicker">Choose a starting point</p>
+                <h3>Start in the workspace, or add the browser agent.</h3>
+                <p>Both paths work independently, so you can begin with the one you need today.</p>
+              </div>
+              <div className="docs-next-grid">
+                <a className="docs-next-option" href={APP_ENTRY}>
+                  <span className="docs-next-option-top">
+                    <span className="docs-next-option-number">01</span>
+                    <span className="docs-next-option-meta">Web workspace</span>
+                  </span>
+                  <strong>Open EPM Wizard</strong>
+                  <small>Continue with Google, then use Demo Mode or connect your Oracle environment.</small>
+                  <span className="docs-next-option-arrow" aria-hidden="true">→</span>
+                </a>
+                <a
+                  className="docs-next-option"
+                  href={__EXTENSION_ZIP_URL__}
+                  download={__EXTENSION_ZIP_NAME__}
+                >
+                  <span className="docs-next-option-top">
+                    <span className="docs-next-option-number">02</span>
+                    <span className="docs-next-option-meta">Chrome extension</span>
+                  </span>
+                  <strong>Download the browser agent</strong>
+                  <small>Unzip the Manifest V3 build and load its folder from Chrome extensions.</small>
+                  <span className="docs-next-option-arrow" aria-hidden="true">↓</span>
+                </a>
+              </div>
+              <p className="docs-next-back">
+                Need the overview first? <Link to="/">Return to the landing page</Link>.
               </p>
             </div>
           </section>
