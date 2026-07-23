@@ -9,7 +9,13 @@
     "preview": "vite preview --port 3000 --host 0.0.0.0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "e2e": "playwright test --project=chromium",
+    "e2e:headed": "playwright test --project=chromium --headed",
+    "e2e:ui": "playwright test --project=chromium --ui",
+    "e2e:debug": "playwright test --project=chromium --debug",
+    "e2e:auth": "playwright test auth.setup.ts --project=auth-capture --headed",
+    "e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@carbon/icons-react": "^11.50.0",
@@ -26,6 +32,8 @@
     "zustand": "^5.0.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
+    "@playwright/test": "^1.61.1",
     "@testing-library/jest-dom": "^6.6.2",
     "@testing-library/react": "^16.0.1",
     "@testing-library/user-event": "^14.5.2",

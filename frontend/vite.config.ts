@@ -1,6 +1,7 @@
 import type { Plugin } from "vite";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { configDefaults } from "vitest/config";
 // @ts-expect-error — plain .mjs build helper, no type declarations.
 import { buildExtensionZip } from "./scripts/build-extension-zip.mjs";
 
@@ -85,6 +86,7 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: ["./tests/setup.ts"],
+    exclude: [...configDefaults.exclude, "e2e/**"],
     css: false,
   },
 });

@@ -48,6 +48,7 @@ export function Header() {
       <div className="meta">
         <Application size={14} />
         <select
+          aria-label="Current project"
           value={projectId ?? ""}
           onChange={(e) => setProject(e.target.value)}
           style={{ background: "transparent", color: "inherit", border: "none", fontSize: 12, cursor: "pointer" }}

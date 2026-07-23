@@ -35,6 +35,25 @@ usable with **zero configuration and no API key**. No Oracle tenant is contacted
 - Frontend (nginx serving the built SPA): `http://localhost:3000`
 - Backend API (localhost-only): `http://127.0.0.1:8000` (Swagger at `/docs`)
 
+### Human-style browser testing
+
+An isolated Playwright + Chromium environment exercises the real frontend,
+nginx proxy, FastAPI backend, streaming responses, accessibility, and
+multi-user identity boundary without touching normal local data:
+
+```bash
+cd frontend
+npm ci
+npx playwright install chromium
+npm run e2e
+```
+
+The harness also supports a one-time interactive OAuth session capture for
+testing a deployed staging environment; credentials and MFA are never given to
+the test runner or an agent. See
+[`frontend/e2e/README.md`](frontend/e2e/README.md) for interactive modes,
+failure traces/videos, and the OAuth workflow.
+
 To use a real AI model or a real Oracle environment, open **Settings** in the UI
 (no `.env` editing required). A `.env` is optional — see `.env.example`.
 

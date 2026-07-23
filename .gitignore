@@ -30,6 +30,9 @@ dist-ts/
 /data/
 backend/data/
 frontend/dist/
+frontend/playwright/.auth/
+frontend/playwright-report/
+frontend/test-results/
 *.db
 *.db-wal
 *.db-shm

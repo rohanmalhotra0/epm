@@ -1,0 +1,51 @@
+# Isolated browser-test stack. Playwright starts and stops this file
+# automatically; /data is an in-memory filesystem, so test records and secrets
+# disappear with the container and never touch a developer's normal volume.
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      EPMW_DATA_DIR: /data
+      EPMW_DISABLE_ENV_SEED: "1"
+      EPMW_LOG_JSON: "false"
+      EPMW_LOG_LEVEL: INFO
+      EPMW_MULTI_USER: "true"
+      EPMW_AUTH_EMAIL_HEADER: X-Forwarded-Email
+    tmpfs:
+      - /data:size=512m,mode=0700
+    ports:
+      - "127.0.0.1:18000:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/health').status == 200 else 1)
+      interval: 2s
+      timeout: 2s
+      retries: 40
+      start_period: 5s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      BACKEND_URL: http://backend:8000
+      DNS_RESOLVER: 127.0.0.11
+    ports:
+      - "127.0.0.1:13000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://localhost:3000/api/health >/dev/null || exit 1
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 3s
