@@ -47,6 +47,10 @@ primary_region = "iad"
   # Provider default. Per-project provider/model is configurable in-app; the
   # TOGETHER_API_KEY secret (below) enables the Together provider.
   EPMW_DEFAULT_PROVIDER = "together"
+  # Explicit current serverless defaults. The backend also self-heals older
+  # environment-managed profiles when Together retires their previous models.
+  TOGETHER_VISION_MODEL = "Qwen/Qwen3.5-9B"
+  TOGETHER_EMBEDDINGS_MODEL = "intfloat/multilingual-e5-large-instruct"
   EPMW_LOG_JSON = "true"
   # SECRETS (never in this file — set via `fly secrets set`, see deploy-fly.sh):
   #   TOGETHER_API_KEY         — Together AI inference key

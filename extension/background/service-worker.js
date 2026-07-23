@@ -21,6 +21,7 @@ import {
   attachActionResult,
   compactHistory,
   compactWorkbookContext,
+  doneActionResult,
   shouldCaptureScreenshot,
 } from "./run-history.js";
 import { CMD, CS, DEFAULT_CONFIG, EVT, PANEL_PORT, STATUS } from "../common/protocol.js";
@@ -459,7 +460,7 @@ async function runLoop() {
       const step = await runOneStep();
       if (!step) break; // paused/stopped/errored mid-step
       if (step.done || step.action?.type === "done") {
-        state.status = STATUS.DONE;
+        state.status = step.result?.ok === false ? STATUS.ERROR : STATUS.DONE;
         break;
       }
       await waitForPageStable(state.tabId, {
@@ -496,7 +497,7 @@ async function runOneStep() {
 
   abortController = new AbortController();
   let finalStep = null;
-  await streamStep(state.config, body, {
+  const streamResult = await streamStep(state.config, body, {
     onToken: (text) => broadcast(EVT.TOKEN, { text }),
     onStep: (s) => { finalStep = s; },
     onError: (message) => broadcast(EVT.ERROR, { message }),
@@ -505,6 +506,7 @@ async function runOneStep() {
   abortController = null;
 
   if (state.status !== STATUS.RUNNING) return null; // paused/stopped during stream
+  if (streamResult?.aborted) return null;
   if (!finalStep) { state.status = STATUS.ERROR; return null; }
 
   finalStep = { ...finalStep, raw: undefined };
@@ -610,7 +612,7 @@ async function capture() {
 async function executeAction(action) {
   const type = action.type;
   try {
-    if (type === "done") return { ok: true, detail: "goal complete" };
+    if (type === "done") return doneActionResult(action);
     if (type === "wait") { await sleep(action.durationMs || 500); return { ok: true, detail: "waited" }; }
     if (type === "screenshot") { pendingScreenshot = true; return { ok: true, detail: "will capture next observation" }; }
     if (type === "navigate") {

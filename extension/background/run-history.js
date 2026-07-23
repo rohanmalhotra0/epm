@@ -26,6 +26,14 @@ export function attachActionResult(step, result, options = {}) {
   };
 }
 
+export function doneActionResult(action = {}) {
+  const reason = String(action.reason || "").trim();
+  if (/^blocked(?:\s*:|$)/i.test(reason)) {
+    return { ok: false, detail: reason };
+  }
+  return { ok: true, detail: "goal complete" };
+}
+
 function compactAction(action = {}) {
   return Object.fromEntries(Object.entries(action).filter(([key, value]) => {
     if (value == null || value === "") return false;

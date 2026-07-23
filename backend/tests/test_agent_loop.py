@@ -36,10 +36,12 @@ class ScriptedProvider(AIProvider):
 
     capabilities = {"streaming": True, "vision": True}
 
-    def __init__(self, response: str) -> None:
+    def __init__(self, response: str | list[str]) -> None:
         super().__init__(ProviderConfig(provider_type="mock", default_model="scripted"))
-        self.response = response
+        self.responses = [response] if isinstance(response, str) else response
+        self.call_count = 0
         self.seen_messages: list[AIMessage] = []
+        self.seen_calls: list[list[AIMessage]] = []
         self.seen_system: str | None = None
         self.seen_max_tokens: int | None = None
 
@@ -52,9 +54,12 @@ class ScriptedProvider(AIProvider):
     async def stream(self, messages, *, system=None, model=None, temperature=0.2,
                      max_tokens=1024, cancel=None) -> AsyncIterator[StreamChunk]:
         self.seen_messages = list(messages)
+        self.seen_calls.append(list(messages))
         self.seen_system = system
         self.seen_max_tokens = max_tokens
-        for word in self.response.split(" "):
+        response = self.responses[min(self.call_count, len(self.responses) - 1)]
+        self.call_count += 1
+        for word in response.split(" "):
             yield TextDelta(word + " ")
         yield StreamDone()
 
@@ -146,6 +151,29 @@ def test_parse_step_falls_back_to_screenshot_on_prose():
     assert step.action.type is ActionType.screenshot
 
 
+def test_parse_step_stops_instead_of_looping_when_screenshot_was_attached():
+    step = parse_step(
+        "truncated model response with no action object",
+        index=1,
+        observation=_obs(screenshot="data:image/jpeg;base64,AAAA"),
+    )
+    assert step.action.type is ActionType.done
+    assert step.done is True
+    assert "stopping instead of looping" in step.narration
+
+
+def test_parse_step_stops_a_repeated_screenshot_request():
+    prior = Step(
+        index=0,
+        narration="capturing",
+        action=Action(type=ActionType.screenshot),
+    )
+    raw = '{"narration":"another look","action":{"type":"screenshot"}}'
+    step = parse_step(raw, index=1, history=[prior])
+    assert step.action.type is ActionType.done
+    assert step.done is True
+
+
 # --- one loop step -------------------------------------------------------------
 
 
@@ -165,8 +193,13 @@ async def test_decide_step_routes_screenshot_via_images():
     await decide_step(provider, "goal", obs, history=[])
     # The observation message must carry the screenshot as an image so the
     # OpenAI-compatible provider routes to its vision role model.
-    last = provider.seen_messages[-1]
-    assert last.images == ["data:image/png;base64,AAAA"]
+    image_message = next(
+        message
+        for call in provider.seen_calls
+        for message in call
+        if message.images
+    )
+    assert image_message.images == ["data:image/png;base64,AAAA"]
     assert provider.seen_system is not None and "narrated browser agent" in provider.seen_system
 
 
@@ -188,6 +221,100 @@ async def test_stream_step_emits_tokens_then_terminal_step():
     assert kinds[0] == "token"
     assert kinds[-1] == "step"
     assert final is not None and final.action.ref == 42
+
+
+async def test_stream_step_repairs_invalid_vision_output_once():
+    provider = ScriptedProvider([
+        "I would click the visible SOFR loan row.",
+        '{"narration":"Opening the visible SOFR loan form.",'
+        '"action":{"type":"click","x":315,"y":1318,'
+        '"coordinateSpace":"image","reason":"visible near-match"}}',
+    ])
+    obs = _obs(
+        screenshot="data:image/png;base64,AAAA",
+        screenshot_meta={"width": 1792, "height": 1390, "format": "png"},
+    )
+
+    final = None
+    async for out in stream_step(provider, "Open the SOFR Loan", obs, history=[]):
+        if out.kind == "step":
+            final = out.step
+
+    assert provider.call_count == 2
+    assert final is not None
+    assert final.action.type is ActionType.click
+    assert final.action.x == 315
+    assert final.action.coordinate_space == "image"
+    assert final.done is False
+    assert "CORRECTION REQUIRED" in provider.seen_calls[1][-1].content
+
+
+async def test_decide_step_repairs_an_invented_ref():
+    provider = ScriptedProvider([
+        '{"narration":"Clicking.","action":{"type":"click","ref":999}}',
+        '{"narration":"Clicking the current Save button.",'
+        '"action":{"type":"click","ref":42}}',
+    ])
+
+    step = await decide_step(provider, "Click Save", _obs(), history=[])
+
+    assert provider.call_count == 2
+    assert step.action.ref == 42
+
+
+async def test_decide_step_prefers_candidate_matching_all_goal_terms():
+    provider = ScriptedProvider([
+        '{"narration":"Opening SOFR.","action":{"type":"click","ref":7}}',
+        '{"narration":"Opening the SOFR loan form.",'
+        '"action":{"type":"click","ref":8}}',
+    ])
+    observation = _obs(nodes=[
+        AxNode(ref=7, role="link", name="SOFR"),
+        AxNode(ref=8, role="link", name="SOFR-LoanBalance"),
+    ])
+
+    step = await decide_step(
+        provider,
+        "Open the SOFR Loan please it should be able to infer it",
+        observation,
+        history=[],
+    )
+
+    assert provider.call_count == 2
+    assert step.action.ref == 8
+    assert "SOFR-LoanBalance" in provider.seen_calls[1][-1].content
+
+
+async def test_invented_ref_repair_is_told_the_best_visible_goal_match():
+    provider = ScriptedProvider([
+        '{"narration":"Opening.","action":{"type":"click","ref":999}}',
+        '{"narration":"Opening the SOFR loan form.",'
+        '"action":{"type":"click","ref":8}}',
+    ])
+    observation = _obs(nodes=[
+        AxNode(ref=7, role="link", name="SOFR"),
+        AxNode(ref=8, role="link", name="SOFR-LoanBalance"),
+    ])
+
+    step = await decide_step(provider, "Open SOFR Loan", observation, history=[])
+
+    assert step.action.ref == 8
+    correction = provider.seen_calls[1][-1].content
+    assert "ref 999 is not in the current snapshot" in correction
+    assert "visible ref 8 ('SOFR-LoanBalance')" in correction
+
+
+async def test_failed_vision_repair_remains_explicitly_blocked():
+    provider = ScriptedProvider("still not executable")
+    obs = _obs(screenshot="data:image/png;base64,AAAA")
+
+    step = await decide_step(provider, "Open the SOFR Loan", obs, history=[])
+
+    assert provider.call_count == 2
+    assert step.done is True
+    assert step.action.type is ActionType.done
+    assert step.action.reason is not None
+    assert step.action.reason.startswith("blocked:")
 
 
 async def test_history_is_included_in_messages():
@@ -223,7 +350,7 @@ async def test_history_includes_action_outcome_and_uses_compact_token_budget():
     assert '"ok":false' in history_message
     assert "button was detached" in history_message
     assert "large raw model output" not in history_message
-    assert provider.seen_max_tokens == 256
+    assert provider.seen_max_tokens == 512
 
 
 def test_observation_accepts_frame_and_screenshot_coordinate_metadata():

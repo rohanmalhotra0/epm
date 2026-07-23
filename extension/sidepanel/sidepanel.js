@@ -703,7 +703,7 @@ els.sitePermission.addEventListener("click", async () => {
       showInlineStatus(
         els.sitePermissionStatus,
         "pending",
-        "Chrome is showing a site-access request in the address bar. Approve it there, then click this button again to verify access.",
+        "Chrome queued the request; it does not open a popup. On the Oracle tab, open Extensions (the puzzle-piece in the toolbar), click Allow beside EPM Wizard, then click Grant current site again.",
       );
       return;
     }

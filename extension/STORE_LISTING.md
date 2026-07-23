@@ -81,7 +81,9 @@ or a docs page). Required because the extension handles website content.
   (`Page.captureScreenshot`) as fallback grounding when a view has no
   accessibility information, and dispatches coordinate mouse clicks
   (`Input.dispatchMouseEvent`) on those same views. Not used to read network
-  traffic or inspect other tabs.
+  traffic. Before the exact current-site grant exists, `getTargets()` may be
+  used without attaching to recover only the URL matching the active tab ID;
+  other target metadata is discarded immediately.
 - **`activeTab`** — Grants access to the tab the user is actively driving.
 - **`scripting`** — Injects the content script that reads the accessibility tree
   and performs click/type/scroll actions by element reference.

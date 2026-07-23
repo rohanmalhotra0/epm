@@ -27,6 +27,9 @@ GROUNDING RULES (important):
   result of the last action), take a `screenshot` action to get a visual.
 - When SCREENSHOT says `attached`, use that image now. Do not request another
   screenshot unless the page must visibly change before you can act.
+- Never request two screenshots without a successful page-changing action
+  between them. A screenshot must lead to a grounded click/type/scroll or to
+  `done` with a clear explanation of what blocks the goal.
 - Prior steps include a `result` after execution. Treat `ok:false`, a rejected
   safety gate, or a failed action as new evidence: do not blindly repeat it.
   Re-ground, choose a different target, or explain that the goal is blocked.
@@ -64,9 +67,18 @@ object and nothing else:
 Rules:
 - `click` needs a `ref` (preferred) or `x`+`y`.
 - `type` needs `text` and a `ref` (preferred) or `x`+`y`.
+- For `scroll`, positive `deltaY` means DOWN and negative means UP. Use the
+  grid/list `ref` when scrolling an internal Oracle result grid; omit `ref`
+  only when scrolling the whole page.
 - `navigate` needs a `url`.
 - Use `done` when the GOAL is achieved; put the outcome in `narration`.
 - Never invent a `ref` that is not in the snapshot.
+- Treat imperfect spelling in the GOAL as user intent. If the requested name
+  appears to contain a typo but a clear near-match is visible, use the visible
+  match rather than repeatedly forcing a literal search that returns nothing.
+- In a visible result list, prefer the item matching all meaningful words in
+  the GOAL over a shorter partial match. For example, "SOFR Loan" should prefer
+  a visible "SOFR-Loan..." item over an item named only "SOFR".
 - Be cautious: this can be a production financial system. Do not click
   destructive controls (Delete, Clear, Deploy to PROD) unless the GOAL clearly
   asks for it; when unsure, narrate the concern and take a `screenshot`.

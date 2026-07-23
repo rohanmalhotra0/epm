@@ -27,6 +27,12 @@ class FakeElement {
     this.isConnected = true;
     this.parentElement = null;
     this.shadowRoot = null;
+    this.clientWidth = 200;
+    this.clientHeight = 50;
+    this.scrollWidth = 200;
+    this.scrollHeight = 50;
+    this.scrollLeft = 0;
+    this.scrollTop = 0;
     for (const child of children) child.parentElement = this;
   }
 
@@ -59,6 +65,17 @@ class FakeElement {
   }
 
   scrollIntoView() {}
+
+  scrollBy({ left = 0, top = 0 }) {
+    this.scrollLeft = Math.max(
+      0,
+      Math.min(this.scrollWidth - this.clientWidth, this.scrollLeft + left),
+    );
+    this.scrollTop = Math.max(
+      0,
+      Math.min(this.scrollHeight - this.clientHeight, this.scrollTop + top),
+    );
+  }
 }
 
 async function loadContentAdapter(documentElement) {
@@ -188,6 +205,38 @@ test("ARIA-poor Oracle grid is exposed as a coordinate-grounded surface", async 
   assert.equal(gridNode.grid.virtualized, true);
   assert.equal(snapshot.ariaPoor, true);
   assert.equal(snapshot.needsScreenshot, true);
+});
+
+test("a ref-grounded scroll moves an internal Oracle grid and reports boundaries", async () => {
+  const grid = new FakeElement("div", {
+    role: "grid",
+    "aria-label": "Accounts results",
+    "aria-rowcount": "200",
+  });
+  grid.scrollHeight = 650;
+  const root = new FakeElement("html", {}, [grid]);
+  const context = await loadContentAdapter(root);
+  const gridNode = context.__epmwAgent.snapshot().nodes.find(
+    (node) => node.name === "Accounts results",
+  );
+
+  const moved = context.__epmwAgent.act({
+    type: "scroll",
+    ref: gridNode.ref,
+    deltaY: 300,
+  });
+  assert.equal(moved.ok, true);
+  assert.match(moved.detail, /Δy=300/);
+  assert.equal(grid.scrollTop, 300);
+
+  grid.scrollTop = 600;
+  const boundary = context.__epmwAgent.act({
+    type: "scroll",
+    ref: gridNode.ref,
+    deltaY: 300,
+  });
+  assert.equal(boundary.ok, false);
+  assert.match(boundary.detail, /scrollable area|boundary/);
 });
 
 test("coordinate normalization maps bounded image pixels into CSS viewport space", () => {

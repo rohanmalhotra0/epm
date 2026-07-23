@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "EPM Wizard — Narrated Browser Agent",
-  "version": "0.6.1",
+  "version": "0.6.4",
   "description": "Narrated Oracle EPM browser agent with a safety gate and AI-grounded Excel context for macros, formulas, and workbook structure.",
   "minimum_chrome_version": "116",
   "icons": {

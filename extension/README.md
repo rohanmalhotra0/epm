@@ -15,6 +15,34 @@ No build step. Plain ES modules + two classic content scripts. Load it as-is,
 or download the packaged ZIP from the public EPM Wizard landing page at
 `/epm-wizard-extension.zip`.
 
+**New in 0.6.4**
+
+- **Reliable visual actions.** Vision responses use constrained action JSON,
+  stale or invented refs are rejected before execution, and one bounded
+  correction attempt can turn a visible screenshot target into a coordinate
+  click instead of stopping early.
+- **Truthful terminal status.** A grounding failure is shown as blocked/error;
+  it is no longer displayed with a green `goal complete` result.
+
+**New in 0.6.3**
+
+- **Screenshot-loop protection.** A malformed visual-model response can no
+  longer become an endless series of screenshots; the run stops with an
+  explicit grounding error after the image has already been supplied.
+- **Oracle grid scrolling.** Scroll actions can target a grid/list ref, report
+  the actual movement, and fall back to a visible internal scroll region when
+  Oracle keeps the document itself fixed.
+- **Accurate connection errors.** Pause and Stop no longer misreport their
+  intentional request cancellation as a backend outage.
+
+**New in 0.6.2**
+
+- **Reliable exact-origin access from the side panel.** When Chrome withholds
+  `tabs.Tab.url`, EPM Wizard resolves only the debugger target matching the
+  active tab ID, discards the other target metadata, and requests the exact
+  current HTTPS origin. The non-interrupting Chrome toolbar fallback now
+  explains where its **Allow** control actually appears.
+
 **New in 0.6.1**
 
 - **Correct Chrome permission flow.** Exact current-origin host grants now

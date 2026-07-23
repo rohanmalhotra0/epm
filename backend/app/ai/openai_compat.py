@@ -29,6 +29,60 @@ _DEFAULT_BASE = {
 }
 # Finite streaming timeout so a stalled upstream errors instead of hanging forever.
 _STREAM_TIMEOUT = httpx.Timeout(connect=10.0, read=60.0, write=10.0, pool=10.0)
+_EPM_AGENT_SYSTEM_MARKER = "You are the EPM Wizard narrated browser agent."
+
+# The computer-use loop has a deliberately small wire contract. Together's
+# Qwen vision models can otherwise spend their response budget reasoning and
+# then emit prose, truncated JSON, or a target label without an executable
+# ref/coordinate. Constrained decoding keeps the provider response parseable;
+# the Action model in the loop still enforces the conditional requirements
+# (click needs ref or x/y, type needs a target and text, etc.).
+_EPM_AGENT_RESPONSE_FORMAT = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "epm_agent_step",
+        "schema": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["narration", "action"],
+            "properties": {
+                "narration": {"type": "string"},
+                "action": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["type"],
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "enum": [
+                                "click",
+                                "type",
+                                "scroll",
+                                "navigate",
+                                "screenshot",
+                                "wait",
+                                "done",
+                            ],
+                        },
+                        "ref": {"type": ["integer", "null"]},
+                        "x": {"type": ["integer", "null"]},
+                        "y": {"type": ["integer", "null"]},
+                        "coordinateSpace": {
+                            "type": ["string", "null"],
+                            "enum": ["css", "image", None],
+                        },
+                        "text": {"type": ["string", "null"]},
+                        "url": {"type": ["string", "null"]},
+                        "deltaX": {"type": ["integer", "null"]},
+                        "deltaY": {"type": ["integer", "null"]},
+                        "durationMs": {"type": ["integer", "null"]},
+                        "reason": {"type": ["string", "null"]},
+                    },
+                },
+            },
+        },
+    },
+}
 
 
 class OpenAICompatibleProvider(AIProvider):
@@ -138,12 +192,37 @@ class OpenAICompatibleProvider(AIProvider):
             # support it (some Ollama builds) ignore the field harmlessly.
             "stream_options": {"include_usage": True},
         }
+        if (
+            system
+            and _EPM_AGENT_SYSTEM_MARKER in system
+            and self.config.provider_type in {"openai", "openrouter", "together"}
+        ):
+            body["response_format"] = _EPM_AGENT_RESPONSE_FORMAT
+            # Qwen3.5 exposes a reasoning channel. For a one-action controller,
+            # disabling it leaves the token budget for the constrained action
+            # object and avoids a valid plan being stranded outside `content`.
+            if (
+                self.config.provider_type == "together"
+                and "qwen3.5" in str(body["model"]).lower()
+            ):
+                body["reasoning"] = {"enabled": False}
         try:
             async with httpx.AsyncClient(timeout=_STREAM_TIMEOUT) as client:
                 async with client.stream("POST", f"{self.base_url}/chat/completions",
                                          headers=self._headers(), json=body) as resp:
                     if resp.status_code >= 400:
                         detail = (await resp.aread()).decode("utf-8", "replace")[:300]
+                        if (
+                            self.config.provider_type == "together"
+                            and resp.status_code == 400
+                            and "non-serverless model" in detail.lower()
+                        ):
+                            raise ProviderError(
+                                f"Together model {body['model']} is no longer available through "
+                                "serverless inference. In Settings → Providers, detect models and "
+                                "replace the affected role model with a current serverless model.",
+                                category="aiProvider",
+                            )
                         raise ProviderError(f"Provider error {resp.status_code}: {detail}",
                                             category="authentication" if resp.status_code == 401 else "aiProvider",
                                             retryable=resp.status_code == 429)

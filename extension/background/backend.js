@@ -262,10 +262,18 @@ export async function connectEpmEnvironment(config, form) {
 
 // Turn a fetch failure / bad status into a human, actionable message instead of
 // a raw "Backend 404". `mode` is "autonomous" (token) or "integrated" (cookie).
-function diagnose({ status, url, mode, networkErr }) {
+function diagnose({ status, url, mode, networkErr, requestBytes }) {
   if (networkErr) {
-    return `Can't reach the backend at ${url}. Check the Server URL in Settings → ` +
-           `Advanced (it should be the EPM Wizard app's address) and your connection.`;
+    const browserDetail = [networkErr?.name, networkErr?.message]
+      .filter(Boolean)
+      .join(": ");
+    const sizeDetail = Number.isFinite(requestBytes)
+      ? `; request ${Math.max(1, Math.round(requestBytes / 1024))} KiB`
+      : "";
+    return `The browser could not send the agent request to ${url}` +
+           `${browserDetail ? ` (${browserDetail}${sizeDetail})` : ""}. ` +
+           "If Test connection succeeds, the Server URL and login are valid; reload the " +
+           "extension and try again.";
   }
   if (status === 401 || status === 403) {
     return mode === "autonomous"
@@ -308,22 +316,31 @@ export async function testConnection(config) {
 // Stream a single agent step. Calls handlers.onToken/onStep/onError/onDone.
 export async function streamStep(config, body, handlers, signal) {
   const mode = (config.apiToken || "").trim() ? "autonomous" : "integrated";
+  const encodedBody = JSON.stringify(body);
   const { url, init } = authedRequest(config, "/api/agent/step", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
+    body: encodedBody,
     signal,
   });
   let response;
   try {
     response = await fetch(url, init);
   } catch (err) {
-    handlers.onError?.(diagnose({ networkErr: err, url, mode }));
-    return;
+    // Pause and Stop intentionally abort the in-flight request. Treating that
+    // AbortError as a backend outage leaves a scary, false error in the panel.
+    if (signal?.aborted || err?.name === "AbortError") return { aborted: true };
+    handlers.onError?.(diagnose({
+      networkErr: err,
+      url,
+      mode,
+      requestBytes: new TextEncoder().encode(encodedBody).byteLength,
+    }));
+    return { ok: false };
   }
   if (!response.ok) {
     handlers.onError?.(diagnose({ status: response.status, url, mode }));
-    return;
+    return { ok: false, status: response.status };
   }
   await readSse(response, ({ event, data }) => {
     if (event === "token") handlers.onToken?.(data.text || "");
@@ -331,4 +348,5 @@ export async function streamStep(config, body, handlers, signal) {
     else if (event === "error") handlers.onError?.(data.message || "agent error");
     else if (event === "done") handlers.onDone?.();
   }, signal);
+  return { ok: true };
 }

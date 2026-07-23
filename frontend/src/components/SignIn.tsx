@@ -224,13 +224,13 @@ function SignInScreen({
       onDragLeave={handleDragLeave}
     >
       <ModalHeader
-        label={(
-          <span className="signin-brand">
+        label="EPM Wizard setup"
+        title={(
+          <span id="signin-title" className="signin-brand text-balance">
             <WatsonHealthAiResults size={20} className="spark" aria-hidden="true" />
-            EPM Wizard setup
+            Connect your Oracle EPM instance
           </span>
         )}
-        title={<span id="signin-title" className="text-balance">Connect your Oracle EPM instance</span>}
         closeModal={connectLater}
         iconDescription="Connect later"
       />

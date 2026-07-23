@@ -5,6 +5,7 @@ import {
   attachActionResult,
   compactHistory,
   compactWorkbookContext,
+  doneActionResult,
   shouldCaptureScreenshot,
 } from "../background/run-history.js";
 
@@ -26,6 +27,23 @@ test("action results are attached without retaining raw model output", () => {
     detail: "button was detached",
     gate: "allowed",
     durationMs: 19,
+  });
+});
+
+test("blocked done actions are failures instead of false goal completions", () => {
+  assert.deepEqual(
+    doneActionResult({
+      type: "done",
+      reason: "blocked: vision response did not contain a valid action",
+    }),
+    {
+      ok: false,
+      detail: "blocked: vision response did not contain a valid action",
+    },
+  );
+  assert.deepEqual(doneActionResult({ type: "done" }), {
+    ok: true,
+    detail: "goal complete",
   });
 });
 

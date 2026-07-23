@@ -11,8 +11,9 @@ function chromeFor({
   contains = false,
   request = true,
   addHostAccessRequest,
+  debuggerTargets,
 } = {}) {
-  const calls = { contains: [], request: [], addHostAccessRequest: [] };
+  const calls = { contains: [], request: [], addHostAccessRequest: [], getTargets: 0 };
   return {
     calls,
     tabs: {
@@ -37,6 +38,14 @@ function chromeFor({
         },
       }),
     },
+    ...(debuggerTargets === undefined ? {} : {
+      debugger: {
+        async getTargets() {
+          calls.getTargets += 1;
+          return debuggerTargets;
+        },
+      },
+    }),
   };
 }
 
@@ -92,6 +101,26 @@ test("an already-granted origin is verified without another permission request",
   assert.equal(result.granted, true);
   assert.equal(result.alreadyGranted, true);
   assert.deepEqual(chromeApi.calls.request, []);
+});
+
+test("a hidden tab URL is resolved from only the matching active debugger target", async () => {
+  const chromeApi = chromeFor({
+    tab: { id: 9 },
+    request: true,
+    debuggerTargets: [
+      { tabId: 8, type: "page", url: "https://unrelated.example/private" },
+      { tabId: 9, type: "page", url: "https://planning.example.com/HyperionPlanning" },
+      { type: "worker", url: "https://worker.example/service-worker.js" },
+    ],
+  });
+  const result = await requestCurrentSiteAccess(chromeApi);
+  assert.equal(result.granted, true);
+  assert.equal(result.origin, "https://planning.example.com");
+  assert.equal(chromeApi.calls.getTargets, 1);
+  assert.deepEqual(chromeApi.calls.request, [{
+    origins: ["https://planning.example.com/*"],
+  }]);
+  assert.deepEqual(chromeApi.calls.addHostAccessRequest, []);
 });
 
 test("a hidden tab URL uses Chrome's current-tab host-access request when available", async () => {

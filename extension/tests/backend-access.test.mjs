@@ -3,6 +3,7 @@ import { after, test } from "node:test";
 import {
   connectEpmEnvironment,
   getExtensionAccess,
+  streamStep,
 } from "../background/backend.js";
 
 const realFetch = globalThis.fetch;
@@ -119,4 +120,40 @@ test("Oracle credentials are sent only to the one-time connect request", async (
   assert.equal(createBody.password, undefined);
   assert.equal(connectBody.password, "not-a-real-secret");
   assert.equal(JSON.stringify(config).includes("not-a-real-secret"), false);
+});
+
+test("an intentional request abort does not report a backend outage", async () => {
+  const controller = new AbortController();
+  const messages = [];
+  globalThis.fetch = async (_url, init) => {
+    controller.abort();
+    throw new DOMException("This operation was aborted", "AbortError");
+  };
+
+  const result = await streamStep(
+    { ...config, apiToken: "" },
+    { goal: "Inspect", observation: {}, history: [] },
+    { onError: (message) => messages.push(message) },
+    controller.signal,
+  );
+
+  assert.deepEqual(result, { aborted: true });
+  assert.deepEqual(messages, []);
+});
+
+test("a real request failure reports the browser cause and payload size", async () => {
+  const messages = [];
+  globalThis.fetch = async () => {
+    throw new TypeError("Failed to fetch");
+  };
+
+  const result = await streamStep(
+    { ...config, apiToken: "" },
+    { goal: "Inspect", observation: {}, history: [] },
+    { onError: (message) => messages.push(message) },
+  );
+
+  assert.deepEqual(result, { ok: false });
+  assert.match(messages[0], /TypeError: Failed to fetch/);
+  assert.match(messages[0], /request \d+ KiB/);
 });

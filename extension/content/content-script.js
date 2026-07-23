@@ -415,6 +415,12 @@
         columns: "horizontal",
         scroll: horizontal ? (vertical ? "both" : "horizontal") : (vertical ? "vertical" : "none"),
       },
+      scrollPosition: {
+        x: Math.round(el.scrollLeft || 0),
+        y: Math.round(el.scrollTop || 0),
+        maxX: Math.max(0, Math.round(el.scrollWidth - el.clientWidth)),
+        maxY: Math.max(0, Math.round(el.scrollHeight - el.clientHeight)),
+      },
     };
   }
 
@@ -608,15 +614,85 @@
     el.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
   }
 
+  function canScrollElement(el, deltaX, deltaY) {
+    if (!el) return false;
+    const maxX = Math.max(0, el.scrollWidth - el.clientWidth);
+    const maxY = Math.max(0, el.scrollHeight - el.clientHeight);
+    const canX = deltaX > 0 ? el.scrollLeft < maxX : deltaX < 0 ? el.scrollLeft > 0 : false;
+    const canY = deltaY > 0 ? el.scrollTop < maxY : deltaY < 0 ? el.scrollTop > 0 : false;
+    return canX || canY;
+  }
+
+  function scrollableFromRef(el, deltaX, deltaY) {
+    if (!el) return null;
+    const candidates = [el];
+    for (let parent = el.parentElement; parent; parent = parent.parentElement) {
+      candidates.push(parent);
+    }
+    candidates.push(...Array.from(el.querySelectorAll?.("*") || []));
+    return candidates.find((candidate) => canScrollElement(candidate, deltaX, deltaY)) || null;
+  }
+
+  function largestVisibleScrollable(deltaX, deltaY) {
+    const candidates = Array.from(document.querySelectorAll("*"))
+      .filter((candidate) => isVisible(candidate) && canScrollElement(candidate, deltaX, deltaY))
+      .map((candidate) => {
+        const rect = candidate.getBoundingClientRect();
+        const visibleWidth = Math.max(0, Math.min(innerWidth, rect.right) - Math.max(0, rect.left));
+        const visibleHeight = Math.max(0, Math.min(innerHeight, rect.bottom) - Math.max(0, rect.top));
+        return { candidate, area: visibleWidth * visibleHeight };
+      })
+      .sort((a, b) => b.area - a.area);
+    return candidates[0]?.candidate || null;
+  }
+
+  function scrollTarget(action) {
+    const deltaX = Number(action.deltaX) || 0;
+    const deltaY = Number(action.deltaY) || 0;
+    if (action.ref != null) {
+      const referenced = registry.get(action.ref);
+      if (!referenced || !referenced.isConnected) {
+        return { error: `local ref ${action.ref} is stale or not present in this frame` };
+      }
+      const target = scrollableFromRef(referenced, deltaX, deltaY);
+      if (!target) return { error: `ref ${action.ref} has no scrollable area in the requested direction` };
+      return { target, label: `local ref ${action.ref}` };
+    }
+
+    const page = document.scrollingElement || document.documentElement;
+    if (canScrollElement(page, deltaX, deltaY)) return { target: page, label: "page" };
+
+    // Oracle ADF/JET frequently keeps the document fixed and scrolls an
+    // internal virtualized grid. When no ref was supplied and the page itself
+    // cannot move, use the largest visible scrollable region instead.
+    const nested = largestVisibleScrollable(deltaX, deltaY);
+    return nested
+      ? { target: nested, label: "largest visible scroll region" }
+      : { error: "no visible scrollable area can move in the requested direction" };
+  }
+
   function execAction(action) {
     const type = action.type;
     if (type === "scroll") {
-      window.scrollBy({
-        top: action.deltaY || 0,
-        left: action.deltaX || 0,
+      const resolved = scrollTarget(action);
+      if (resolved.error) return { ok: false, detail: resolved.error };
+      const target = resolved.target;
+      const beforeX = target.scrollLeft || 0;
+      const beforeY = target.scrollTop || 0;
+      target.scrollBy({
+        top: Number(action.deltaY) || 0,
+        left: Number(action.deltaX) || 0,
         behavior: action.behavior === "smooth" ? "smooth" : "auto",
       });
-      return { ok: true, detail: `scrolled ${action.deltaY || 0}px in ${currentFramePath()}` };
+      const movedX = Math.round((target.scrollLeft || 0) - beforeX);
+      const movedY = Math.round((target.scrollTop || 0) - beforeY);
+      const moved = movedX !== 0 || movedY !== 0;
+      return {
+        ok: moved,
+        detail: moved
+          ? `scrolled ${resolved.label} by Δx=${movedX}, Δy=${movedY} in ${currentFramePath()}`
+          : `${resolved.label} did not move; it may be at a scroll boundary`,
+      };
     }
     if (type === "done" || type === "screenshot" || type === "wait" || type === "navigate") {
       return { ok: true, detail: `${type} handled by service worker` };

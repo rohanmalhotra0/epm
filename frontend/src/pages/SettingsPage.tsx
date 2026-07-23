@@ -58,7 +58,10 @@ export function SettingsPage() {
   const applyTogetherPreset = () => {
     setNp({ ...EMPTY_PROVIDER, name: "Together AI", providerType: "together", baseUrl: "https://api.together.xyz/v1" });
     setDiscovered([]);
-    toast.info("Together AI preset applied", "Paste your Together API key, then Detect models. Set a Vision role model (e.g. a Qwen-VL) for screenshots.");
+    toast.info(
+      "Together AI preset applied",
+      "Paste your Together API key, then Detect models. Set the Vision role to a current serverless model such as Qwen/Qwen3.5-9B.",
+    );
   };
 
   const detectModels = async () => {

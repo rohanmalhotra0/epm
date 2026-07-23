@@ -52,7 +52,11 @@ backend changes that destination.
   capture a CDP screenshot (`Page.captureScreenshot`) and dispatch coordinate
   mouse clicks (`Input.dispatchMouseEvent`) on views that lack accessibility
   information. Chrome shows a "debugging this browser" banner while active.
-  The extension does not read network traffic through this permission.
+  The extension does not read network traffic through this permission. When
+  Chrome withholds the active tab URL before a site grant, EPM Wizard also uses
+  `debugger.getTargets()` without attaching, keeps only the URL whose tab ID
+  matches the active tab, and discards all other target metadata after deriving
+  the exact origin to request.
 - **`activeTab` / `scripting`** — to inject the content script that reads the
   page and to act on the tab you are driving.
 - **`sidePanel`** — to show the narration UI.

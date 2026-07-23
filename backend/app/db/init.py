@@ -17,6 +17,10 @@ from .models import EnvironmentProfile, Project, ProviderProfile
 
 log = get_logger(__name__)
 _BACKEND_DIR = Path(__file__).resolve().parents[2]
+_TOGETHER_SERVERLESS_VISION_MODEL = "Qwen/Qwen3.5-9B"
+_TOGETHER_SERVERLESS_EMBEDDING_MODEL = "intfloat/multilingual-e5-large-instruct"
+_RETIRED_TOGETHER_VISION_MODELS = {"Qwen/Qwen2.5-VL-72B-Instruct"}
+_RETIRED_TOGETHER_EMBEDDING_MODELS = {"BAAI/bge-base-en-v1.5"}
 
 
 def run_migrations() -> None:
@@ -139,8 +143,11 @@ def _seed_from_env(session: Session, project: Project) -> None:
         # serverless, cheap, and strong at both chat and code.
         code_model = os.environ.get("TOGETHER_CODE_MODEL") or "openai/gpt-oss-120b"
         chat_model = os.environ.get("TOGETHER_CHAT_MODEL") or "openai/gpt-oss-120b"
-        vision_model = os.environ.get("TOGETHER_VISION_MODEL") or "Qwen/Qwen2.5-VL-72B-Instruct"
-        embed_model = os.environ.get("TOGETHER_EMBEDDINGS_MODEL") or "BAAI/bge-base-en-v1.5"
+        vision_model = os.environ.get("TOGETHER_VISION_MODEL") or _TOGETHER_SERVERLESS_VISION_MODEL
+        embed_model = (
+            os.environ.get("TOGETHER_EMBEDDINGS_MODEL")
+            or _TOGETHER_SERVERLESS_EMBEDDING_MODEL
+        )
         base = os.environ.get("TOGETHER_URL") or "https://api.together.xyz/v1"
         role_models = {"chat": chat_model, "fast": chat_model, "structured": code_model,
                        "code": code_model, "vision": vision_model, "embedding": embed_model}
@@ -158,15 +165,38 @@ def _seed_from_env(session: Session, project: Project) -> None:
                     has_key=True,  # resolved from env (TOGETHER_API_KEY) at call time
                 )
             )
-        elif existing.name == "Together AI (from environment)" and (
-            existing.default_model == "Qwen/Qwen2.5-Coder-32B-Instruct"
-            or (existing.role_models or {}).get("code") == "Qwen/Qwen2.5-Coder-32B-Instruct"
-        ):
-            # Self-heal an env-seeded profile that still points at the retired
-            # non-serverless default. Never touches user-created providers.
-            existing.default_model = chat_model
-            existing.models = sorted({chat_model, code_model})
-            existing.role_models = role_models
+        elif existing.name == "Together AI (from environment)":
+            # Self-heal only the environment-managed profile when Together
+            # removes a model from serverless inference. User-created provider
+            # profiles are never rewritten.
+            current_roles = dict(existing.role_models or {})
+            retired_code = (
+                existing.default_model == "Qwen/Qwen2.5-Coder-32B-Instruct"
+                or current_roles.get("code") == "Qwen/Qwen2.5-Coder-32B-Instruct"
+            )
+            retired_vision = (
+                current_roles.get("vision") in _RETIRED_TOGETHER_VISION_MODELS
+                and current_roles.get("vision") != vision_model
+            )
+            retired_embedding = (
+                current_roles.get("embedding") in _RETIRED_TOGETHER_EMBEDDING_MODELS
+                and current_roles.get("embedding") != embed_model
+            )
+            if retired_code:
+                existing.default_model = chat_model
+                existing.models = sorted({chat_model, code_model})
+                current_roles.update({
+                    "chat": chat_model,
+                    "fast": chat_model,
+                    "structured": code_model,
+                    "code": code_model,
+                })
+            if retired_vision:
+                current_roles["vision"] = vision_model
+            if retired_embedding:
+                current_roles["embedding"] = embed_model
+            if retired_code or retired_vision or retired_embedding:
+                existing.role_models = current_roles
 
 
 def initialize(seed: bool = True, migrate: bool = True) -> None:

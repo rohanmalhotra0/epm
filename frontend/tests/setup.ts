@@ -1,5 +1,17 @@
 import "@testing-library/jest-dom/vitest";
 
+// jsdom does not implement ResizeObserver. Carbon uses it for modal and menu
+// layout in current releases, so provide the inert browser-test equivalent.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+if (!globalThis.ResizeObserver) {
+  globalThis.ResizeObserver = ResizeObserverStub;
+}
+
 // Node 25 exposes an incomplete experimental `localStorage` unless it is
 // launched with a backing file. Give jsdom tests a deterministic in-memory
 // implementation so persisted Zustand stores behave the same on every Node

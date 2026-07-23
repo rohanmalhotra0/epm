@@ -14,7 +14,8 @@ import json
 import httpx
 import pytest
 
-from app.ai.base import AIMessage, AIProvider, ProviderConfig, TextDelta
+from app.agent.computer_use.prompt import SYSTEM_PROMPT
+from app.ai.base import AIMessage, AIProvider, ProviderConfig, ProviderError, TextDelta
 from app.ai.openai_compat import OpenAICompatibleProvider, _content_parts
 
 
@@ -102,6 +103,7 @@ async def test_stream_text_only_sends_plain_string_content(monkeypatch):
     body = json.loads(request.content)
     assert body["messages"][0] == {"role": "user", "content": "hi"}
     assert body["model"] == "qwen2.5-coder:32b"  # no images -> the default/chat model, not vision
+    assert "response_format" not in body
 
 
 @pytest.mark.asyncio
@@ -134,6 +136,80 @@ async def test_stream_explicit_model_overrides_vision_routing(monkeypatch):
     _ = [c async for c in provider.stream([msg], model="pinned-model")]
     (request,) = transport.requests
     assert json.loads(request.content)["model"] == "pinned-model"
+
+
+@pytest.mark.asyncio
+async def test_together_epm_agent_uses_structured_output_and_disables_qwen_reasoning(
+    monkeypatch,
+):
+    transport = _patch_transport(monkeypatch, lambda req: _sse_response("{}"))
+    provider = OpenAICompatibleProvider(ProviderConfig(
+        provider_type="together",
+        default_model="Qwen/Qwen3.5-9B",
+        role_models={"vision": "Qwen/Qwen3.5-9B"},
+    ))
+    message = AIMessage(
+        role="user",
+        content="SCREENSHOT: attached",
+        images=["data:image/png;base64,AAAA"],
+    )
+
+    _ = [chunk async for chunk in provider.stream(
+        [message],
+        system=SYSTEM_PROMPT,
+        temperature=0,
+        max_tokens=512,
+    )]
+
+    (request,) = transport.requests
+    body = json.loads(request.content)
+    assert body["response_format"]["type"] == "json_schema"
+    schema = body["response_format"]["json_schema"]["schema"]
+    assert schema["required"] == ["narration", "action"]
+    assert "click" in schema["properties"]["action"]["properties"]["type"]["enum"]
+    assert body["reasoning"] == {"enabled": False}
+
+
+@pytest.mark.asyncio
+async def test_generic_epm_endpoint_is_not_forced_to_support_structured_output(
+    monkeypatch,
+):
+    transport = _patch_transport(monkeypatch, lambda req: _sse_response("{}"))
+    provider = OpenAICompatibleProvider(ProviderConfig(
+        provider_type="generic",
+        default_model="local-vision-model",
+    ))
+
+    _ = [chunk async for chunk in provider.stream(
+        [AIMessage(role="user", content="observe")],
+        system=SYSTEM_PROMPT,
+    )]
+
+    (request,) = transport.requests
+    assert "response_format" not in json.loads(request.content)
+
+
+@pytest.mark.asyncio
+async def test_together_non_serverless_error_explains_how_to_replace_model(monkeypatch):
+    _patch_transport(monkeypatch, lambda req: httpx.Response(
+        400,
+        json={
+            "error": {
+                "message": (
+                    "Unable to access non-serverless model "
+                    "Qwen/Qwen2.5-VL-72B-Instruct."
+                ),
+            },
+        },
+    ))
+    provider = OpenAICompatibleProvider(ProviderConfig(
+        provider_type="together",
+        role_models={"vision": "Qwen/Qwen2.5-VL-72B-Instruct"},
+    ))
+    msg = AIMessage(role="user", content="look", images=["data:image/png;base64,AAAA"])
+
+    with pytest.raises(ProviderError, match="Settings → Providers"):
+        _ = [chunk async for chunk in provider.stream([msg])]
 
 
 def test_vision_model_resolution_role_then_env_then_default(monkeypatch):
